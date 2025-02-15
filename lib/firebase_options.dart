@@ -66,4 +66,5 @@ class DefaultFirebaseOptions {
     iosClientId: '575951766528-kisqr9pk6ki6lhce91n3rdgookec850f.apps.googleusercontent.com',
     iosBundleId: 'dev.artan.devio',
   );
+
 }
