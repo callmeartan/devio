@@ -7,30 +7,32 @@ import 'screens/auth_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/profile_screen.dart';
 
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
 final router = GoRouter(
+  navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
   debugLogDiagnostics: true,
   routes: [
     GoRoute(
       path: '/',
-      name: 'landing',
       builder: (context, state) => const LandingScreen(),
     ),
     GoRoute(
       path: '/auth',
-      name: 'auth',
-      builder: (context, state) => AuthScreen(
-        isLogin: state.uri.queryParameters['mode'] == 'login',
-      ),
+      builder: (context, state) {
+        final params = state.extra as Map<String, String>?;
+        return AuthScreen(
+          isLogin: params?['mode'] == 'login',
+        );
+      },
     ),
     GoRoute(
       path: '/chat',
-      name: 'chat',
       builder: (context, state) => const ChatScreen(),
     ),
     GoRoute(
       path: '/profile',
-      name: 'profile',
       builder: (context, state) => const ProfileScreen(),
     ),
   ],

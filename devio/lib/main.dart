@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:developer' as developer;
+import 'package:go_router/go_router.dart';
+import 'screens/landing_screen.dart';
 import 'routes.dart';
 import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Color(0xFF0A0A1F),
+      systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
   
-  developer.log('Starting Devio app...');
   runApp(const DevioApp());
 }
 
@@ -22,12 +26,11 @@ class DevioApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    developer.log('Building DevioApp with router configuration');
     return MaterialApp.router(
       title: 'Devio',
       theme: AppTheme.lightTheme,
-      routerConfig: router,
       debugShowCheckedModeBanner: false,
+      routerConfig: router,
     );
   }
 }

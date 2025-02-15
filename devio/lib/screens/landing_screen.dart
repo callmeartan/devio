@@ -112,17 +112,17 @@ class LandingScreen extends StatelessWidget {
                   ),
                   const Spacer(),
                   ElevatedButton(
-                    onPressed: () => context.pushNamed(
-                      'auth',
-                      queryParameters: {'mode': 'signup'},
+                    onPressed: () => context.go(
+                      '/auth',
+                      extra: {'mode': 'signup'},
                     ),
                     child: const Text('Get Started'),
                   ),
                   const SizedBox(height: 16),
                   OutlinedButton(
-                    onPressed: () => context.pushNamed(
-                      'auth',
-                      queryParameters: {'mode': 'login'},
+                    onPressed: () => context.go(
+                      '/auth',
+                      extra: {'mode': 'login'},
                     ),
                     child: const Text('Login'),
                   ),

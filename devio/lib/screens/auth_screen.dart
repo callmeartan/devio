@@ -57,7 +57,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (!mounted) return;
 
     // TODO: Implement actual authentication
-    context.pushReplacement('/chat');
+    context.go('/chat');
   }
 
   @override
@@ -113,7 +113,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       alignment: Alignment.centerLeft,
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back),
-                        onPressed: () => context.pop(),
+                        onPressed: () => context.go('/'),
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -187,11 +187,9 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextButton(
-                      onPressed: () => context.pushReplacementNamed(
-                        'auth',
-                        queryParameters: {
-                          'mode': widget.isLogin ? 'signup' : 'login'
-                        },
+                      onPressed: () => context.go(
+                        '/auth',
+                        extra: {'mode': widget.isLogin ? 'signup' : 'login'},
                       ),
                       child: Text(
                         widget.isLogin
