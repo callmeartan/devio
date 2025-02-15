@@ -12,6 +12,7 @@ class ChatMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isUserMessage = message.isUserMessage;
     final timeFormat = DateFormat('HH:mm');
 
@@ -23,11 +24,28 @@ class ChatMessage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUserMessage) ...[
-            CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: const Text(
-                'AI',
-                style: TextStyle(color: Colors.white),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.primary,
+                    theme.colorScheme.secondary,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Text(
+                  'AI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -40,34 +58,40 @@ class ChatMessage extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: isUserMessage
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                    ? theme.colorScheme.primary.withOpacity(0.9)
+                    : theme.colorScheme.surface,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: Radius.circular(isUserMessage ? 16 : 4),
+                  bottomRight: Radius.circular(isUserMessage ? 4 : 16),
+                ),
+                border: Border.all(
+                  color: isUserMessage
+                      ? Colors.transparent
+                      : theme.colorScheme.primary.withOpacity(0.2),
+                  width: 1,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SelectableText(
                     message.content,
-                    style: TextStyle(
-                      color: isUserMessage ? Colors.white : null,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: isUserMessage
+                          ? Colors.white
+                          : theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     timeFormat.format(message.timestamp),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: isUserMessage
-                              ? Colors.white.withOpacity(0.7)
-                              : Colors.black54,
-                        ),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isUserMessage
+                          ? Colors.white.withOpacity(0.7)
+                          : theme.colorScheme.onSurface.withOpacity(0.5),
+                    ),
                   ),
                 ],
               ),
@@ -75,11 +99,20 @@ class ChatMessage extends StatelessWidget {
           ),
           if (isUserMessage) ...[
             const SizedBox(width: 8),
-            CircleAvatar(
-              backgroundColor: Colors.grey.shade200,
-              child: const Icon(
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Icon(
                 Icons.person_outline,
-                color: Colors.black54,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ],

@@ -66,9 +66,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Devio Chat'),
+        backgroundColor: theme.colorScheme.background,
+        title: const Text('AI Development Guide'),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline),
@@ -76,68 +79,162 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  return ChatMessage(message: _messages[index]);
-                },
-              ),
-            ),
-            if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, -2),
-                  ),
+      body: Stack(
+        children: [
+          // Background gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  theme.colorScheme.background,
+                  theme.colorScheme.background.withOpacity(0.8),
                 ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _textController,
-                        decoration: const InputDecoration(
-                          hintText: 'Type your message...',
-                          border: InputBorder.none,
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      return ChatMessage(message: _messages[index]);
+                    },
+                  ),
+                ),
+                if (_isLoading)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                theme.colorScheme.primary,
+                                theme.colorScheme.secondary,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'AI',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
-                        maxLines: null,
-                        textCapitalization: TextCapitalization.sentences,
-                        onSubmitted: _isLoading ? null : _handleSubmitted,
+                        const SizedBox(width: 16),
+                        Container(
+                          width: 40,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    border: Border(
+                      top: BorderSide(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        width: 1,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: _isLoading
-                          ? null
-                          : () => _handleSubmitted(_textController.text),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.background,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: theme.colorScheme.primary.withOpacity(0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: TextField(
+                              controller: _textController,
+                              decoration: InputDecoration(
+                                hintText: 'Ask anything about development...',
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                hintStyle: TextStyle(
+                                  color: theme.colorScheme.onBackground
+                                      .withOpacity(0.5),
+                                ),
+                              ),
+                              maxLines: null,
+                              textCapitalization: TextCapitalization.sentences,
+                              onSubmitted: _isLoading ? null : _handleSubmitted,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                theme.colorScheme.primary,
+                                theme.colorScheme.secondary,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.send),
+                            color: Colors.white,
+                            onPressed: _isLoading
+                                ? null
+                                : () => _handleSubmitted(_textController.text),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

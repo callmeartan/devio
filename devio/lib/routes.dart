@@ -9,6 +9,7 @@ import 'screens/profile_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
+  debugLogDiagnostics: true,
   routes: [
     GoRoute(
       path: '/',
