@@ -123,4 +123,85 @@ class AppTheme {
       elevation: 0,
     ),
   );
+
+  static const _textColor = Color(0xFFFFFFFF);
+
+  static ThemeData get darkTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    primaryColor: _primaryColor,
+    scaffoldBackgroundColor: _backgroundColor,
+    colorScheme: const ColorScheme.dark(
+      primary: _primaryColor,
+      secondary: _primaryColor,
+      surface: _surfaceColor,
+      background: _backgroundColor,
+      onPrimary: _textColor,
+      onSecondary: _textColor,
+      onSurface: _textColor,
+      onBackground: _textColor,
+    ),
+    textTheme: const TextTheme(
+      titleLarge: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: _textColor,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: _textColor,
+      ),
+      bodyLarge: TextStyle(
+        fontSize: 16,
+        color: _textColor,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 14,
+        color: _textColor,
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: _surfaceColor,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: _primaryColor),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Colors.red),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _primaryColor,
+        foregroundColor: _textColor,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 12,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: _primaryColor,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 12,
+        ),
+      ),
+    ),
+  );
 }
