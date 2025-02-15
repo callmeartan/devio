@@ -1,78 +1,95 @@
-# Devio - Your AI Guide to App Building
+# DevIO
 
-Devio is a mobile application that provides AI-driven guidance throughout the app development process, from idea validation to deployment.
+AI-driven guidance for app development.
+
+## Overview
+
+DevIO is a modern Flutter application that provides AI-driven guidance for app development. Built with Flutter and Firebase, it offers a robust platform for developers to interact with AI assistance, manage projects, and collaborate effectively.
 
 ## Features
 
-- Clean, modern UI with Material Design 3
-- Chat-based interface for interacting with AI
-- Authentication flow (mock implementation)
-- Progress tracking
-- Profile management
+- 🔐 **Authentication**
+  - Multi-provider authentication (Email, Google, Apple, GitHub)
+  - Secure user session management
+  - Profile management
+
+- 💬 **Real-time Chat**
+  - AI-powered development assistance
+  - Real-time messaging
+  - Code snippet support
+  - File sharing capabilities
+
+- 🎨 **Modern UI/UX**
+  - Dark theme support
+  - Responsive design
+  - Material 3 design principles
+  - Smooth animations and transitions
+
+- 🔥 **Firebase Integration**
+  - Cloud Firestore for data storage
+  - Firebase Authentication
+  - Firebase Storage for file management
+  - Firebase Analytics for usage tracking
+  - Firebase Crashlytics for error reporting
+
+## Technical Stack
+
+- **Framework**: Flutter (SDK >=3.0.0)
+- **State Management**: flutter_bloc, Provider
+- **Routing**: go_router
+- **Code Generation**: freezed, json_serializable
+- **Backend**: Firebase
+- **Authentication**: firebase_auth, google_sign_in, sign_in_with_apple, github_sign_in
+- **Storage**: firebase_storage
+- **Database**: cloud_firestore
+- **Analytics**: firebase_analytics
+- **Error Tracking**: firebase_crashlytics
 
 ## Getting Started
 
 ### Prerequisites
 
-- Flutter SDK (latest stable version)
-- Dart SDK (latest stable version)
-- Android Studio / Xcode for running on emulators/simulators
+- Flutter SDK (>=3.0.0)
+- Dart SDK (>=3.0.0)
+- Firebase project setup
+- IDE (VS Code, Android Studio, or IntelliJ)
 
 ### Installation
 
 1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/devio.git
-```
+   ```bash
+   git clone https://github.com/yourusername/devio.git
+   cd devio
+   ```
 
-2. Navigate to the project directory:
-```bash
-cd devio
-```
+2. Install dependencies:
+   ```bash
+   flutter pub get
+   ```
 
-3. Install dependencies:
-```bash
-flutter pub get
-```
+3. Run code generation:
+   ```bash
+   flutter pub run build_runner build --delete-conflicting-outputs
+   ```
 
-4. Run code generation for Freezed models:
-```bash
-flutter pub run build_runner build --delete-conflicting-outputs
-```
-
-5. Run the app:
-```bash
-flutter run
-```
+4. Run the app:
+   ```bash
+   flutter run
+   ```
 
 ## Project Structure
 
 ```
 lib/
-├── main.dart           # App entry point
-├── routes.dart         # Navigation routes
-├── screens/           # Screen widgets
-│   ├── landing_screen.dart
-│   ├── auth_screen.dart
-│   ├── chat_screen.dart
-│   └── profile_screen.dart
-├── widgets/           # Reusable widgets
-│   └── chat_message.dart
-├── models/            # Data models
-│   └── message.dart
-├── services/          # Business logic
-│   └── ai_service.dart
-└── theme/            # App theme
-    └── app_theme.dart
+├── blocs/          # State management
+├── models/         # Data models
+├── screens/        # UI screens
+├── services/       # Business logic
+├── theme/          # App theming
+├── widgets/        # Reusable widgets
+├── routes.dart     # Navigation routes
+└── main.dart       # App entry point
 ```
-
-## Development
-
-The app is built with:
-- Flutter for the UI framework
-- GoRouter for navigation
-- Freezed for immutable models
-- Material Design 3 for theming
 
 ## Contributing
 
@@ -85,3 +102,9 @@ The app is built with:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Flutter team for the amazing framework
+- Firebase for the robust backend services
+- All contributors who help improve the project
