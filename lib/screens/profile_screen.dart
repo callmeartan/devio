@@ -1,137 +1,185 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:devio/blocs/auth/auth_cubit.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  Future<void> _handleSignOut(BuildContext context) async {
+    await context.read<AuthCubit>().signOut();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  theme.colorScheme.background,
-                  theme.colorScheme.background.withOpacity(0.8),
-                  theme.colorScheme.primary.withOpacity(0.2),
-                ],
+    return BlocListener<AuthCubit, AuthState>(
+      listener: (context, state) {
+        state.whenOrNull(
+          unauthenticated: () => context.go('/'),
+          error: (message) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: SelectableText.rich(
+                  TextSpan(
+                    children: [
+                      const WidgetSpan(
+                        child: Icon(Icons.error_outline, color: Colors.white, size: 16),
+                      ),
+                      const TextSpan(text: ' '),
+                      TextSpan(text: message),
+                    ],
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
               ),
-            ),
-          ),
-          // Animated circles in the background
-          Positioned(
-            right: -100,
-            top: -100,
-            child: Container(
-              width: 300,
-              height: 300,
+            );
+          },
+        );
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // Background gradient
+            Container(
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                   colors: [
+                    theme.colorScheme.background,
+                    theme.colorScheme.background.withOpacity(0.8),
                     theme.colorScheme.primary.withOpacity(0.2),
-                    theme.colorScheme.primary.withOpacity(0),
                   ],
                 ),
               ),
             ),
-          ),
-          SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.all(24.0),
-              children: [
-                // Back button
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => context.pop(),
+            // Animated circles in the background
+            Positioned(
+              right: -100,
+              top: -100,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      theme.colorScheme.primary.withOpacity(0.2),
+                      theme.colorScheme.primary.withOpacity(0),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 32),
-                // Profile avatar with gradient border
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        theme.colorScheme.primary,
-                        theme.colorScheme.secondary,
-                      ],
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: theme.colorScheme.surface,
-                      ),
-                      child: Icon(
-                        Icons.person_outline,
-                        size: 50,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'John Doe', // TODO: Replace with actual user name
-                  style: theme.textTheme.headlineMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'john.doe@example.com', // TODO: Replace with actual email
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onBackground.withOpacity(0.7),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 48),
-                _buildSection(
-                  context,
-                  title: 'Current Progress',
-                  content: 'Planning Phase',
-                  icon: Icons.trending_up,
-                  gradient: true,
-                ),
-                const SizedBox(height: 16),
-                _buildSection(
-                  context,
-                  title: 'Project Status',
-                  content: 'Ideation & Research',
-                  icon: Icons.lightbulb_outline,
-                ),
-                const SizedBox(height: 16),
-                _buildSection(
-                  context,
-                  title: 'Next Steps',
-                  content: 'Define core features and user stories',
-                  icon: Icons.assignment_outlined,
-                ),
-                const SizedBox(height: 48),
-                OutlinedButton.icon(
-                  onPressed: () => context.pushReplacement('/'),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Sign Out'),
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+            SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.all(24.0),
+                children: [
+                  // Back button
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () => context.pop(),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  // Profile avatar with gradient border
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          theme.colorScheme.primary,
+                          theme.colorScheme.secondary,
+                        ],
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: theme.colorScheme.surface,
+                        ),
+                        child: Icon(
+                          Icons.person_outline,
+                          size: 50,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'John Doe', // TODO: Replace with actual user name
+                    style: theme.textTheme.headlineMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'john.doe@example.com', // TODO: Replace with actual email
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onBackground.withOpacity(0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+                  _buildSection(
+                    context,
+                    title: 'Current Progress',
+                    content: 'Planning Phase',
+                    icon: Icons.trending_up,
+                    gradient: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSection(
+                    context,
+                    title: 'Project Status',
+                    content: 'Ideation & Research',
+                    icon: Icons.lightbulb_outline,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSection(
+                    context,
+                    title: 'Next Steps',
+                    content: 'Define core features and user stories',
+                    icon: Icons.assignment_outlined,
+                  ),
+                  const SizedBox(height: 48),
+                  BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) {
+                      final isLoading = state.maybeWhen(
+                        loading: () => true,
+                        orElse: () => false,
+                      );
+                      
+                      return OutlinedButton.icon(
+                        onPressed: isLoading ? null : () => _handleSignOut(context),
+                        icon: isLoading 
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.logout),
+                        label: Text(isLoading ? 'Signing out...' : 'Sign Out'),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

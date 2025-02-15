@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../models/message.dart';
 import '../services/ai_service.dart';
 import '../widgets/chat_message.dart';
+import '../widgets/chat_input.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -13,7 +14,6 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _messages = <Message>[];
-  final _textController = TextEditingController();
   final _scrollController = ScrollController();
   var _isLoading = false;
 
@@ -25,7 +25,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _textController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -51,9 +50,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _handleSubmitted(String text) async {
-    if (text.trim().isEmpty) return;
-
-    _textController.clear();
     setState(() {
       _messages.add(Message.user(text));
       _isLoading = true;
@@ -67,171 +63,87 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: theme.colorScheme.background,
-        title: const Text('AI Development Guide'),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        elevation: 0,
+        title: Row(
+          children: [
+            Icon(
+              Icons.smart_toy,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'AI Development Guide',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: isDark ? Colors.white : const Color(0xFF374151),
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_outline),
+            icon: Icon(
+              Icons.person_outline,
+              color: isDark ? Colors.white : const Color(0xFF374151),
+            ),
             onPressed: () => context.push('/profile'),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(
+            height: 1,
+            color: isDark 
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.1),
+          ),
+        ),
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // Background gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  theme.colorScheme.background,
-                  theme.colorScheme.background.withOpacity(0.8),
-                ],
-              ),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: EdgeInsets.zero,
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                return ChatMessage(
+                  message: message.content,
+                  role: message.isUserMessage 
+                      ? MessageRole.user 
+                      : MessageRole.assistant,
+                  timestamp: message.timestamp,
+                );
+              },
             ),
           ),
-          SafeArea(
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      return ChatMessage(message: _messages[index]);
-                    },
-                  ),
+          Divider(
+            height: 1,
+            color: isDark 
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.1),
+          ),
+          Container(
+            color: theme.scaffoldBackgroundColor,
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 12,
+              bottom: 12 + MediaQuery.of(context).padding.bottom,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 768),
+                child: ChatInput(
+                  onSubmit: _handleSubmitted,
+                  isLoading: _isLoading,
                 ),
-                if (_isLoading)
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                theme.colorScheme.primary,
-                                theme.colorScheme.secondary,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'AI',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Container(
-                          width: 40,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Center(
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    border: Border(
-                      top: BorderSide(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.background,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: theme.colorScheme.primary.withOpacity(0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: TextField(
-                              controller: _textController,
-                              decoration: InputDecoration(
-                                hintText: 'Ask anything about development...',
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                hintStyle: TextStyle(
-                                  color: theme.colorScheme.onBackground
-                                      .withOpacity(0.5),
-                                ),
-                              ),
-                              maxLines: null,
-                              textCapitalization: TextCapitalization.sentences,
-                              onSubmitted: _isLoading ? null : _handleSubmitted,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                theme.colorScheme.primary,
-                                theme.colorScheme.secondary,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.send),
-                            color: Colors.white,
-                            onPressed: _isLoading
-                                ? null
-                                : () => _handleSubmitted(_textController.text),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],

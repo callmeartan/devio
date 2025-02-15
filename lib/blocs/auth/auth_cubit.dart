@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:developer' as developer;
 
 part 'auth_cubit.freezed.dart';
 part 'auth_state.dart';
@@ -11,6 +12,19 @@ class AuthCubit extends Cubit<AuthState> {
   AuthCubit({FirebaseAuth? auth})
       : _auth = auth ?? FirebaseAuth.instance,
         super(const AuthState.initial());
+
+  Future<void> signInAnonymously() async {
+    emit(const AuthState.loading());
+    try {
+      developer.log('Attempting anonymous sign in through AuthCubit...');
+      final userCredential = await _auth.signInAnonymously();
+      developer.log('Anonymous sign in successful: ${userCredential.user?.uid}');
+      emit(const AuthState.authenticated());
+    } on FirebaseAuthException catch (e) {
+      developer.log('Firebase Auth Error in AuthCubit: ${e.code} - ${e.message}');
+      emit(AuthState.error(e.message ?? 'Anonymous sign in failed'));
+    }
+  }
 
   Future<void> signUp({
     required String email,
@@ -45,6 +59,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> signOut() async {
+    emit(const AuthState.loading());
     try {
       await _auth.signOut();
       emit(const AuthState.unauthenticated());
