@@ -4,6 +4,7 @@ import '../models/message.dart';
 import '../services/ai_service.dart';
 import '../widgets/chat_message.dart';
 import '../widgets/chat_input.dart';
+import '../widgets/app_drawer.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -16,6 +17,15 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messages = <Message>[];
   final _scrollController = ScrollController();
   var _isLoading = false;
+
+  // Simulated chat history - replace with your actual chat history
+  final _chatHistory = [
+    'Previous Chat 1',
+    'AI Development Guide',
+    'Flutter App Architecture',
+    'Database Design',
+    'Previous Chat 5',
+  ];
 
   @override
   void initState() {
@@ -66,33 +76,36 @@ class _ChatScreenState extends State<ChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
+      drawer: AppDrawer(chatHistory: _chatHistory),
       appBar: AppBar(
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(
+              Icons.menu,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
+        ),
         title: Row(
           children: [
             Icon(
               Icons.smart_toy,
-              color: theme.colorScheme.primary,
+              color: isDark ? Colors.white : Colors.black,
             ),
             const SizedBox(width: 12),
             Text(
               'AI Development Guide',
               style: theme.textTheme.titleLarge?.copyWith(
-                color: isDark ? Colors.white : const Color(0xFF374151),
+                color: isDark ? Colors.white : Colors.black,
               ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.person_outline,
-              color: isDark ? Colors.white : const Color(0xFF374151),
-            ),
-            onPressed: () => context.push('/profile'),
-          ),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(

@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AuthCubit()..checkAuthStatus(),
+      create: (context) => AuthCubit(),
       child: MaterialApp.router(
         title: 'DevIO',
         theme: AppTheme.darkTheme,

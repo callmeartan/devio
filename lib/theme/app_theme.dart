@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // ChatGPT-like color palette
-  static const _primaryColor = Color(0xFF10A37F); // ChatGPT green
-  static const _backgroundColor = Color(0xFFFFFFFF); // Light mode background
-  static const _darkBackgroundColor = Color(0xFF343541); // Dark mode background
-  static const _surfaceColor = Color(0xFFF7F7F8); // Light mode message background
-  static const _darkSurfaceColor = Color(0xFF444654); // Dark mode message background
-  static const _textColor = Color(0xFF374151); // Light mode text
-  static const _darkTextColor = Color(0xFFFFFFFF); // Dark mode text
+  // Monochromatic color palette
+  static const _primaryColor = Color(0xFF000000); // Pure black
+  static const _backgroundColor = Color(0xFFFFFFFF); // Pure white
+  static const _darkBackgroundColor = Color(0xFF000000); // Pure black
+  static const _surfaceColor = Color(0xFFF5F5F5); // Light gray
+  static const _darkSurfaceColor = Color(0xFF1A1A1A); // Dark gray
+  static const _textColor = Color(0xFF000000); // Black text
+  static const _darkTextColor = Color(0xFFFFFFFF); // White text
   
   static final lightTheme = ThemeData(
     useMaterial3: true,
@@ -17,7 +17,7 @@ class AppTheme {
       secondary: _primaryColor,
       surface: _surfaceColor,
       background: _backgroundColor,
-      error: const Color(0xFFDC2626),
+      error: const Color(0xFF000000),
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: _textColor,
@@ -121,15 +121,15 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.dark(
-      primary: _primaryColor,
-      secondary: _primaryColor,
+      primary: Colors.white,
+      secondary: Colors.white,
       background: _darkBackgroundColor,
       surface: _darkSurfaceColor,
-      error: const Color(0xFFDC2626),
+      error: const Color(0xFFFFFFFF),
       onBackground: _darkTextColor,
       onSurface: _darkTextColor,
-      onPrimary: Colors.white,
-      onSecondary: Colors.white,
+      onPrimary: Colors.black,
+      onSecondary: Colors.black,
     ),
     scaffoldBackgroundColor: _darkBackgroundColor,
     textTheme: TextTheme(

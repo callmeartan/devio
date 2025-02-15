@@ -105,13 +105,13 @@ class ChatMessage extends StatelessWidget {
           width: 30,
           height: 30,
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF5C5C5C) : const Color(0xFFEBEBEB),
+            color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Icon(
             Icons.person,
             size: 18,
-            color: isDark ? Colors.white : const Color(0xFF585858),
+            color: isDark ? Colors.white : Colors.black,
           ),
         );
       case MessageRole.assistant:
@@ -119,13 +119,13 @@ class ChatMessage extends StatelessWidget {
           width: 30,
           height: 30,
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary,
+            color: isDark ? Colors.white : Colors.black,
             borderRadius: BorderRadius.circular(4),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.smart_toy,
             size: 18,
-            color: Colors.white,
+            color: isDark ? Colors.black : Colors.white,
           ),
         );
       case MessageRole.system:
@@ -133,13 +133,13 @@ class ChatMessage extends StatelessWidget {
           width: 30,
           height: 30,
           decoration: BoxDecoration(
-            color: theme.colorScheme.error.withOpacity(0.1),
+            color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Icon(
             Icons.warning,
             size: 18,
-            color: theme.colorScheme.error,
+            color: isDark ? Colors.white : Colors.black,
           ),
         );
     }
@@ -151,7 +151,6 @@ class ChatMessage extends StatelessWidget {
     required String tooltip,
     required VoidCallback onPressed,
   }) {
-    final theme = Theme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Tooltip(
@@ -166,8 +165,8 @@ class ChatMessage extends StatelessWidget {
             decoration: BoxDecoration(
               border: Border.all(
                 color: isDark 
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.1),
+                    ? Colors.white.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.2),
               ),
               borderRadius: BorderRadius.circular(6),
             ),
@@ -175,8 +174,8 @@ class ChatMessage extends StatelessWidget {
               icon,
               size: 16,
               color: isDark 
-                  ? Colors.white.withOpacity(0.6)
-                  : Colors.black.withOpacity(0.6),
+                  ? Colors.white.withOpacity(0.8)
+                  : Colors.black.withOpacity(0.8),
             ),
           ),
         ),

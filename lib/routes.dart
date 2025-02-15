@@ -17,7 +17,7 @@ final router = GoRouter(
   redirect: (context, state) {
     final authState = context.read<AuthCubit>().state;
     final isAuthenticated = authState.maybeWhen(
-      authenticated: () => true,
+      authenticated: (uid, displayName, email) => true,
       orElse: () => false,
     );
 

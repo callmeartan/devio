@@ -30,7 +30,7 @@ class _SignupScreenState extends State<SignupScreen> {
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
           state.maybeWhen(
-            authenticated: () => context.go('/home'),
+            authenticated: (uid, displayName, email) => context.go('/home'),
             error: (message) => _showErrorMessage(context, message),
             orElse: () {},
           );

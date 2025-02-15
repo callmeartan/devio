@@ -53,18 +53,18 @@ class _ChatInputState extends State<ChatInput> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF444654) : Colors.white,
+        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
         border: Border.all(
           color: isDark 
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.1),
+              ? Colors.white.withOpacity(0.2)
+              : Colors.black.withOpacity(0.2),
         ),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, -1),
           ),
         ],
       ),
@@ -81,7 +81,7 @@ class _ChatInputState extends State<ChatInput> {
               textInputAction: TextInputAction.newline,
               keyboardType: TextInputType.multiline,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: isDark ? Colors.white : const Color(0xFF374151),
+                color: isDark ? Colors.white : Colors.black,
               ),
               decoration: InputDecoration(
                 hintText: 'Message...',
@@ -107,20 +107,21 @@ class _ChatInputState extends State<ChatInput> {
                   ? () => _handleSubmitted(_textController.text)
                   : null,
               icon: widget.isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 24,
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                     )
                   : Icon(
                       Icons.send_rounded,
                       color: _isComposing
-                          ? theme.colorScheme.primary
-                          : isDark 
+                          ? (isDark ? Colors.white : Colors.black)
+                          : (isDark 
                               ? Colors.white.withOpacity(0.3)
-                              : Colors.black.withOpacity(0.3),
+                              : Colors.black.withOpacity(0.3)),
                     ),
             ),
           ),
