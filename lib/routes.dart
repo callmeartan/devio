@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/landing_screen.dart';
@@ -10,12 +9,11 @@ import 'screens/chat_screen.dart';
 import 'screens/profile_screen.dart';
 import 'blocs/auth/auth_cubit.dart';
 
-
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
 final router = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/login',
+  initialLocation: '/',
   redirect: (context, state) {
     final authState = context.read<AuthCubit>().state;
     final isAuthenticated = authState.maybeWhen(
@@ -23,14 +21,13 @@ final router = GoRouter(
       orElse: () => false,
     );
 
-    final isAuthRoute = state.matchedLocation == '/login' ||
-        state.matchedLocation == '/signup';
+    final isAuthRoute = state.matchedLocation == '/auth';
 
-    if (!isAuthenticated && !isAuthRoute) {
-      return '/login';
+    if (!isAuthenticated && !isAuthRoute && state.matchedLocation != '/') {
+      return '/';
     }
 
-    if (isAuthenticated && isAuthRoute) {
+    if (isAuthenticated && (isAuthRoute || state.matchedLocation == '/')) {
       return '/home';
     }
 
@@ -38,10 +35,6 @@ final router = GoRouter(
   },
   debugLogDiagnostics: true,
   routes: [
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
     GoRoute(
       path: '/signup',
       builder: (context, state) => const SignupScreen(),

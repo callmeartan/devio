@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:github_sign_in/github_sign_in.dart';
 
 class AuthScreen extends StatefulWidget {
   final bool isLogin;
@@ -18,6 +23,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   var _isLoading = false;
+  var _socialLoading = '';
 
   @override
   void dispose() {
@@ -51,13 +57,145 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => _isLoading = true);
 
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      if (widget.isLogin) {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+      } else {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+      }
+      if (!mounted) return;
+      context.go('/chat');
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? 'Authentication failed');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
-    if (!mounted) return;
+  Future<void> _signInWithGoogle() async {
+    setState(() => _socialLoading = 'google');
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) throw Exception('Google sign in aborted');
 
-    // TODO: Implement actual authentication
-    context.go('/chat');
+      final GoogleSignInAuthentication googleAuth = 
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      if (!mounted) return;
+      context.go('/chat');
+    } catch (e) {
+      _showError('Google sign in failed: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _socialLoading = '');
+    }
+  }
+
+  Future<void> _signInWithApple() async {
+    setState(() => _socialLoading = 'apple');
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      
+      final oAuthCredential = OAuthProvider('apple.com').credential(
+        idToken: credential.identityToken,
+        accessToken: credential.authorizationCode,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(oAuthCredential);
+      if (!mounted) return;
+      context.go('/chat');
+    } catch (e) {
+      _showError('Apple sign in failed: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _socialLoading = '');
+    }
+  }
+
+  Future<void> _signInWithGithub() async {
+    setState(() => _socialLoading = 'github');
+    try {
+      final GitHubSignIn gitHubSignIn = GitHubSignIn(
+        clientId: const String.fromEnvironment('GITHUB_CLIENT_ID'),
+        clientSecret: const String.fromEnvironment('GITHUB_CLIENT_SECRET'),
+        redirectUrl: const String.fromEnvironment('GITHUB_REDIRECT_URL'),
+      );
+      
+      final result = await gitHubSignIn.signIn(context);
+      if (result.status == GitHubSignInResultStatus.ok) {
+        final githubAuthCredential = GithubAuthProvider.credential(result.token!);
+        await FirebaseAuth.instance.signInWithCredential(githubAuthCredential);
+        if (!mounted) return;
+        context.go('/chat');
+      }
+    } catch (e) {
+      _showError('GitHub sign in failed: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _socialLoading = '');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: SelectableText.rich(
+          TextSpan(
+            children: [
+              const WidgetSpan(
+                child: Icon(Icons.error_outline, color: Colors.white, size: 16),
+              ),
+              const TextSpan(text: ' '),
+              TextSpan(text: message),
+            ],
+          ),
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Widget _buildSocialButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    required bool isLoading,
+    Color? color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: OutlinedButton.icon(
+        onPressed: isLoading ? null : onPressed,
+        icon: isLoading 
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(icon, color: color),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -184,6 +322,39 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                             )
                           : Text(widget.isLogin ? 'Login' : 'Create Account'),
+                    ),
+                    const SizedBox(height: 24),
+                    const Row(
+                      children: [
+                        Expanded(child: Divider()),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('OR'),
+                        ),
+                        Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _buildSocialButton(
+                      icon: FontAwesomeIcons.google,
+                      label: 'Continue with Google',
+                      onPressed: _signInWithGoogle,
+                      isLoading: _socialLoading == 'google',
+                      color: Colors.red,
+                    ),
+                    _buildSocialButton(
+                      icon: FontAwesomeIcons.apple,
+                      label: 'Continue with Apple',
+                      onPressed: _signInWithApple,
+                      isLoading: _socialLoading == 'apple',
+                      color: Colors.black,
+                    ),
+                    _buildSocialButton(
+                      icon: FontAwesomeIcons.github,
+                      label: 'Continue with GitHub',
+                      onPressed: _signInWithGithub,
+                      isLoading: _socialLoading == 'github',
+                      color: Colors.black,
                     ),
                     const SizedBox(height: 16),
                     TextButton(

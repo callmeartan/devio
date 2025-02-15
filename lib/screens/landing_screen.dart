@@ -1,8 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
+
+  Future<void> _continueAsGuest(BuildContext context) async {
+    try {
+      await FirebaseAuth.instance.signInAnonymously();
+      if (context.mounted) {
+        context.go('/chat');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to continue as guest: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +144,16 @@ class LandingScreen extends StatelessWidget {
                       extra: {'mode': 'login'},
                     ),
                     child: const Text('Login'),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => _continueAsGuest(context),
+                    child: Text(
+                      'Continue without creating account',
+                      style: TextStyle(
+                        color: theme.colorScheme.primary.withOpacity(0.8),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 32),
                 ],
