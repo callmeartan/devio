@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/signup_screen.dart';
-import 'screens/home_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/auth_screen.dart';
-import 'screens/chat_screen.dart';
-import 'screens/profile_screen.dart';
+import 'screens/llm_chat_screen.dart';
 import 'blocs/auth/auth_cubit.dart';
-import 'features/llm/presentation/llm_chat_screen.dart';
 import 'features/llm/cubit/llm_cubit.dart';
+import 'features/llm/services/llm_service.dart';
+import 'features/profile/presentation/profile_screen.dart';
+import 'features/settings/presentation/settings_screen.dart';
+import 'features/settings/cubit/preferences_cubit.dart';
+import 'features/notifications/presentation/notifications_screen.dart';
+import 'features/help/presentation/help_screen.dart';
+import 'features/feedback/presentation/feedback_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -20,17 +26,30 @@ final router = GoRouter(
     final authState = context.read<AuthCubit>().state;
     final isAuthenticated = authState.maybeWhen(
       authenticated: (uid, displayName, email) => true,
+      initial: () => false,
+      loading: () => false,
+      unauthenticated: () => false,
+      error: (_) => false,
       orElse: () => false,
     );
 
     final isAuthRoute = state.matchedLocation == '/auth';
+    final isInitialRoute = state.matchedLocation == '/';
+    final isSignupRoute = state.matchedLocation == '/signup';
 
-    if (!isAuthenticated && !isAuthRoute && state.matchedLocation != '/') {
+    // Don't redirect if we're on the initial route or signup route and not authenticated
+    if (!isAuthenticated && (isInitialRoute || isSignupRoute)) {
+      return null;
+    }
+
+    // Redirect to initial route if not authenticated
+    if (!isAuthenticated && !isAuthRoute) {
       return '/';
     }
 
-    if (isAuthenticated && (isAuthRoute || state.matchedLocation == '/')) {
-      return '/home';
+    // Redirect to LLM chat if authenticated and on auth, initial, or home route
+    if (isAuthenticated && (isAuthRoute || isInitialRoute)) {
+      return '/llm';
     }
 
     return null;
@@ -40,10 +59,6 @@ final router = GoRouter(
     GoRoute(
       path: '/signup',
       builder: (context, state) => const SignupScreen(),
-    ),
-    GoRoute(
-      path: '/home',
-      builder: (context, state) => const HomeScreen(),
     ),
     GoRoute(
       path: '/',
@@ -59,19 +74,46 @@ final router = GoRouter(
       },
     ),
     GoRoute(
-      path: '/chat',
-      builder: (context, state) => const ChatScreen(),
-    ),
-    GoRoute(
       path: '/llm',
-      builder: (context, state) => BlocProvider(
-        create: (context) => LlmCubit(),
+      builder: (context, state) => MultiProvider(
+        providers: [
+          Provider<LlmService>(
+            create: (_) => LlmService(),
+          ),
+          BlocProvider<LlmCubit>(
+            create: (context) => LlmCubit(
+              llmService: context.read<LlmService>(),
+            ),
+            lazy: false,
+          ),
+        ],
         child: const LlmChatScreen(),
       ),
     ),
     GoRoute(
       path: '/profile',
       builder: (context, state) => const ProfileScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => BlocProvider(
+        create: (context) => PreferencesCubit(
+          context.read<SharedPreferences>(),
+        ),
+        child: const SettingsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/help',
+      builder: (context, state) => const HelpScreen(),
+    ),
+    GoRoute(
+      path: '/feedback',
+      builder: (context, state) => const FeedbackScreen(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

@@ -13,7 +13,7 @@ class LandingScreen extends StatelessWidget {
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
         state.whenOrNull(
-          authenticated: (uid, displayName, email) => context.go('/chat'),
+          authenticated: (uid, displayName, email) => context.go('/llm'),
           error: (message) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

@@ -1,159 +1,173 @@
 # DevIO - AI Development Guide
 
-A Flutter application that provides an interactive chat interface with local LLMs (Language Learning Models) through Ollama, featuring real-time performance metrics and a modern UI.
+A modern Flutter application that combines AI-powered development assistance with Firebase backend integration, featuring a robust authentication system, real-time data synchronization, and a beautiful Material Design 3 UI.
 
 ## Features
 
-- 🤖 Interactive chat interface with AI models
-- 📊 Real-time performance metrics for each response
-  - Total processing time
-  - Model loading duration
-  - Prompt evaluation statistics
-  - Response generation metrics
-  - Token processing rates
-- 🎨 Modern Material Design 3 UI
-- 🔄 Support for multiple Ollama models
-- ⚡ Real-time text generation
-- 📱 Responsive design
-- 🔍 Detailed performance insights
-- 🎯 Model switching capability
+- 🔐 Multi-provider Authentication
+  - Google Sign-In
+  - Apple Sign-In
+  - GitHub Sign-In
+  - Email/Password Authentication
+
+- 🔥 Firebase Integration
+  - Cloud Firestore for real-time data storage
+  - Firebase Storage for file management
+  - Firebase Analytics for usage tracking
+  - Firebase Crashlytics for error reporting
+  - Firebase Cloud Messaging for push notifications
+
+- 🤖 AI Development Features
+  - Interactive chat interface with AI models
+  - Real-time code suggestions
+  - Development guidance
+  - Performance optimization tips
+
+- 🎨 Modern UI/UX
+  - Material Design 3 with dynamic theming
+  - Responsive layout for all screen sizes
+  - Cached network images for optimal performance
+  - Custom animations and transitions
 
 ## Prerequisites
 
+Before you begin, ensure you have the following installed:
 - Flutter SDK (latest stable version)
-- Python 3.8 or higher
-- [Ollama](https://ollama.ai) installed and running
-- At least one Ollama model pulled (e.g., `ollama pull deepseek-coder:1.5b`)
+- Dart SDK (>=3.0.0 <4.0.0)
+- Firebase CLI
+- Git
 
 ## Setup
 
-### 1. Ollama Setup
+### 1. Flutter Setup
 
 ```bash
-# Install Ollama (if not already installed)
-# Visit https://ollama.ai for installation instructions
+# Clone the repository
+git clone https://github.com/yourusername/devio.git
+cd devio
 
-# Start Ollama service
-ollama serve
-
-# Pull a model (in a new terminal)
-ollama pull deepseek-coder:1.5b
-```
-
-### 2. Python FastAPI Server Setup
-
-```bash
-# Navigate to server directory
-cd server
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the server (default port: 8080)
-python main.py
-```
-
-### 3. Flutter App Setup
-
-```bash
 # Install dependencies
 flutter pub get
 
-# Generate code
+# Run code generation
 flutter pub run build_runner build --delete-conflicting-outputs
-
-# Run the app
-flutter run
 ```
 
-## Architecture
+### 2. Firebase Setup
+
+1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com)
+2. Enable Authentication methods:
+   - Google
+   - Apple
+   - GitHub
+   - Email/Password
+3. Create a Firestore database
+4. Set up Firebase Storage
+5. Download and add configuration files:
+   - `google-services.json` for Android
+   - `GoogleService-Info.plist` for iOS
+   - Configure web platform if needed
+
+### 3. Environment Configuration
+
+Create a `.env` file in the root directory:
+
+```env
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+```
+
+## Project Structure
 
 ```
 lib/
+├── core/
+│   ├── config/
+│   ├── theme/
+│   └── utils/
 ├── features/
-│   └── llm/
-│       ├── cubit/
-│       │   ├── llm_cubit.dart
-│       │   └── llm_state.dart
-│       ├── models/
-│       │   └── llm_response.dart
-│       ├── presentation/
-│       │   └── llm_chat_screen.dart
-│       └── services/
-│           └── llm_service.dart
-└── server/
-    ├── main.py
-    └── requirements.txt
+│   ├── auth/
+│   ├── chat/
+│   ├── dashboard/
+│   └── settings/
+├── shared/
+│   ├── widgets/
+│   ├── models/
+│   └── services/
+└── main.dart
 ```
 
-## Usage
+## State Management
 
-1. Ensure all three components are running:
-   - Ollama service (`ollama serve`)
-   - FastAPI server (`python main.py`)
-   - Flutter app (`flutter run`)
+The app uses Flutter Bloc (Cubit) for state management with the following principles:
+- Separate business logic from UI
+- Immutable state objects using Freezed
+- Reactive programming patterns
+- Error handling and loading states
 
-2. In the app:
-   - Select your preferred AI model from the dropdown
-   - Type your prompt in the input field
-   - Press send or hit enter
-   - View the AI's response
-   - Click the "Performance Metrics" button to view detailed processing statistics
+## Authentication Flow
 
-## Performance Metrics
+1. User selects authentication method
+2. Authentication process handled by respective provider
+3. Firebase Authentication token generated
+4. User profile created/updated in Firestore
+5. App state updated with user session
 
-The app provides detailed performance metrics for each AI response:
+## Development Guidelines
 
-- **Total Time**: Overall processing duration
-- **Prompt Metrics**:
-  - Token count
-  - Processing duration
-  - Processing speed (tokens/second)
-- **Response Metrics**:
-  - Generated tokens
-  - Generation duration
-  - Generation speed (tokens/second)
+### Code Style
+- Follow Flutter's official style guide
+- Use `flutter_lints` for consistent code quality
+- Maintain proper documentation
+- Implement error handling
 
-## API Endpoints
+### Performance
+- Use const constructors where possible
+- Implement proper caching strategies
+- Optimize Firebase queries
+- Monitor analytics and crashlytics
 
-### GET /models
-Lists available Ollama models.
+### Testing
+```bash
+# Run tests
+flutter test
 
-Response:
-```json
-{
-  "models": ["deepseek-coder:1.5b", "llama2:7b", ...]
-}
+# Run integration tests
+flutter drive --target=test_driver/app.dart
 ```
 
-### POST /generate
-Generates text using the selected model.
+## Available Commands
 
-Request:
-```json
-{
-  "prompt": "string",
-  "model_name": "deepseek-coder:1.5b",
-  "max_tokens": 1000,
-  "temperature": 0.7
-}
+```bash
+# Development
+flutter run
+
+# Build APK
+flutter build apk
+
+# Build iOS
+flutter build ios
+
+# Generate l10n
+flutter gen-l10n
+
+# Update dependencies
+flutter pub upgrade
 ```
 
-Response:
-```json
-{
-  "text": "Generated response",
-  "model_name": "deepseek-coder:1.5b",
-  "total_duration": 1234567890,
-  "prompt_eval_count": 100,
-  "eval_count": 50,
-  ...
-}
-```
+## Deployment
+
+### Android
+1. Update version in pubspec.yaml
+2. Generate release build
+3. Test on release build
+4. Deploy to Play Store
+
+### iOS
+1. Update version in pubspec.yaml
+2. Generate release build
+3. Test on release build
+4. Deploy through App Store Connect
 
 ## Contributing
 
@@ -161,15 +175,33 @@ Response:
 2. Create your feature branch
 3. Commit your changes
 4. Push to the branch
-5. Create a new Pull Request
+5. Create a Pull Request
 
 ## Troubleshooting
 
-- If the server fails to start, check if port 8080 is available
-- Ensure Ollama is running with `ollama serve`
-- Check if you have at least one model pulled with `ollama list`
-- For Flutter errors, try `flutter clean` followed by `flutter pub get`
+- **Firebase Authentication Issues**
+  - Verify Firebase configuration files
+  - Check enabled authentication methods
+  - Verify OAuth configurations
+
+- **Build Issues**
+  - Run `flutter clean`
+  - Delete build/ folder
+  - Re-run `flutter pub get`
+  - Re-run code generation
+
+- **Performance Issues**
+  - Check Firebase query optimization
+  - Verify image caching
+  - Monitor memory usage
+  - Check widget rebuilds
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Flutter Team for the amazing framework
+- Firebase for backend services
+- All contributors who have helped shape this project

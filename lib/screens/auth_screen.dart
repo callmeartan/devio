@@ -70,7 +70,7 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
       if (!mounted) return;
-      context.go('/chat');
+      context.go('/llm');
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? 'Authentication failed');
     } finally {
@@ -92,7 +92,7 @@ class _AuthScreenState extends State<AuthScreen> {
       );
       await FirebaseAuth.instance.signInWithCredential(credential);
       if (!mounted) return;
-      context.go('/chat');
+      context.go('/llm');
     } catch (e) {
       _showError('Google sign in failed: ${e.toString()}');
     } finally {
@@ -117,7 +117,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
       await FirebaseAuth.instance.signInWithCredential(oAuthCredential);
       if (!mounted) return;
-      context.go('/chat');
+      context.go('/llm');
     } catch (e) {
       _showError('Apple sign in failed: ${e.toString()}');
     } finally {
@@ -139,7 +139,7 @@ class _AuthScreenState extends State<AuthScreen> {
         final githubAuthCredential = GithubAuthProvider.credential(result.token!);
         await FirebaseAuth.instance.signInWithCredential(githubAuthCredential);
         if (!mounted) return;
-        context.go('/chat');
+        context.go('/llm');
       }
     } catch (e) {
       _showError('GitHub sign in failed: ${e.toString()}');
