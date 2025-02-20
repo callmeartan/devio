@@ -405,265 +405,111 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        backgroundColor: isDark ? const Color(0xFF202123) : Colors.white,
+        child: Column(
           children: [
-            UserAccountsDrawerHeader(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.primaryContainer,
+            const SizedBox(height: 50),
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF343541) : const Color(0xFFF7F7F8),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    Icon(
+                      Icons.search,
+                      size: 20,
+                      color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Search',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                      ),
+                    ),
                   ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.shadowColor.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
-              currentAccountPicture: GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                  context.push('/profile');
-                },
-                child: Hero(
-                  tag: 'profile_picture',
-                  child: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primaryContainer,
-                    child: Icon(
-                      Icons.person_outline,
-                      color: theme.colorScheme.onPrimaryContainer,
-                      size: 32,
-                    ),
-                  ),
-                ),
-              ),
-              accountName: Text(
-                'Developer',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              accountEmail: Text(
-                'dev@example.com',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onPrimary.withOpacity(0.8),
-                ),
-              ),
-              otherAccountsPictures: [
-                IconButton(
-                  tooltip: 'Settings',
-                  icon: Icon(
-                    Icons.settings_outlined,
-                    color: theme.colorScheme.onPrimary,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    context.push('/settings');
-                  },
-                ),
-              ],
             ),
-            // Profile Section
-            ListTile(
-              leading: Icon(
-                Icons.person_outline,
-                color: theme.colorScheme.primary,
-              ),
-              title: Text('Profile'),
-              subtitle: Text(
-                'View and edit your profile',
-                style: theme.textTheme.bodySmall,
-              ),
-              trailing: Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/profile');
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.notifications_outlined,
-                color: theme.colorScheme.primary,
-              ),
-              title: Text('Notifications'),
-              subtitle: Text(
-                'Manage your notifications',
-                style: theme.textTheme.bodySmall,
-              ),
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '3',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onPrimary,
-                  ),
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                // context.push('/notifications');
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.settings_outlined,
-                color: theme.colorScheme.primary,
-              ),
-              title: Text('Settings'),
-              subtitle: Text(
-                'App preferences and settings',
-                style: theme.textTheme.bodySmall,
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                // context.push('/settings');
-              },
-            ),
-            const Divider(),
-            // Chat History Section
+            const SizedBox(height: 24),
+            // Projects Section
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.history,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Recent Chats',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // context.push('/chat-history');
-                    },
-                    child: Text(
-                      'See All',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ..._previousChats.map((chat) => ListTile(
-              leading: const Icon(Icons.history),
-              title: Text(
-                chat,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: Text(
-                'Last updated: Today',
-                style: theme.textTheme.bodySmall,
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                // Implement chat history loading
-              },
-            )),
-            const Divider(),
-            // Help & Support Section
-            ListTile(
-              leading: Icon(
-                Icons.help_outline,
-                color: theme.colorScheme.primary,
-              ),
-              title: Text('Help & Support'),
-              onTap: () {
-                Navigator.pop(context);
-                // context.push('/help');
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.feedback_outlined,
-                color: theme.colorScheme.primary,
-              ),
-              title: Text('Send Feedback'),
-              onTap: () {
-                Navigator.pop(context);
-                // context.push('/feedback');
-              },
-            ),
-            const Divider(),
-            // Sign Out Option
-            ListTile(
-              leading: Icon(
-                Icons.logout,
-                color: theme.colorScheme.error,
-              ),
-              title: Text(
-                'Sign Out',
-                style: TextStyle(
-                  color: theme.colorScheme.error,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Projects',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
                 ),
               ),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Sign Out'),
-                    content: const Text('Are you sure you want to sign out?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context); // Close dialog
-                          Navigator.pop(context); // Close drawer
-                          context.read<AuthCubit>().signOut();
-                          context.go('/'); // Navigate to home/initial route
-                        },
-                        child: Text(
-                          'Sign Out',
-                          style: TextStyle(
-                            color: theme.colorScheme.error,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
             ),
             const SizedBox(height: 8),
+            _DrawerMenuItem(
+              icon: const Icon(Icons.add, size: 20),
+              title: 'New project',
+              onTap: () => context.push('/new-project'),
+              isDark: isDark,
+              showLeadingBackground: false,
+            ),
+            const SizedBox(height: 24),
+            // Chats Section
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'Version 1.0.0',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                'Chats',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
+            const SizedBox(height: 8),
+            _DrawerMenuItem(
+              icon: const Icon(Icons.add, size: 20),
+              title: 'New chat',
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                setState(() {
+                  _chatHistory.clear(); // Clear chat history
+                  _addInitialGreeting(); // Add initial greeting
+                });
+              },
+              isDark: isDark,
+              showLeadingBackground: false,
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemCount: _previousChats.length,
+                itemBuilder: (context, index) {
+                  return _DrawerMenuItem(
+                    icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                    title: _previousChats[index],
+                    onTap: () => context.push('/chat/${index + 1}'),
+                    isDark: isDark,
+                    showLeadingBackground: false,
+                  );
+                },
+              ),
+            ),
+            // User Profile
+            const Divider(height: 1),
+            _DrawerMenuItem(
+              icon: const CircleAvatar(
+                child: Text('AA'),
+              ),
+              title: 'Artan Ahmadi',
+              onTap: () => context.push('/profile'),
+              isDark: isDark,
+              showLeadingBackground: false,
+              showTrailingIcon: true,
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -1112,5 +958,65 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
       modelName: _selectedModel,
     );
     _promptController.clear();
+  }
+}
+
+class _DrawerMenuItem extends StatelessWidget {
+  final Widget icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool isDark;
+  final bool showLeadingBackground;
+  final bool showTrailingIcon;
+
+  const _DrawerMenuItem({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    required this.isDark,
+    this.showLeadingBackground = true,
+    this.showTrailingIcon = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            if (showLeadingBackground)
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: icon,
+              )
+            else
+              icon,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (showTrailingIcon)
+              Icon(
+                Icons.more_vert,
+                size: 20,
+                color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 } 
