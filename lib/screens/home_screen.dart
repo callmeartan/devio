@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../blocs/auth/auth_cubit.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -20,9 +21,26 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: Center(
-        child: Text(
-          'Welcome to DevIO!',
-          style: Theme.of(context).textTheme.headlineMedium,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Welcome to DevIO!',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => context.push('/llm'),
+              icon: const Icon(Icons.chat_bubble_outline),
+              label: const Text('Open LLM Chat'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -8,6 +8,8 @@ import 'screens/auth_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/profile_screen.dart';
 import 'blocs/auth/auth_cubit.dart';
+import 'features/llm/presentation/llm_chat_screen.dart';
+import 'features/llm/cubit/llm_cubit.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -59,6 +61,13 @@ final router = GoRouter(
     GoRoute(
       path: '/chat',
       builder: (context, state) => const ChatScreen(),
+    ),
+    GoRoute(
+      path: '/llm',
+      builder: (context, state) => BlocProvider(
+        create: (context) => LlmCubit(),
+        child: const LlmChatScreen(),
+      ),
     ),
     GoRoute(
       path: '/profile',
