@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer' as dev;
+import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 import '../models/llm_response.dart';
 
@@ -8,9 +9,18 @@ class LlmService {
   final http.Client _client;
 
   LlmService({
-    this.baseUrl = 'http://localhost:8080',  // Default local server URL
+    String? baseUrl,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+  }) : baseUrl = baseUrl ?? _getDefaultBaseUrl(),
+       _client = client ?? http.Client();
+
+  static String _getDefaultBaseUrl() {
+    // When running on iOS simulator or device, we need to use the host machine's IP
+    if (Platform.isIOS) {
+      return 'http://192.168.1.105:8080';
+    }
+    return 'http://localhost:8080';
+  }
 
   Future<List<String>> getAvailableModels() async {
     try {

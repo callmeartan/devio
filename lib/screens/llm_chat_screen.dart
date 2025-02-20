@@ -5,6 +5,7 @@ import '../features/llm/cubit/llm_state.dart';
 import '../features/llm/services/llm_service.dart';
 import '../features/llm/models/llm_response.dart';
 import 'package:go_router/go_router.dart';
+import '../blocs/auth/auth_cubit.dart';
 
 class AnimatedMessageBubble extends StatelessWidget {
   final Widget child;
@@ -637,7 +638,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
                         onPressed: () {
                           Navigator.pop(context); // Close dialog
                           Navigator.pop(context); // Close drawer
-                          // context.read<AuthCubit>().signOut();
+                          context.read<AuthCubit>().signOut();
+                          context.go('/'); // Navigate to home/initial route
                         },
                         child: Text(
                           'Sign Out',
