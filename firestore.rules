@@ -22,12 +22,24 @@ service cloud.firestore {
         (message.senderName == null || message.senderName is string);
     }
 
+    function isValidChatMetadata() {
+      let metadata = request.resource.data;
+      return 
+        (!('title' in metadata) || metadata.title is string) &&
+        (!('isPinned' in metadata) || metadata.isPinned is bool);
+    }
+
+    function debug(msg) {
+      return msg;
+    }
+
     match /chats/{messageId} {
       // Read: Any authenticated user can read messages
-      allow read: if isAuthenticated();
+      allow read: if debug('Reading chats: ' + request.auth.uid) != null && isAuthenticated();
       
       // Create: Authenticated users can create messages if they are the sender
       allow create: if 
+        debug('Creating chat: ' + request.auth.uid) != null &&
         isAuthenticated() &&
         isValidMessage() &&
         isOwner(request.resource.data.senderId);
@@ -37,8 +49,23 @@ service cloud.firestore {
       
       // Delete: Only message owners can delete their messages
       allow delete: if 
+        debug('Deleting chat: ' + request.auth.uid) != null &&
         isAuthenticated() &&
         isOwner(resource.data.senderId);
+    }
+
+    match /chat_metadata/{chatId} {
+      // Read: Any authenticated user can read chat metadata
+      allow read: if debug('Reading metadata: ' + request.auth.uid) != null && isAuthenticated();
+      
+      // Write: Any authenticated user can create/update chat metadata
+      allow write: if 
+        debug('Writing metadata: ' + request.auth.uid) != null &&
+        isAuthenticated() &&
+        isValidChatMetadata();
+      
+      // Delete: Any authenticated user can delete chat metadata
+      allow delete: if debug('Deleting metadata: ' + request.auth.uid) != null && isAuthenticated();
     }
   }
 } 

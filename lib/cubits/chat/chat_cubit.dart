@@ -153,6 +153,68 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
+  Future<void> pinChat(String chatId) async {
+    try {
+      developer.log('Pinning chat: $chatId');
+      if (!state.pinnedChatIds.contains(chatId)) {
+        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)..add(chatId);
+        emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
+        await _chatRepository.updateChatPin(chatId, true);
+      }
+    } catch (e) {
+      developer.log('Error pinning chat: $e');
+      emit(state.copyWith(error: 'Failed to pin chat: $e'));
+    }
+  }
+
+  Future<void> unpinChat(String chatId) async {
+    try {
+      developer.log('Unpinning chat: $chatId');
+      if (state.pinnedChatIds.contains(chatId)) {
+        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)..remove(chatId);
+        emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
+        await _chatRepository.updateChatPin(chatId, false);
+      }
+    } catch (e) {
+      developer.log('Error unpinning chat: $e');
+      emit(state.copyWith(error: 'Failed to unpin chat: $e'));
+    }
+  }
+
+  Future<void> deleteChat(String chatId) async {
+    try {
+      developer.log('Deleting chat: $chatId');
+      await _chatRepository.deleteChat(chatId);
+      
+      // Remove from pinned chats if it was pinned
+      if (state.pinnedChatIds.contains(chatId)) {
+        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)..remove(chatId);
+        emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
+      }
+      
+      // If the deleted chat was the current chat, clear it
+      if (state.currentChatId == chatId) {
+        emit(state.copyWith(currentChatId: null, messages: []));
+      }
+      
+      await _loadChatHistories();
+    } catch (e) {
+      developer.log('Error deleting chat: $e');
+      emit(state.copyWith(error: 'Failed to delete chat: $e'));
+    }
+  }
+
+  Future<void> renameChat(String chatId, String newTitle) async {
+    try {
+      developer.log('Renaming chat: $chatId to: $newTitle');
+      await _chatRepository.updateChatTitle(chatId, newTitle);
+      await _loadChatHistories();
+    } catch (e) {
+      developer.log('Error renaming chat: $e');
+      emit(state.copyWith(error: 'Failed to rename chat: $e'));
+    }
+  }
+
   @override
   Future<void> close() {
     _chatSubscription?.cancel();
