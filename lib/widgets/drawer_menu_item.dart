@@ -187,7 +187,7 @@ class DrawerMenuItem extends StatelessWidget {
           autofocus: true,
           style: theme.textTheme.bodyLarge?.copyWith(
             color: isDark ? Colors.white : Colors.black,
-          
+          ),
           decoration: InputDecoration(
             hintText: 'Enter new name',
             hintStyle: theme.textTheme.bodyLarge?.copyWith(
