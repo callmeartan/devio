@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../blocs/auth/auth_cubit.dart';
 import '../../../features/settings/cubit/preferences_cubit.dart';
 import '../../../features/settings/cubit/preferences_state.dart';
+import '../../../cubits/chat/chat_cubit.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -117,6 +118,13 @@ class ProfileScreen extends StatelessWidget {
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () => context.push('/settings'),
                   ),
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline),
+                    title: const Text('Clear Chat History'),
+                    textColor: theme.colorScheme.error,
+                    iconColor: theme.colorScheme.error,
+                    onTap: () => _showClearChatHistoryDialog(context),
+                  ),
                 ],
               ),
               
@@ -216,6 +224,34 @@ class ProfileScreen extends StatelessWidget {
             },
             child: Text(
               'Log Out',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearChatHistoryDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Chat History'),
+        content: const Text('Are you sure you want to clear all chat history? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<ChatCubit>().clearChat();
+            },
+            child: Text(
+              'Clear History',
               style: TextStyle(color: theme.colorScheme.error),
             ),
           ),

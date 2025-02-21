@@ -91,19 +91,21 @@ final router = GoRouter(
             ),
             lazy: false,
           ),
-          BlocProvider<ChatCubit>(
-            create: (context) => ChatCubit(
-              chatRepository: context.read<ChatRepository>(),
-            ),
-          ),
         ],
         child: const LlmChatScreen(),
       ),
     ),
     GoRoute(
       path: '/profile',
-      builder: (context, state) => BlocProvider.value(
-        value: context.read<AuthCubit>(),
+      builder: (context, state) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(
+            value: context.read<AuthCubit>(),
+          ),
+          BlocProvider.value(
+            value: context.read<ChatCubit>(),
+          ),
+        ],
         child: const ProfileScreen(),
       ),
     ),

@@ -9,6 +9,8 @@ import 'features/settings/cubit/preferences_state.dart';
 import 'blocs/auth/auth_cubit.dart';
 import 'routes.dart';
 import 'theme/app_theme.dart';
+import 'repositories/chat_repository.dart';
+import 'cubits/chat/chat_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +43,14 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create: (context) => AuthCubit(),
           lazy: false,
+        ),
+        Provider<ChatRepository>(
+          create: (_) => ChatRepository(),
+        ),
+        BlocProvider(
+          create: (context) => ChatCubit(
+            chatRepository: context.read<ChatRepository>(),
+          ),
         ),
       ],
       child: BlocListener<AuthCubit, AuthState>(
