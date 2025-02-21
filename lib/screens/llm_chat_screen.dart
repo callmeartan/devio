@@ -10,6 +10,7 @@ import '../cubits/chat/chat_cubit.dart';
 import '../cubits/chat/chat_state.dart';
 import '../widgets/drawer_menu_item.dart';
 import '../widgets/simple_drawer_menu_item.dart' as simple;
+import '../constants/assets.dart';
 import 'dart:developer' as developer;
 
 const String _kAiUserName = 'AI Assistant';
@@ -445,249 +446,236 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               return Scaffold(
                 backgroundColor: theme.colorScheme.background,
                 drawer: Drawer(
-                  backgroundColor: isDark ? const Color(0xFF202123) : Colors.white,
-                  child: SafeArea(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // App Logo and Title
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  backgroundColor: theme.colorScheme.surface,
+                  child: Column(
+                    children: [
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
                           child: Row(
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  Icons.smart_toy_outlined,
-                                  color: theme.colorScheme.onPrimaryContainer,
+                              SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: Image.asset(
+                                  AppAssets.logo,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              Text(
-                                'Devio',
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  color: isDark ? Colors.white : Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        // Search Bar
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Container(
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF343541) : const Color(0xFFF7F7F8),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  child: Icon(
-                                    Icons.search,
-                                    size: 20,
-                                    color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                              Expanded(
+                                child: Container(
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF343541) : const Color(0xFFF7F7F8),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  'Search chats',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // Chats Section
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Chats',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.add_circle_outline,
-                                  size: 20,
-                                  color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
-                                ),
-                                onPressed: () {
-                                  context.read<ChatCubit>().startNewChat();
-                                  Navigator.pop(context);
-                                },
-                                tooltip: 'New Chat',
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Chat List
-                        Expanded(
-                          child: BlocBuilder<ChatCubit, ChatState>(
-                            builder: (context, state) {
-                              if (state.isLoading) {
-                                return const Center(child: CircularProgressIndicator());
-                              }
-
-                              if (state.error != null) {
-                                return Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
+                                  child: Row(
                                     children: [
-                                      Icon(
-                                        Icons.error_outline,
-                                        color: theme.colorScheme.error,
-                                        size: 32,
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        child: Icon(
+                                          Icons.search,
+                                          size: 20,
+                                          color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                                        ),
                                       ),
-                                      const SizedBox(height: 8),
                                       Text(
-                                        'Error loading chats',
-                                        style: TextStyle(color: theme.colorScheme.error),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-
-                              if (state.chatHistories.isEmpty) {
-                                return Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.chat_bubble_outline,
-                                        size: 32,
-                                        color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'No chat history',
+                                        'Search chats',
                                         style: theme.textTheme.bodyMedium?.copyWith(
                                           color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
                                         ),
                                       ),
                                     ],
                                   ),
-                                );
-                              }
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      const SizedBox(height: 8),
 
-                              // Separate pinned and unpinned chats
-                              final pinnedChats = state.chatHistories.where((chat) => chat['isPinned'] == true).toList();
-                              final unpinnedChats = state.chatHistories.where((chat) => chat['isPinned'] != true).toList();
+                      // Chats Section
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Chats',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.add_circle_outline,
+                                size: 20,
+                                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                              ),
+                              onPressed: () {
+                                context.read<ChatCubit>().startNewChat();
+                                Navigator.pop(context);
+                              },
+                              tooltip: 'New Chat',
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
+                      ),
 
-                              return ListView(
-                                controller: _historyScrollController,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                children: [
-                                  if (pinnedChats.isNotEmpty) ...[
+                      // Chat List
+                      Expanded(
+                        child: BlocBuilder<ChatCubit, ChatState>(
+                          builder: (context, state) {
+                            if (state.isLoading) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+
+                            if (state.error != null) {
+                              return Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      color: theme.colorScheme.error,
+                                      size: 32,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Error loading chats',
+                                      style: TextStyle(color: theme.colorScheme.error),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            if (state.chatHistories.isEmpty) {
+                              return Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.chat_bubble_outline,
+                                      size: 32,
+                                      color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'No chat history',
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            // Separate pinned and unpinned chats
+                            final pinnedChats = state.chatHistories.where((chat) => chat['isPinned'] == true).toList();
+                            final unpinnedChats = state.chatHistories.where((chat) => chat['isPinned'] != true).toList();
+
+                            return ListView(
+                              controller: _historyScrollController,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              children: [
+                                if (pinnedChats.isNotEmpty) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                                    child: Text(
+                                      'Pinned',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  ...pinnedChats.map((chat) => _buildChatItem(chat, state.currentChatId, isDark, context)),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 8),
+                                    child: Divider(height: 1),
+                                  ),
+                                ],
+                                if (unpinnedChats.isNotEmpty) ...[
+                                  if (pinnedChats.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
                                       child: Text(
-                                        'Pinned',
+                                        'Other',
                                         style: theme.textTheme.bodySmall?.copyWith(
                                           color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ),
-                                    ...pinnedChats.map((chat) => _buildChatItem(chat, state.currentChatId, isDark, context)),
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 8),
-                                      child: Divider(height: 1),
-                                    ),
-                                  ],
-                                  if (unpinnedChats.isNotEmpty) ...[
-                                    if (pinnedChats.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                                        child: Text(
-                                          'Other',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ...unpinnedChats.map((chat) => _buildChatItem(chat, state.currentChatId, isDark, context)),
-                                  ],
+                                  ...unpinnedChats.map((chat) => _buildChatItem(chat, state.currentChatId, isDark, context)),
                                 ],
-                              );
-                            },
-                          ),
+                              ],
+                            );
+                          },
                         ),
+                      ),
 
-                        const Divider(height: 1),
-                        
-                        // User Profile
-                        Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: simple.SimpleDrawerMenuItem(
-                            icon: CircleAvatar(
-                              radius: 14,
-                              backgroundColor: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
-                              child: authState.maybeWhen(
-                                authenticated: (_, __, photoUrl) {
-                                  if (photoUrl != null && photoUrl.startsWith('http')) {
-                                    return ClipOval(
-                                      child: Image.network(
-                                        photoUrl,
-                                        width: 28,
-                                        height: 28,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) => Icon(
-                                          Icons.person,
-                                          size: 16,
-                                          color: isDark ? Colors.white : Colors.black,
-                                        ),
+                      const Divider(height: 1),
+                      
+                      // User Profile
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: simple.SimpleDrawerMenuItem(
+                          icon: CircleAvatar(
+                            radius: 14,
+                            backgroundColor: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                            child: authState.maybeWhen(
+                              authenticated: (_, __, photoUrl) {
+                                if (photoUrl != null && photoUrl.startsWith('http')) {
+                                  return ClipOval(
+                                    child: Image.network(
+                                      photoUrl,
+                                      width: 28,
+                                      height: 28,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Icon(
+                                        Icons.person,
+                                        size: 16,
+                                        color: isDark ? Colors.white : Colors.black,
                                       ),
-                                    );
-                                  }
-                                  return Icon(
-                                    Icons.person,
-                                    size: 16,
-                                    color: isDark ? Colors.white : Colors.black,
+                                    ),
                                   );
-                                },
-                                orElse: () => Icon(
+                                }
+                                return Icon(
                                   Icons.person,
                                   size: 16,
                                   color: isDark ? Colors.white : Colors.black,
-                                ),
+                                );
+                              },
+                              orElse: () => Icon(
+                                Icons.person,
+                                size: 16,
+                                color: isDark ? Colors.white : Colors.black,
                               ),
                             ),
-                            title: authState.maybeWhen(
-                              authenticated: (_, displayName, __) => displayName ?? 'User',
-                              orElse: () => 'User',
-                            ),
-                            onTap: () => context.push('/profile'),
-                            isDark: isDark,
-                            showLeadingBackground: false,
-                            showTrailingIcon: true,
                           ),
+                          title: authState.maybeWhen(
+                            authenticated: (_, displayName, __) => displayName ?? 'User',
+                            orElse: () => 'User',
+                          ),
+                          onTap: () => context.push('/profile'),
+                          isDark: isDark,
+                          showLeadingBackground: false,
+                          showTrailingIcon: true,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
                 appBar: AppBar(
@@ -707,24 +695,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   title: Row(
                     children: [
                       Hero(
-                        tag: 'ai_icon',
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(12),
+                        tag: 'app_logo',
+                        child: SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: Image.asset(
+                            AppAssets.logo,
+                            fit: BoxFit.contain,
                           ),
-                          child: Icon(
-                            Icons.smart_toy_outlined,
-                            color: theme.colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Devio',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -1095,17 +1073,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                                     child: BlocBuilder<LlmCubit, LlmState>(
                                                       builder: (context, llmState) {
                                                         return llmState.maybeWhen(
-                                                          success: (response) {
-                                                            return PerformanceMetrics(
-                                                              response: response,
-                                                              isExpanded: _expandedMetrics[index] ?? false,
-                                                              onToggle: () {
-                                                                setState(() {
-                                                                  _expandedMetrics[index] = !(_expandedMetrics[index] ?? false);
-                                                                });
-                                                              },
-                                                            );
-                                                          },
+                                                          success: (response) => PerformanceMetrics(
+                                                            response: response,
+                                                            isExpanded: _expandedMetrics[index] ?? false,
+                                                            onToggle: () {
+                                                              setState(() {
+                                                                _expandedMetrics[index] = !(_expandedMetrics[index] ?? false);
+                                                              });
+                                                            },
+                                                          ),
                                                           orElse: () => const SizedBox.shrink(),
                                                         );
                                                       },

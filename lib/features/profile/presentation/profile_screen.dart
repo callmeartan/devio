@@ -72,12 +72,6 @@ class ProfileScreen extends StatelessWidget {
                     onTap: () {},
                   ),
                   ListTile(
-                    leading: const Icon(Icons.key_outlined),
-                    title: const Text('Change Password'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
-                  ),
-                  ListTile(
                     leading: const Icon(Icons.logout_outlined),
                     title: const Text('Log Out'),
                     textColor: theme.colorScheme.error,

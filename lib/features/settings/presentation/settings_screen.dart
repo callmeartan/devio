@@ -59,6 +59,14 @@ class SettingsScreen extends StatelessWidget {
                           iconColor: theme.colorScheme.error,
                           onTap: () => _showLogoutDialog(context),
                         ),
+                        ListTile(
+                          leading: const Icon(Icons.delete_forever_outlined),
+                          title: const Text('Delete Account'),
+                          subtitle: const Text('This action cannot be undone'),
+                          textColor: theme.colorScheme.error,
+                          iconColor: theme.colorScheme.error,
+                          onTap: () => _showDeleteAccountDialog(context),
+                        ),
                       ],
                     ),
                     orElse: () => const SizedBox.shrink(),
@@ -230,6 +238,65 @@ class SettingsScreen extends StatelessWidget {
             },
             child: Text(
               'Log Out',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final navigator = Navigator.of(context);
+    final router = GoRouter.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          'Delete Account',
+          style: TextStyle(color: theme.colorScheme.error),
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete your account? This action cannot be undone and you will lose:',
+            ),
+            SizedBox(height: 16),
+            Text('• All your chat history'),
+            Text('• Your preferences and settings'),
+            Text('• Your saved data'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => navigator.pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              navigator.pop();
+              try {
+                await context.read<AuthCubit>().deleteAccount();
+                if (context.mounted) {
+                  router.go('/');
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(e.toString()),
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              'Delete Account',
               style: TextStyle(color: theme.colorScheme.error),
             ),
           ),

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:github_sign_in/github_sign_in.dart';
+import 'package:devio/constants/assets.dart';
 
 class AuthScreen extends StatefulWidget {
   final bool isLogin;
@@ -238,139 +239,155 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 32),
-                    // Back button
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () => context.go('/'),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      widget.isLogin
-                          ? 'Welcome Back!'
-                          : 'Join the Future of Development',
-                      style: theme.textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.isLogin
-                          ? 'Sign in to continue your development journey'
-                          : 'Create an account to start building amazing apps',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onBackground.withOpacity(0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 48),
-                    // Email field with icon
-                    Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextFormField(
-                        controller: _emailController,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          hintText: 'Enter your email',
-                          prefixIcon: Icon(Icons.email_outlined),
-                          border: InputBorder.none,
-                        ),
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        validator: _validateEmail,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Password field with icon
-                    Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextFormField(
-                        controller: _passwordController,
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
-                          hintText: 'Enter your password',
-                          prefixIcon: Icon(Icons.lock_outline),
-                          border: InputBorder.none,
-                        ),
-                        obscureText: true,
-                        textInputAction: TextInputAction.done,
-                        validator: _validatePassword,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _submit,
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(widget.isLogin ? 'Login' : 'Create Account'),
-                    ),
-                    const SizedBox(height: 24),
-                    const Row(
-                      children: [
-                        Expanded(child: Divider()),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('OR'),
-                        ),
-                        Expanded(child: Divider()),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    _buildSocialButton(
-                      icon: FontAwesomeIcons.google,
-                      label: 'Continue with Google',
-                      onPressed: _signInWithGoogle,
-                      isLoading: _socialLoading == 'google',
-                      color: Colors.red,
-                    ),
-                    _buildSocialButton(
-                      icon: FontAwesomeIcons.apple,
-                      label: 'Continue with Apple',
-                      onPressed: _signInWithApple,
-                      isLoading: _socialLoading == 'apple',
-                      color: Colors.black,
-                    ),
-                    _buildSocialButton(
-                      icon: FontAwesomeIcons.github,
-                      label: 'Continue with GitHub',
-                      onPressed: _signInWithGithub,
-                      isLoading: _socialLoading == 'github',
-                      color: Colors.black,
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => context.go(
-                        '/auth',
-                        extra: {'mode': widget.isLogin ? 'signup' : 'login'},
-                      ),
-                      child: Text(
-                        widget.isLogin
-                            ? 'Don\'t have an account? Sign up'
-                            : 'Already have an account? Login',
-                      ),
-                    ),
-                  ],
+            child: Column(
+              children: [
+                // Back button
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => context.go('/'),
+                  ),
                 ),
-              ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Logo
+                          Center(
+                            child: SizedBox(
+                              width: 100,
+                              height: 100,
+                              child: Image.asset(
+                                AppAssets.logo,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Text(
+                            widget.isLogin
+                                ? 'Welcome Back!'
+                                : 'Join the Future of Development',
+                            style: theme.textTheme.headlineMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.isLogin
+                                ? 'Sign in to continue your development journey'
+                                : 'Create an account to start building amazing apps',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.onBackground.withOpacity(0.7),
+                            ),
+                          ),
+                          const SizedBox(height: 48),
+                          // Email field with icon
+                          Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: TextFormField(
+                              controller: _emailController,
+                              decoration: const InputDecoration(
+                                labelText: 'Email',
+                                hintText: 'Enter your email',
+                                prefixIcon: Icon(Icons.email_outlined),
+                                border: InputBorder.none,
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              validator: _validateEmail,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Password field with icon
+                          Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: TextFormField(
+                              controller: _passwordController,
+                              decoration: const InputDecoration(
+                                labelText: 'Password',
+                                hintText: 'Enter your password',
+                                prefixIcon: Icon(Icons.lock_outline),
+                                border: InputBorder.none,
+                              ),
+                              obscureText: true,
+                              textInputAction: TextInputAction.done,
+                              validator: _validatePassword,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _submit,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(widget.isLogin ? 'Login' : 'Create Account'),
+                          ),
+                          const SizedBox(height: 24),
+                          const Row(
+                            children: [
+                              Expanded(child: Divider()),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: Text('OR'),
+                              ),
+                              Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          _buildSocialButton(
+                            icon: FontAwesomeIcons.google,
+                            label: 'Continue with Google',
+                            onPressed: _signInWithGoogle,
+                            isLoading: _socialLoading == 'google',
+                            color: Colors.red,
+                          ),
+                          _buildSocialButton(
+                            icon: FontAwesomeIcons.apple,
+                            label: 'Continue with Apple',
+                            onPressed: _signInWithApple,
+                            isLoading: _socialLoading == 'apple',
+                            color: Colors.black,
+                          ),
+                          _buildSocialButton(
+                            icon: FontAwesomeIcons.github,
+                            label: 'Continue with GitHub',
+                            onPressed: _signInWithGithub,
+                            isLoading: _socialLoading == 'github',
+                            color: Colors.black,
+                          ),
+                          const SizedBox(height: 16),
+                          TextButton(
+                            onPressed: () => context.go(
+                              '/auth',
+                              extra: {'mode': widget.isLogin ? 'signup' : 'login'},
+                            ),
+                            child: Text(
+                              widget.isLogin
+                                  ? 'Don\'t have an account? Sign up'
+                                  : 'Already have an account? Login',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

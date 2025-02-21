@@ -12,6 +12,7 @@ class AppTheme {
   
   static final lightTheme = ThemeData(
     useMaterial3: true,
+    fontFamily: 'JosefinSans',
     colorScheme: ColorScheme.light(
       primary: _primaryColor,
       secondary: _primaryColor,
@@ -119,6 +120,7 @@ class AppTheme {
 
   static final darkTheme = ThemeData(
     useMaterial3: true,
+    fontFamily: 'JosefinSans',
     brightness: Brightness.dark,
     colorScheme: ColorScheme.dark(
       primary: Colors.white,

@@ -172,4 +172,70 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthState.error(e.toString()));
     }
   }
+
+  Future<void> deleteAccount() async {
+    emit(const AuthState.loading());
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        // Get the provider data before deleting
+        final providers = user.providerData.map((e) => e.providerId).toList();
+        
+        // Check if user needs to reauthenticate
+        try {
+          // Delete the user account
+          await user.delete();
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'requires-recent-login') {
+            // Handle different providers
+            if (providers.contains('apple.com')) {
+              // Reauthenticate with Apple
+              final appleCredential = await SignInWithApple.getAppleIDCredential(
+                scopes: [
+                  AppleIDAuthorizationScopes.email,
+                  AppleIDAuthorizationScopes.fullName,
+                ],
+              );
+              
+              final oauthCredential = OAuthProvider('apple.com').credential(
+                idToken: appleCredential.identityToken,
+                accessToken: appleCredential.authorizationCode,
+              );
+              
+              await user.reauthenticateWithCredential(oauthCredential);
+              await user.delete();
+            } else if (providers.contains('google.com')) {
+              // Reauthenticate with Google
+              final googleUser = await _googleSignIn.signIn();
+              if (googleUser == null) throw Exception('Google sign in was cancelled');
+              
+              final googleAuth = await googleUser.authentication;
+              final credential = GoogleAuthProvider.credential(
+                accessToken: googleAuth.accessToken,
+                idToken: googleAuth.idToken,
+              );
+              
+              await user.reauthenticateWithCredential(credential);
+              await user.delete();
+            } else {
+              throw Exception('Please sign out and sign in again before deleting your account');
+            }
+          } else {
+            throw Exception(e.message ?? 'Failed to delete account');
+          }
+        }
+        
+        // Sign out and clean up after successful deletion
+        await _googleSignIn.signOut();
+        await _auth.signOut();
+        emit(const AuthState.unauthenticated());
+      } else {
+        emit(const AuthState.error('No user found to delete'));
+      }
+    } catch (e) {
+      developer.log('Error deleting account: $e');
+      emit(AuthState.error(e.toString()));
+      rethrow; // Rethrow to handle in UI
+    }
+  }
 } 
