@@ -18,7 +18,7 @@ class LlmService {
   static String _getDefaultBaseUrl() {
     // When running on iOS simulator or device, we need to use the host machine's IP
     if (Platform.isIOS) {
-      return 'http://localhost:8080';  // Update this to your machine's IP if needed
+      return 'http://192.168.1.105:8080';  // Your computer's IP address
     }
     return 'http://localhost:8080';
   }

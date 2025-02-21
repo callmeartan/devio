@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../blocs/auth/auth_cubit.dart';
+import '../../../features/settings/cubit/preferences_cubit.dart';
+import '../../../features/settings/cubit/preferences_state.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -88,6 +90,21 @@ class ProfileScreen extends StatelessWidget {
                 theme,
                 title: 'Preferences',
                 children: [
+                  BlocBuilder<PreferencesCubit, PreferencesState>(
+                    builder: (context, prefsState) => ListTile(
+                      leading: Icon(
+                        prefsState.themeMode == ThemeMode.dark
+                            ? Icons.dark_mode
+                            : prefsState.themeMode == ThemeMode.light
+                                ? Icons.light_mode
+                                : Icons.brightness_auto,
+                      ),
+                      title: const Text('Theme'),
+                      subtitle: Text(_getThemeModeName(prefsState.themeMode)),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => _showThemeDialog(context, prefsState.themeMode),
+                    ),
+                  ),
                   ListTile(
                     leading: const Icon(Icons.notifications_outlined),
                     title: const Text('Notifications'),
@@ -130,6 +147,50 @@ class ProfileScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  String _getThemeModeName(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system:
+        return 'System';
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+    }
+  }
+
+  void _showThemeDialog(BuildContext context, ThemeMode currentMode) {
+    final theme = Theme.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Choose Theme'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ThemeMode.values.map((mode) => RadioListTile<ThemeMode>(
+            title: Text(_getThemeModeName(mode)),
+            secondary: Icon(
+              mode == ThemeMode.dark
+                  ? Icons.dark_mode
+                  : mode == ThemeMode.light
+                      ? Icons.light_mode
+                      : Icons.brightness_auto,
+              color: theme.colorScheme.primary,
+            ),
+            value: mode,
+            groupValue: currentMode,
+            onChanged: (value) {
+              if (value != null) {
+                context.read<PreferencesCubit>().setThemeMode(value);
+              }
+              Navigator.pop(context);
+            },
+          )).toList(),
+        ),
       ),
     );
   }
