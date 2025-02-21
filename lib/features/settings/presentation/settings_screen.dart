@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../cubit/preferences_cubit.dart';
 import '../cubit/preferences_state.dart';
+import '../../../blocs/auth/auth_cubit.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -17,106 +19,127 @@ class SettingsScreen extends StatelessWidget {
           style: theme.textTheme.titleLarge,
         ),
       ),
-      body: BlocConsumer<PreferencesCubit, PreferencesState>(
-        listener: (context, state) {
-          if (state.error != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error!),
-                backgroundColor: theme.colorScheme.error,
-                action: SnackBarAction(
-                  label: 'Dismiss',
-                  textColor: theme.colorScheme.onError,
-                  onPressed: () {
-                    context.read<PreferencesCubit>().clearError();
-                  },
-                ),
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, authState) {
+          return BlocConsumer<PreferencesCubit, PreferencesState>(
+            listener: (context, state) {
+              if (state.error != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.error!),
+                    backgroundColor: theme.colorScheme.error,
+                    action: SnackBarAction(
+                      label: 'Dismiss',
+                      textColor: theme.colorScheme.onError,
+                      onPressed: () {
+                        context.read<PreferencesCubit>().clearError();
+                      },
+                    ),
+                  ),
+                );
+              }
+            },
+            builder: (context, state) {
+              if (state.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildSection(
-                theme,
-                title: 'Appearance',
+              return ListView(
+                padding: const EdgeInsets.all(16),
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.palette_outlined),
-                    title: const Text('Theme'),
-                    subtitle: Text(_getThemeModeName(state.themeMode)),
-                    onTap: () => _showThemeDialog(context, state.themeMode),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.language_outlined),
-                    title: const Text('Language'),
-                    subtitle: Text(state.languageCode.toUpperCase()),
-                    onTap: () => _showLanguageDialog(context, state.languageCode),
-                  ),
-                ],
-              ),
-              
-              _buildSection(
-                theme,
-                title: 'Notifications',
-                children: [
-                  SwitchListTile(
-                    secondary: const Icon(Icons.notifications_outlined),
-                    title: const Text('Enable Notifications'),
-                    subtitle: const Text('Receive app notifications'),
-                    value: state.isNotificationsEnabled,
-                    onChanged: (value) => context
-                        .read<PreferencesCubit>()
-                        .toggleNotifications(value),
-                  ),
-                  if (state.isNotificationsEnabled) ...[
-                    SwitchListTile(
-                      secondary: const Icon(Icons.notifications_active_outlined),
-                      title: const Text('Push Notifications'),
-                      subtitle: const Text('Receive push notifications'),
-                      value: state.isPushNotificationsEnabled,
-                      onChanged: (value) => context
-                          .read<PreferencesCubit>()
-                          .togglePushNotifications(value),
+                  authState.maybeWhen(
+                    authenticated: (uid, displayName, email) => _buildSection(
+                      theme,
+                      title: 'Account',
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.logout_outlined),
+                          title: const Text('Log Out'),
+                          textColor: theme.colorScheme.error,
+                          iconColor: theme.colorScheme.error,
+                          onTap: () => _showLogoutDialog(context),
+                        ),
+                      ],
                     ),
-                    SwitchListTile(
-                      secondary: const Icon(Icons.email_outlined),
-                      title: const Text('Email Notifications'),
-                      subtitle: const Text('Receive email updates'),
-                      value: state.isEmailNotificationsEnabled,
-                      onChanged: (value) => context
-                          .read<PreferencesCubit>()
-                          .toggleEmailNotifications(value),
-                    ),
-                  ],
-                ],
-              ),
-              
-              _buildSection(
-                theme,
-                title: 'About',
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.info_outline),
-                    title: const Text('Version'),
-                    subtitle: const Text('1.0.0'),
+                    orElse: () => const SizedBox.shrink(),
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.update_outlined),
-                    title: const Text('Check for Updates'),
-                    onTap: () {
-                      // Implement update check
-                    },
+                  
+                  _buildSection(
+                    theme,
+                    title: 'Appearance',
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.palette_outlined),
+                        title: const Text('Theme'),
+                        subtitle: Text(_getThemeModeName(state.themeMode)),
+                        onTap: () => _showThemeDialog(context, state.themeMode),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.language_outlined),
+                        title: const Text('Language'),
+                        subtitle: Text(state.languageCode.toUpperCase()),
+                        onTap: () => _showLanguageDialog(context, state.languageCode),
+                      ),
+                    ],
+                  ),
+                  
+                  _buildSection(
+                    theme,
+                    title: 'Notifications',
+                    children: [
+                      SwitchListTile(
+                        secondary: const Icon(Icons.notifications_outlined),
+                        title: const Text('Enable Notifications'),
+                        subtitle: const Text('Receive app notifications'),
+                        value: state.isNotificationsEnabled,
+                        onChanged: (value) => context
+                            .read<PreferencesCubit>()
+                            .toggleNotifications(value),
+                      ),
+                      if (state.isNotificationsEnabled) ...[
+                        SwitchListTile(
+                          secondary: const Icon(Icons.notifications_active_outlined),
+                          title: const Text('Push Notifications'),
+                          subtitle: const Text('Receive push notifications'),
+                          value: state.isPushNotificationsEnabled,
+                          onChanged: (value) => context
+                              .read<PreferencesCubit>()
+                              .togglePushNotifications(value),
+                        ),
+                        SwitchListTile(
+                          secondary: const Icon(Icons.email_outlined),
+                          title: const Text('Email Notifications'),
+                          subtitle: const Text('Receive email updates'),
+                          value: state.isEmailNotificationsEnabled,
+                          onChanged: (value) => context
+                              .read<PreferencesCubit>()
+                              .toggleEmailNotifications(value),
+                        ),
+                      ],
+                    ],
+                  ),
+                  
+                  _buildSection(
+                    theme,
+                    title: 'About',
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.info_outline),
+                        title: const Text('Version'),
+                        subtitle: const Text('1.0.0'),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.update_outlined),
+                        title: const Text('Check for Updates'),
+                        onTap: () {
+                          // Implement update check
+                        },
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ],
+              );
+            },
           );
         },
       ),
@@ -182,6 +205,35 @@ class SettingsScreen extends StatelessWidget {
             },
           )).toList(),
         ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AuthCubit>().signOut();
+              context.go('/');
+            },
+            child: Text(
+              'Log Out',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
+        ],
       ),
     );
   }

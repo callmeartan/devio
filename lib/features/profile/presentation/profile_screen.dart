@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../blocs/auth/auth_cubit.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -14,103 +17,146 @@ class ProfileScreen extends StatelessWidget {
           style: theme.textTheme.titleLarge,
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Profile Header
-          Hero(
-            tag: 'profile_picture',
-            child: CircleAvatar(
-              radius: 50,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              child: Icon(
-                Icons.person_outline,
-                size: 50,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Developer',
-            style: theme.textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            'dev@example.com',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          
-          // Profile Actions
-          _buildSection(
-            theme,
-            title: 'Account',
+      body: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, state) {
+          return ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit Profile'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.key_outlined),
-                title: const Text('Change Password'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {},
-              ),
-            ],
-          ),
-          
-          _buildSection(
-            theme,
-            title: 'Preferences',
-            children: [
-              ListTile(
-                leading: const Icon(Icons.notifications_outlined),
-                title: const Text('Notifications'),
-                trailing: Switch(
-                  value: true,
-                  onChanged: (value) {},
+              // Profile Header
+              Hero(
+                tag: 'profile_picture',
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  child: Icon(
+                    Icons.person_outline,
+                    size: 50,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
                 ),
               ),
-              ListTile(
-                leading: const Icon(Icons.dark_mode_outlined),
-                title: const Text('Dark Mode'),
-                trailing: Switch(
-                  value: Theme.of(context).brightness == Brightness.dark,
-                  onChanged: (value) {},
+              const SizedBox(height: 16),
+              state.maybeWhen(
+                authenticated: (uid, displayName, email) => Column(
+                  children: [
+                    Text(
+                      displayName ?? 'User',
+                      style: theme.textTheme.headlineSmall,
+                      textAlign: TextAlign.center,
+                    ),
+                    Text(
+                      email ?? '',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 32),
+              
+              // Profile Actions
+              _buildSection(
+                theme,
+                title: 'Account',
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.edit_outlined),
+                    title: const Text('Edit Profile'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.key_outlined),
+                    title: const Text('Change Password'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.logout_outlined),
+                    title: const Text('Log Out'),
+                    textColor: theme.colorScheme.error,
+                    iconColor: theme.colorScheme.error,
+                    onTap: () => _showLogoutDialog(context),
+                  ),
+                ],
+              ),
+              
+              _buildSection(
+                theme,
+                title: 'Preferences',
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.notifications_outlined),
+                    title: const Text('Notifications'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => context.push('/notifications'),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.settings_outlined),
+                    title: const Text('Settings'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => context.push('/settings'),
+                  ),
+                ],
+              ),
+              
+              _buildSection(
+                theme,
+                title: 'App',
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.info_outline),
+                    title: const Text('About'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.privacy_tip_outlined),
+                    title: const Text('Privacy Policy'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.description_outlined),
+                    title: const Text('Terms of Service'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {},
+                  ),
+                ],
               ),
             ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log Out'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-          
-          _buildSection(
-            theme,
-            title: 'App',
-            children: [
-              ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text('About'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.privacy_tip_outlined),
-                title: const Text('Privacy Policy'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.description_outlined),
-                title: const Text('Terms of Service'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {},
-              ),
-            ],
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AuthCubit>().signOut();
+              context.go('/');
+            },
+            child: Text(
+              'Log Out',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
           ),
         ],
       ),

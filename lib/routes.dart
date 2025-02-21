@@ -16,6 +16,8 @@ import 'features/settings/cubit/preferences_cubit.dart';
 import 'features/notifications/presentation/notifications_screen.dart';
 import 'features/help/presentation/help_screen.dart';
 import 'features/feedback/presentation/feedback_screen.dart';
+import 'repositories/chat_repository.dart';
+import 'cubits/chat/chat_cubit.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -80,11 +82,19 @@ final router = GoRouter(
           Provider<LlmService>(
             create: (_) => LlmService(),
           ),
+          Provider<ChatRepository>(
+            create: (_) => ChatRepository(),
+          ),
           BlocProvider<LlmCubit>(
             create: (context) => LlmCubit(
               llmService: context.read<LlmService>(),
             ),
             lazy: false,
+          ),
+          BlocProvider<ChatCubit>(
+            create: (context) => ChatCubit(
+              chatRepository: context.read<ChatRepository>(),
+            ),
           ),
         ],
         child: const LlmChatScreen(),
@@ -92,14 +102,24 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/profile',
-      builder: (context, state) => const ProfileScreen(),
+      builder: (context, state) => BlocProvider.value(
+        value: context.read<AuthCubit>(),
+        child: const ProfileScreen(),
+      ),
     ),
     GoRoute(
       path: '/settings',
-      builder: (context, state) => BlocProvider(
-        create: (context) => PreferencesCubit(
-          context.read<SharedPreferences>(),
-        ),
+      builder: (context, state) => MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) => PreferencesCubit(
+              context.read<SharedPreferences>(),
+            ),
+          ),
+          BlocProvider.value(
+            value: context.read<AuthCubit>(),
+          ),
+        ],
         child: const SettingsScreen(),
       ),
     ),

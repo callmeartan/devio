@@ -6,6 +6,9 @@ import '../features/llm/services/llm_service.dart';
 import '../features/llm/models/llm_response.dart';
 import 'package:go_router/go_router.dart';
 import '../blocs/auth/auth_cubit.dart';
+import '../cubits/chat/chat_cubit.dart';
+import '../cubits/chat/chat_state.dart';
+import '../widgets/drawer_menu_item.dart';
 
 class AnimatedMessageBubble extends StatelessWidget {
   final Widget child;
@@ -281,15 +284,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
   late AnimationController _fabController;
   bool _showScrollToBottom = false;
 
-  // Simulated chat history - replace with actual chat history later
-  final List<String> _previousChats = [
-    'Flutter Architecture Discussion',
-    'Code Review Session',
-    'API Design Planning',
-    'Database Schema Review',
-    'Performance Optimization',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -300,24 +294,27 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
     );
     _scrollController.addListener(_scrollListener);
     
-    // Add initial greeting
-    _addInitialGreeting();
+    // Add initial greeting for new chats
+    if (context.read<ChatCubit>().state.currentChatId == null) {
+      _sendInitialGreeting();
+    }
   }
 
-  void _addInitialGreeting() {
-    _chatHistory.add({
-      'role': 'assistant',
-      'content': 'Hello! I\'m your AI development assistant. I can help you with:\n\n'
-          '• Flutter/Dart development\n'
-          '• Code review and optimization\n'
-          '• Architecture decisions\n'
-          '• Best practices and patterns\n'
-          '• Debugging and problem-solving\n\n'
-          'How can I assist you today?',
-      'model': _selectedModel ?? 'AI Assistant',
-      'metrics': null,
-    });
-    setState(() {});
+  void _sendInitialGreeting() {
+    final greeting = 'Hello! I\'m your AI development assistant. I can help you with:\n\n'
+        '• Flutter/Dart development\n'
+        '• Code review and optimization\n'
+        '• Architecture decisions\n'
+        '• Best practices and patterns\n'
+        '• Debugging and problem-solving\n\n'
+        'How can I assist you today?';
+
+    context.read<ChatCubit>().sendMessage(
+      senderId: 'assistant',
+      content: greeting,
+      isAI: true,
+      senderName: 'AI Assistant',
+    );
   }
 
   @override
@@ -449,7 +446,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
               ),
             ),
             const SizedBox(height: 8),
-            _DrawerMenuItem(
+            DrawerMenuItem(
               icon: const Icon(Icons.add, size: 20),
               title: 'New project',
               onTap: () => context.push('/new-project'),
@@ -468,14 +465,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
               ),
             ),
             const SizedBox(height: 8),
-            _DrawerMenuItem(
+            DrawerMenuItem(
               icon: const Icon(Icons.add, size: 20),
               title: 'New chat',
               onTap: () {
                 Navigator.pop(context); // Close drawer
+                context.read<ChatCubit>().startNewChat();
                 setState(() {
                   _chatHistory.clear(); // Clear chat history
-                  _addInitialGreeting(); // Add initial greeting
+                  _sendInitialGreeting(); // Add initial greeting
                 });
               },
               isDark: isDark,
@@ -483,23 +481,58 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                itemCount: _previousChats.length,
-                itemBuilder: (context, index) {
-                  return _DrawerMenuItem(
-                    icon: const Icon(Icons.chat_bubble_outline, size: 20),
-                    title: _previousChats[index],
-                    onTap: () => context.push('/chat/${index + 1}'),
-                    isDark: isDark,
-                    showLeadingBackground: false,
+              child: BlocBuilder<ChatCubit, ChatState>(
+                builder: (context, state) {
+                  if (state.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (state.error != null) {
+                    return Center(
+                      child: Text(
+                        'Error loading chats: ${state.error}',
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                    );
+                  }
+
+                  if (state.chatHistories.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No chat history',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    itemCount: state.chatHistories.length,
+                    itemBuilder: (context, index) {
+                      final chat = state.chatHistories[index];
+                      final isSelected = chat['id'] == state.currentChatId;
+
+                      return DrawerMenuItem(
+                        icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                        title: chat['title'] as String,
+                        onTap: () {
+                          Navigator.pop(context); // Close drawer
+                          context.read<ChatCubit>().selectChat(chat['id'] as String);
+                        },
+                        isDark: isDark,
+                        showLeadingBackground: false,
+                        isSelected: isSelected,
+                      );
+                    },
                   );
                 },
               ),
             ),
             // User Profile
             const Divider(height: 1),
-            _DrawerMenuItem(
+            DrawerMenuItem(
               icon: const CircleAvatar(
                 child: Text('AA'),
               ),
@@ -958,65 +991,5 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
       modelName: _selectedModel,
     );
     _promptController.clear();
-  }
-}
-
-class _DrawerMenuItem extends StatelessWidget {
-  final Widget icon;
-  final String title;
-  final VoidCallback onTap;
-  final bool isDark;
-  final bool showLeadingBackground;
-  final bool showTrailingIcon;
-
-  const _DrawerMenuItem({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    required this.isDark,
-    this.showLeadingBackground = true,
-    this.showTrailingIcon = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            if (showLeadingBackground)
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: icon,
-              )
-            else
-              icon,
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (showTrailingIcon)
-              Icon(
-                Icons.more_vert,
-                size: 20,
-                color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 } 

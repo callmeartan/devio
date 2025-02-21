@@ -1,207 +1,186 @@
 # DevIO - AI Development Guide
 
-A modern Flutter application that combines AI-powered development assistance with Firebase backend integration, featuring a robust authentication system, real-time data synchronization, and a beautiful Material Design 3 UI.
+A modern Flutter application that combines AI-powered development assistance with Firebase backend integration. Built with Flutter and Firebase, featuring Material Design 3, robust state management with Bloc pattern, and comprehensive authentication system.
+
+## Tech Stack
+
+- 🎯 **Flutter SDK** (>=3.0.0 <4.0.0)
+- 🔥 **Firebase Suite** (v3.11.0+)
+- 🏗️ **State Management**: flutter_bloc (v9.0.0)
+- 🛣️ **Navigation**: go_router (v14.8.0)
+- 🧊 **Immutable Models**: freezed (v2.4.5)
+- 🔐 **Authentication Providers**:
+  - Firebase Auth (v5.4.2)
+  - Google Sign In (v6.2.1)
+  - Apple Sign In (v6.1.4)
+  - GitHub Sign In (v0.0.5-dev.4)
 
 ## Features
 
-- 🔐 Multi-provider Authentication
-  - Google Sign-In
-  - Apple Sign-In
-  - GitHub Sign-In
-  - Email/Password Authentication
+### 🔐 Authentication & Security
+- Multi-provider authentication system
+- Secure token management
+- User session persistence
+- Role-based access control
 
-- 🔥 Firebase Integration
-  - Cloud Firestore for real-time data storage
-  - Firebase Storage for file management
-  - Firebase Analytics for usage tracking
-  - Firebase Crashlytics for error reporting
-  - Firebase Cloud Messaging for push notifications
+### 🎨 Modern UI/UX
+- Material Design 3 implementation
+- Dynamic color theming
+- Responsive layouts
+- Custom animations
+- Font Awesome icons integration
 
-- 🤖 AI Development Features
-  - Interactive chat interface with AI models
-  - Real-time code suggestions
-  - Development guidance
-  - Performance optimization tips
+### 🔥 Firebase Integration
+- Real-time data synchronization
+- Cloud Storage for file management
+- Analytics tracking
+- Push notifications
+- Crash reporting
 
-- 🎨 Modern UI/UX
-  - Material Design 3 with dynamic theming
-  - Responsive layout for all screen sizes
-  - Cached network images for optimal performance
-  - Custom animations and transitions
+### 🚀 Performance Optimizations
+- Cached network images
+- Lazy loading
+- Efficient state management
+- Optimized Firebase queries
 
-## Prerequisites
+## Getting Started
 
-Before you begin, ensure you have the following installed:
-- Flutter SDK (latest stable version)
-- Dart SDK (>=3.0.0 <4.0.0)
-- Firebase CLI
-- Git
-
-## Setup
-
-### 1. Flutter Setup
-
+### Prerequisites
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/devio.git
+# Required tools
+flutter --version  # Flutter 3.0.0 or higher
+dart --version    # Dart 3.0.0 or higher
+firebase --version # Firebase CLI
+git --version     # Git
+```
+
+### Installation
+
+1. **Clone the Repository**
+```bash
+git clone <repository-url>
 cd devio
+```
 
-# Install dependencies
+2. **Install Dependencies**
+```bash
 flutter pub get
-
-# Run code generation
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
-### 2. Firebase Setup
+3. **Firebase Setup**
+- Create a new Firebase project
+- Enable required services:
+  - Authentication
+  - Firestore
+  - Storage
+  - Analytics
+  - Crashlytics
+  - Cloud Messaging
+- Download and add configuration files:
+  - Android: `google-services.json`
+  - iOS: `GoogleService-Info.plist`
+  - Web: Firebase configuration object
 
-1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com)
-2. Enable Authentication methods:
-   - Google
-   - Apple
-   - GitHub
-   - Email/Password
-3. Create a Firestore database
-4. Set up Firebase Storage
-5. Download and add configuration files:
-   - `google-services.json` for Android
-   - `GoogleService-Info.plist` for iOS
-   - Configure web platform if needed
-
-### 3. Environment Configuration
-
-Create a `.env` file in the root directory:
-
+4. **Environment Configuration**
+Create a `.env` file in the project root:
 ```env
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
 ```
 
 ## Project Structure
-
 ```
 lib/
-├── core/
-│   ├── config/
-│   ├── theme/
-│   └── utils/
-├── features/
-│   ├── auth/
-│   ├── chat/
-│   ├── dashboard/
-│   └── settings/
-├── shared/
-│   ├── widgets/
-│   ├── models/
-│   └── services/
-└── main.dart
+├── core/           # Core functionality and configurations
+├── features/       # Feature-based modules
+├── shared/         # Shared widgets and utilities
+└── main.dart       # Application entry point
 ```
-
-## State Management
-
-The app uses Flutter Bloc (Cubit) for state management with the following principles:
-- Separate business logic from UI
-- Immutable state objects using Freezed
-- Reactive programming patterns
-- Error handling and loading states
-
-## Authentication Flow
-
-1. User selects authentication method
-2. Authentication process handled by respective provider
-3. Firebase Authentication token generated
-4. User profile created/updated in Firestore
-5. App state updated with user session
 
 ## Development Guidelines
 
 ### Code Style
-- Follow Flutter's official style guide
 - Use `flutter_lints` for consistent code quality
-- Maintain proper documentation
-- Implement error handling
+- Follow Flutter's style guide
+- Implement proper error handling
+- Write comprehensive documentation
 
-### Performance
-- Use const constructors where possible
-- Implement proper caching strategies
+### State Management
+- Use Bloc/Cubit for state management
+- Implement Freezed for immutable state
+- Handle loading and error states
+- Use proper dependency injection
+
+### Performance Best Practices
+- Implement const constructors
+- Use proper caching strategies
 - Optimize Firebase queries
 - Monitor analytics and crashlytics
 
-### Testing
-```bash
-# Run tests
-flutter test
-
-# Run integration tests
-flutter drive --target=test_driver/app.dart
-```
-
 ## Available Commands
 
+### Development
 ```bash
-# Development
+# Run in debug mode
 flutter run
 
-# Build APK
-flutter build apk
+# Run code generation
+flutter pub run build_runner build --delete-conflicting-outputs
 
-# Build iOS
-flutter build ios
+# Run tests
+flutter test
+```
 
-# Generate l10n
-flutter gen-l10n
+### Build
+```bash
+# Android
+flutter build apk --release
 
-# Update dependencies
-flutter pub upgrade
+# iOS
+flutter build ios --release
+
+# Web
+flutter build web --release
 ```
 
 ## Deployment
 
-### Android
+### Android Release
 1. Update version in pubspec.yaml
-2. Generate release build
-3. Test on release build
+2. Prepare release notes
+3. Build release APK/Bundle
 4. Deploy to Play Store
 
-### iOS
+### iOS Release
 1. Update version in pubspec.yaml
-2. Generate release build
-3. Test on release build
+2. Prepare release notes
+3. Build and archive in Xcode
 4. Deploy through App Store Connect
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
 
 ## Troubleshooting
 
-- **Firebase Authentication Issues**
-  - Verify Firebase configuration files
-  - Check enabled authentication methods
-  - Verify OAuth configurations
+### Common Issues
+- **Build Errors**: Run `flutter clean` and rebuild
+- **Dependencies**: Update packages and rebuild
+- **Firebase**: Verify configuration files
+- **Code Generation**: Delete generated files and rerun build_runner
 
-- **Build Issues**
-  - Run `flutter clean`
-  - Delete build/ folder
-  - Re-run `flutter pub get`
-  - Re-run code generation
+### Performance Issues
+- Check widget rebuilds
+- Monitor memory usage
+- Verify Firebase query optimization
+- Inspect image caching
 
-- **Performance Issues**
-  - Check Firebase query optimization
-  - Verify image caching
-  - Monitor memory usage
-  - Check widget rebuilds
+## Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Commit changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
-
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
-
-- Flutter Team for the amazing framework
-- Firebase for backend services
-- All contributors who have helped shape this project
+---
+Built with 💙 using Flutter
