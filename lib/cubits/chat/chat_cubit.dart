@@ -8,6 +8,7 @@ import 'chat_state.dart';
 class ChatCubit extends Cubit<ChatState> {
   final ChatRepository _chatRepository;
   StreamSubscription<List<ChatMessage>>? _chatSubscription;
+  final Map<String, List<ChatMessage>> _localMessages = {};
 
   ChatCubit({required ChatRepository chatRepository})
       : _chatRepository = chatRepository,
@@ -57,11 +58,15 @@ class ChatCubit extends Cubit<ChatState> {
           .listen(
         (messages) {
           developer.log('Received ${messages.length} messages for chat: ${state.currentChatId}');
-          emit(state.copyWith(messages: messages, error: null));
+          _localMessages[state.currentChatId!] = messages;
+          _updateMessagesState(state.currentChatId);
         },
         onError: (error) {
           developer.log('Error in chat stream: $error');
-          emit(state.copyWith(error: 'Failed to load messages: $error'));
+          // Don't clear messages on error, keep showing local state
+          if (!error.toString().contains('index')) {
+            emit(state.copyWith(error: 'Failed to load messages: $error'));
+          }
         },
       );
     } else {
@@ -86,6 +91,11 @@ class ChatCubit extends Cubit<ChatState> {
         senderName: senderName,
       );
       
+      // Add message to local state immediately
+      final chatId = message.chatId;
+      _localMessages[chatId] = [...(_localMessages[chatId] ?? []), message];
+      _updateMessagesState(chatId);
+      
       await _chatRepository.sendMessage(message);
       developer.log('Message sent successfully, chatId: ${message.chatId}');
       
@@ -102,6 +112,13 @@ class ChatCubit extends Cubit<ChatState> {
       developer.log('Error sending message: $e');
       emit(state.copyWith(error: 'Failed to send message: $e'));
     }
+  }
+
+  void _updateMessagesState(String? chatId) {
+    if (chatId == null) return;
+    final messages = _localMessages[chatId] ?? [];
+    messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    emit(state.copyWith(messages: messages));
   }
 
   Future<void> deleteMessage(String messageId) async {

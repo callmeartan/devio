@@ -21,15 +21,47 @@ class ChatRepository {
   }
 
   Stream<List<ChatMessage>> getChatMessagesForId(String chatId) {
-    return _firestore
-        .collection(_collectionPath)
-        .where('chatId', isEqualTo: chatId)
-        .orderBy('timestamp', descending: true)
-        .limit(100)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => ChatMessage.fromJson(doc.data()))
-            .toList());
+    try {
+      developer.log('Getting messages for chat: $chatId');
+      
+      // Try the optimized query first
+      final optimizedQuery = _firestore
+          .collection(_collectionPath)
+          .where('chatId', isEqualTo: chatId)
+          .orderBy('timestamp', descending: true)
+          .limit(100);
+          
+      return optimizedQuery
+          .snapshots()
+          .handleError((error) {
+            developer.log('Error with optimized query: $error');
+            if (error.toString().contains('index')) {
+              // Fall back to basic query while index is building
+              developer.log('Falling back to basic query while index builds');
+              return _firestore
+                  .collection(_collectionPath)
+                  .where('chatId', isEqualTo: chatId)
+                  .snapshots();
+            }
+            throw error;
+          })
+          .map((snapshot) {
+            final messages = snapshot.docs
+                .map((doc) => ChatMessage.fromJson(doc.data()))
+                .toList();
+            
+            // Sort messages in memory if using fallback query
+            messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+            return messages;
+          })
+          .handleError((error) {
+            developer.log('Error in getChatMessagesForId: $error');
+            throw error;
+          });
+    } catch (e) {
+      developer.log('Error setting up chat stream: $e');
+      throw e;
+    }
   }
 
   Future<List<Map<String, dynamic>>> getChatHistories() async {
@@ -99,6 +131,10 @@ class ChatRepository {
     try {
       developer.log('Sending message: ${message.id} for chat: ${message.chatId}');
       final data = message.toJson();
+      
+      // Convert timestamp to Firestore Timestamp
+      data['timestamp'] = Timestamp.fromDate(message.timestamp);
+      
       await _firestore
           .collection(_collectionPath)
           .doc(message.id)

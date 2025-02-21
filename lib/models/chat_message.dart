@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:developer' as developer;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 part 'chat_message.freezed.dart';
 part 'chat_message.g.dart';
@@ -59,42 +60,26 @@ class ChatMessage with _$ChatMessage {
   factory ChatMessage.ai({
     String? chatId,
     required String content,
+    required String userId,
   }) => ChatMessage.create(
     chatId: chatId,
-    senderId: 'ai',
+    senderId: userId,
     content: content,
     isAI: true,
     senderName: 'AI Assistant',
   );
 
   static DateTime _timestampFromJson(dynamic json) {
-    if (json is DateTime) return json;
-    if (json is Map) {
-      try {
-        return DateTime.fromMillisecondsSinceEpoch(
-            json['_seconds'] * 1000 + (json['_nanoseconds'] ~/ 1000000));
-      } catch (e) {
-        developer.log('Error parsing timestamp from Map: $e');
-        developer.log('Timestamp data: $json');
-        rethrow;
-      }
+    if (json is Timestamp) {
+      return json.toDate();
     }
-    if (json is String) {
-      try {
-        return DateTime.parse(json);
-      } catch (e) {
-        developer.log('Error parsing timestamp from String: $e');
-        developer.log('Timestamp data: $json');
-        rethrow;
-      }
+    if (json is DateTime) {
+      return json;
     }
     throw FormatException('Invalid timestamp format: $json');
   }
 
-  static Map<String, dynamic> _timestampToJson(DateTime time) {
-    return {
-      '_seconds': time.millisecondsSinceEpoch ~/ 1000,
-      '_nanoseconds': (time.millisecondsSinceEpoch % 1000) * 1000000,
-    };
+  static Timestamp _timestampToJson(DateTime time) {
+    return Timestamp.fromDate(time);
   }
 } 

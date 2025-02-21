@@ -7,6 +7,7 @@ import '../models/llm_response.dart';
 class LlmService {
   final String baseUrl;
   final http.Client _client;
+  static const _timeout = Duration(seconds: 120);
 
   LlmService({
     String? baseUrl,
@@ -17,24 +18,30 @@ class LlmService {
   static String _getDefaultBaseUrl() {
     // When running on iOS simulator or device, we need to use the host machine's IP
     if (Platform.isIOS) {
-      return 'http://192.168.1.105:8080';
+      return 'http://localhost:8080';  // Update this to your machine's IP if needed
     }
     return 'http://localhost:8080';
   }
 
   Future<List<String>> getAvailableModels() async {
     try {
+      dev.log('Fetching available models from: $baseUrl/models');
       final response = await _client.get(
         Uri.parse('$baseUrl/models'),
-      );
+      ).timeout(_timeout);
 
+      dev.log('Models response status code: ${response.statusCode}');
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        return List<String>.from(jsonResponse['models']);
+        final models = List<String>.from(jsonResponse['models']);
+        dev.log('Available models: $models');
+        return models;
       } else {
-        throw Exception('Failed to fetch models: ${response.statusCode}');
+        dev.log('Error fetching models: ${response.body}');
+        throw Exception('Failed to fetch models: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
+      dev.log('Error connecting to server: $e');
       throw Exception('Error connecting to server: $e');
     }
   }
@@ -46,23 +53,44 @@ class LlmService {
     double temperature = 0.7,
   }) async {
     try {
+      dev.log('Generating response...');
+      dev.log('Base URL: $baseUrl');
+      
+      // Ensure model name has the correct format
+      final formattedModelName = modelName?.contains(':') == true 
+          ? modelName 
+          : '${modelName}:latest';
+      
+      dev.log('Request parameters:');
+      dev.log('- Prompt: $prompt');
+      dev.log('- Model (formatted): $formattedModelName');
+      dev.log('- Max tokens: $maxTokens');
+      dev.log('- Temperature: $temperature');
+      
+      final requestBody = {
+        'prompt': prompt,
+        'model_name': formattedModelName,
+        'max_tokens': maxTokens,
+        'temperature': temperature,
+      };
+      dev.log('Request body: $requestBody');
+      
       final response = await _client.post(
         Uri.parse('$baseUrl/generate'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: jsonEncode({
-          'prompt': prompt,
-          'model_name': modelName,
-          'max_tokens': maxTokens,
-          'temperature': temperature,
-        }),
-      );
+        body: jsonEncode(requestBody),
+      ).timeout(_timeout);
+
+      dev.log('Response status code: ${response.statusCode}');
+      dev.log('Response headers: ${response.headers}');
+      dev.log('Raw response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-        dev.log('Raw response: $jsonResponse');
+        dev.log('Parsed JSON response: $jsonResponse');
 
         // Clean up the response text
         String cleanText = (jsonResponse['response'] as String? ?? jsonResponse['text'] as String)
@@ -129,10 +157,11 @@ class LlmService {
         dev.log('Final response object: $cleanedResponse');
         return LlmResponse.fromJson(cleanedResponse);
       } else {
+        dev.log('Error generating response: ${response.body}');
         return LlmResponse(
           text: '',
           isError: true,
-          errorMessage: 'Failed to generate response: ${response.statusCode}',
+          errorMessage: 'Failed to generate response: ${response.statusCode} - ${response.body}',
         );
       }
     } catch (e) {
