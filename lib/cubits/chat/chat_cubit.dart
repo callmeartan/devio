@@ -117,7 +117,7 @@ class ChatCubit extends Cubit<ChatState> {
   void _updateMessagesState(String? chatId) {
     if (chatId == null) return;
     final messages = _localMessages[chatId] ?? [];
-    messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     emit(state.copyWith(messages: messages));
   }
 

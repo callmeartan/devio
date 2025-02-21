@@ -97,7 +97,7 @@ async def generate(request: GenerateRequest):
                 response = await client.post(
                     f"{OLLAMA_API_BASE}/api/generate",
                     json=ollama_request,
-                    timeout=120.0
+                    timeout=1200.0
                 )
                 
                 if response.status_code != 200:

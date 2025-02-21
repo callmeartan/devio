@@ -33,7 +33,10 @@ class AnimatedMessageBubble extends StatelessWidget {
       curve: Curves.easeOutQuart,
       builder: (context, value, child) {
         return Transform.translate(
-          offset: Offset(0, 20 * (1 - value)),
+          offset: Offset(
+            isUser ? 20 * (1 - value) : -20 * (1 - value),
+            0,
+          ),
           child: Opacity(
             opacity: value,
             child: child,
@@ -144,9 +147,9 @@ class PerformanceMetrics extends StatelessWidget {
         // Metrics Toggle Button
         Padding(
           padding: const EdgeInsets.only(
-            left: 32,
-            right: 32,
-            top: 8,
+            left: 0,
+            right: 0,
+            top: 4,
           ),
           child: Material(
             color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
@@ -156,17 +159,18 @@ class PerformanceMetrics extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+                  horizontal: 12,
+                  vertical: 6,
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.speed_rounded,
-                      size: 16,
+                      size: 14,
                       color: theme.colorScheme.primary.withOpacity(0.8),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       'Performance Metrics',
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -174,12 +178,12 @@ class PerformanceMetrics extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 4),
                     Icon(
                       isExpanded 
                           ? Icons.keyboard_arrow_up_rounded
                           : Icons.keyboard_arrow_down_rounded,
-                      size: 20,
+                      size: 16,
                       color: theme.colorScheme.primary.withOpacity(0.8),
                     ),
                   ],
@@ -192,9 +196,8 @@ class PerformanceMetrics extends StatelessWidget {
         if (isExpanded)
           Container(
             margin: const EdgeInsets.only(
-              left: 32,
-              right: 32,
-              bottom: 16,
+              left: 0,
+              right: 0,
               top: 4,
             ),
             padding: const EdgeInsets.all(12),
@@ -279,7 +282,8 @@ class LlmChatScreen extends StatefulWidget {
 
 class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProviderStateMixin {
   final _promptController = TextEditingController();
-  final _scrollController = ScrollController();
+  final _chatScrollController = ScrollController();
+  final _historyScrollController = ScrollController();
   final Map<int, bool> _expandedMetrics = {};
   String? _selectedModel;
   List<String> _availableModels = [];
@@ -294,12 +298,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-    _scrollController.addListener(_scrollListener);
+    _chatScrollController.addListener(_scrollListener);
     
     // Add initial greeting for new chats
     if (context.read<ChatCubit>().state.currentChatId == null) {
       _sendInitialGreeting();
     }
+
+    // Schedule scroll to bottom after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
   }
 
   void _sendInitialGreeting() {
@@ -330,18 +339,22 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
   @override
   void dispose() {
     _promptController.dispose();
-    _scrollController.dispose();
+    _chatScrollController.dispose();
+    _historyScrollController.dispose();
     _fabController.dispose();
     super.dispose();
   }
 
   void _scrollListener() {
-    final showButton = _scrollController.hasClients &&
-        _scrollController.offset > 100 &&
-        _scrollController.offset < _scrollController.position.maxScrollExtent - 100;
+    if (!_chatScrollController.hasClients) return;
     
-    if (showButton != _showScrollToBottom) {
-      setState(() => _showScrollToBottom = showButton);
+    final showButton = _chatScrollController.position.pixels < 
+        _chatScrollController.position.maxScrollExtent - 100;
+    
+    if (_showScrollToBottom != showButton) {
+      setState(() {
+        _showScrollToBottom = showButton;
+      });
       if (showButton) {
         _fabController.forward();
       } else {
@@ -389,18 +402,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
     );
   }
 
-  void _scrollToBottom({bool animated = true}) {
-    if (!_scrollController.hasClients) return;
-    
-    final position = _scrollController.position.maxScrollExtent;
-    if (animated) {
-      _scrollController.animateTo(
-        position,
+  void _scrollToBottom() {
+    if (_chatScrollController.hasClients) {
+      _chatScrollController.animateTo(
+        _chatScrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutQuart,
       );
-    } else {
-      _scrollController.jumpTo(position);
     }
   }
 
@@ -528,8 +536,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
                           }
 
                           return ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            controller: _historyScrollController,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             itemCount: state.chatHistories.length,
+                            reverse: false,
+                            physics: const AlwaysScrollableScrollPhysics(),
                             itemBuilder: (context, index) {
                               final chat = state.chatHistories[index];
                               final isSelected = chat['id'] == state.currentChatId;
@@ -860,102 +874,120 @@ class _LlmChatScreenState extends State<LlmChatScreen> with SingleTickerProvider
                                 }
 
                                 return ListView.builder(
-                                  controller: _scrollController,
+                                  controller: _chatScrollController,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 8,
                                   ),
                                   itemCount: chatState.messages.length,
+                                  reverse: false,
+                                  physics: const AlwaysScrollableScrollPhysics(),
                                   itemBuilder: (context, index) {
                                     final message = chatState.messages[index];
                                     final isUser = !message.isAI;
 
-                                    return Column(
-                                      children: [
-                                        AnimatedMessageBubble(
-                                          isUser: isUser,
-                                          child: Column(
-                                            crossAxisAlignment: isUser
-                                                ? CrossAxisAlignment.end
-                                                : CrossAxisAlignment.start,
-                                            children: [
-                                              if (!isUser)
-                                                Padding(
-                                                  padding: const EdgeInsets.only(bottom: 4, left: 4),
-                                                  child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Icon(
-                                                        Icons.smart_toy_outlined,
-                                                        size: 16,
-                                                        color: theme.colorScheme.primary,
-                                                      ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        message.senderName ?? _kAiUserName,
-                                                        style: theme.textTheme.bodySmall?.copyWith(
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 16.0),
+                                      child: Column(
+                                        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                        children: [
+                                          AnimatedMessageBubble(
+                                            isUser: isUser,
+                                            child: Column(
+                                              crossAxisAlignment: isUser
+                                                  ? CrossAxisAlignment.end
+                                                  : CrossAxisAlignment.start,
+                                              children: [
+                                                if (!isUser)
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(bottom: 4, left: 4),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.smart_toy_outlined,
+                                                          size: 16,
                                                           color: theme.colorScheme.primary,
-                                                          fontWeight: FontWeight.w500,
                                                         ),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          message.senderName ?? _kAiUserName,
+                                                          style: theme.textTheme.bodySmall?.copyWith(
+                                                            color: theme.colorScheme.primary,
+                                                            fontWeight: FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                Container(
+                                                  margin: EdgeInsets.only(
+                                                    left: isUser ? 64 : 0,
+                                                    right: isUser ? 0 : 64,
+                                                  ),
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 12,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: isUser
+                                                        ? theme.colorScheme.primary
+                                                        : theme.colorScheme.surface,
+                                                    borderRadius: BorderRadius.only(
+                                                      topLeft: const Radius.circular(16),
+                                                      topRight: const Radius.circular(16),
+                                                      bottomLeft: Radius.circular(isUser ? 16 : 4),
+                                                      bottomRight: Radius.circular(isUser ? 4 : 16),
+                                                    ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: theme.shadowColor.withOpacity(0.1),
+                                                        blurRadius: 8,
+                                                        offset: const Offset(0, 2),
                                                       ),
                                                     ],
                                                   ),
-                                                ),
-                                              Container(
-                                                margin: EdgeInsets.only(
-                                                  left: isUser ? 32 : 0,
-                                                  right: isUser ? 0 : 32,
-                                                ),
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 16,
-                                                  vertical: 12,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: isUser
-                                                      ? theme.colorScheme.primary
-                                                      : theme.colorScheme.surface,
-                                                  borderRadius: BorderRadius.circular(16),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: theme.shadowColor.withOpacity(0.1),
-                                                      blurRadius: 8,
-                                                      offset: const Offset(0, 2),
+                                                  child: SelectableText(
+                                                    message.content,
+                                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                                      color: isUser
+                                                          ? theme.colorScheme.onPrimary
+                                                          : theme.colorScheme.onSurface,
                                                     ),
-                                                  ],
-                                                ),
-                                                child: SelectableText(
-                                                  message.content,
-                                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                                    color: isUser
-                                                        ? theme.colorScheme.onPrimary
-                                                        : theme.colorScheme.onSurface,
                                                   ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        // Add performance metrics for AI responses
-                                        if (!isUser)
-                                          BlocBuilder<LlmCubit, LlmState>(
-                                            builder: (context, llmState) {
-                                              return llmState.maybeWhen(
-                                                success: (response) {
-                                                  return PerformanceMetrics(
-                                                    response: response,
-                                                    isExpanded: _expandedMetrics[index] ?? false,
-                                                    onToggle: () {
-                                                      setState(() {
-                                                        _expandedMetrics[index] = !(_expandedMetrics[index] ?? false);
-                                                      });
+                                          // Add performance metrics for AI responses with proper alignment
+                                          if (!isUser)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                left: 0,
+                                                right: 64,
+                                                top: 4,
+                                              ),
+                                              child: BlocBuilder<LlmCubit, LlmState>(
+                                                builder: (context, llmState) {
+                                                  return llmState.maybeWhen(
+                                                    success: (response) {
+                                                      return PerformanceMetrics(
+                                                        response: response,
+                                                        isExpanded: _expandedMetrics[index] ?? false,
+                                                        onToggle: () {
+                                                          setState(() {
+                                                            _expandedMetrics[index] = !(_expandedMetrics[index] ?? false);
+                                                          });
+                                                        },
+                                                      );
                                                     },
+                                                    orElse: () => const SizedBox.shrink(),
                                                   );
                                                 },
-                                                orElse: () => const SizedBox.shrink(),
-                                              );
-                                            },
-                                          ),
-                                      ],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     );
                                   },
                                 );
