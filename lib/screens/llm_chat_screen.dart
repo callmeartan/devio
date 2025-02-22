@@ -392,17 +392,35 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       if (mounted) {
         setState(() {
           _availableModels = models;
-          // Update selected model based on provider
           final provider = context.read<LlmCubit>().currentProvider;
-          if (_selectedModel == null || !models.contains(_selectedModel)) {
+          
+          // Filter models based on current context
+          final filteredModels = models.where((model) {
+            if (provider == LlmProvider.local) {
+              return true;
+            }
+            if (_selectedImageBytes != null) {
+              return model.contains('vision');
+            }
+            return !model.contains('vision');
+          }).toList();
+
+          // Update selected model based on filtered list
+          if (_selectedModel == null || !filteredModels.contains(_selectedModel)) {
             _selectedModel = provider == LlmProvider.gemini 
-                ? 'gemini-1.5-pro'  // Default to latest Gemini model
-                : models.firstOrNull;
+                ? (_selectedImageBytes != null ? 'gemini-1.5-pro-vision-latest' : 'gemini-1.5-pro')
+                : filteredModels.firstOrNull;
           }
           // If switching to Gemini, ensure we have a Gemini model selected
           else if (provider == LlmProvider.gemini && !_selectedModel!.startsWith('gemini-')) {
-            _selectedModel = 'gemini-1.5-pro';
+            _selectedModel = _selectedImageBytes != null ? 'gemini-1.5-pro-vision-latest' : 'gemini-1.5-pro';
           }
+          
+          // Ensure selected model is in filtered list
+          if (_selectedModel != null && !filteredModels.contains(_selectedModel)) {
+            _selectedModel = filteredModels.firstOrNull;
+          }
+          
           developer.log('Selected model: $_selectedModel');
         });
       }
@@ -454,6 +472,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         setState(() {
           _selectedImageBytes = bytes;
           _selectedImagePath = image.path;
+          // Switch to vision model when image is selected
+          if (context.read<LlmCubit>().currentProvider == LlmProvider.gemini) {
+            _selectedModel = 'gemini-1.5-pro-vision-latest';
+          }
         });
       }
     } catch (e) {
@@ -467,6 +489,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     setState(() {
       _selectedImageBytes = null;
       _selectedImagePath = null;
+      // Switch back to non-vision model when image is cleared
+      if (context.read<LlmCubit>().currentProvider == LlmProvider.gemini) {
+        _selectedModel = 'gemini-1.5-pro';
+      }
     });
   }
 
@@ -860,58 +886,41 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                               ),
                             )
                           else
-                            DropdownButtonFormField<String>(
-                              value: _selectedModel,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: theme.colorScheme.outline,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.5),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: theme.colorScheme.primary,
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                filled: true,
-                                fillColor: theme.colorScheme.surface,
-                                prefixIcon: Icon(
-                                  Icons.psychology_outlined,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              items: _availableModels
-                                  .where((model) => context.read<LlmCubit>().currentProvider == LlmProvider.local || 
-                                                  model.startsWith('gemini-'))
-                                  .map((String model) {
-                                return DropdownMenuItem<String>(
-                                  value: model,
-                                  child: Text(
-                                    model,
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      color: theme.colorScheme.onSurface,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      value: _selectedModel,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Model',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      items: _availableModels
+                                          .where((model) {
+                                            if (context.read<LlmCubit>().currentProvider == LlmProvider.local) {
+                                              return true;
+                                            }
+                                            if (_selectedImageBytes != null) {
+                                              return model.contains('vision');
+                                            }
+                                            return !model.contains('vision');
+                                          })
+                                          .map((model) => DropdownMenuItem(
+                                                value: model,
+                                                child: Text(model),
+                                              ))
+                                          .toList(),
+                                      onChanged: (value) {
+                                        if (value != null) {
+                                          setState(() => _selectedModel = value);
+                                        }
+                                      },
                                     ),
                                   ),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _selectedModel = newValue;
-                                });
-                              },
+                                ],
+                              ),
                             ),
                         ],
                       ),
@@ -923,33 +932,22 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           constraints: const BoxConstraints(maxWidth: 768),
                           child: BlocConsumer<LlmCubit, LlmState>(
                             listener: (context, state) {
-                              developer.log('LLM state changed: $state');
                               state.maybeWhen(
                                 success: (response) {
-                                  developer.log('Received AI response: ${response.text}');
-                                  // Get the authenticated user's ID for sending the AI response
                                   final authState = context.read<AuthCubit>().state;
                                   final userId = authState.maybeWhen(
                                     authenticated: (uid, _, __) => uid,
-                                    orElse: () {
-                                      developer.log('User not authenticated when handling AI response');
-                                      throw Exception('User must be authenticated to send messages');
-                                    },
+                                    orElse: () => throw Exception('User must be authenticated to send messages'),
                                   );
 
-                                  developer.log('Sending AI response with user ID: $userId');
-                                  // Send AI response with the authenticated user's ID
                                   context.read<ChatCubit>().sendMessage(
-                                    senderId: userId,  // Using authenticated user's ID
+                                    senderId: userId,
                                     content: response.text,
-                                    isAI: true,  // Mark as AI message
-                                    senderName: _kAiUserName,  // Use AI name for display
+                                    isAI: true,
+                                    senderName: _kAiUserName,
                                   ).then((_) {
-                                    developer.log('AI response sent successfully');
-                                    // Scroll to bottom after message is sent
                                     _scrollToBottom();
                                   }).catchError((error) {
-                                    developer.log('Error sending AI response: $error');
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('Error sending AI response: $error'),
@@ -959,7 +957,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                   });
                                 },
                                 error: (error) {
-                                  developer.log('Error generating AI response: $error');
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Error: $error'),
@@ -967,9 +964,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     ),
                                   );
                                 },
-                                orElse: () {
-                                  developer.log('Unhandled LLM state');
-                                },
+                                orElse: () {},
                               );
                             },
                             builder: (context, state) {
@@ -981,197 +976,106 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
                                   if (chatState.error != null) {
                                     return Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.error_outline,
-                                            size: 48,
-                                            color: theme.colorScheme.error,
+                                      child: SelectableText.rich(
+                                        TextSpan(
+                                          text: 'Error: ',
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.error,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Error: ${chatState.error}',
-                                            style: theme.textTheme.titleMedium?.copyWith(
-                                              color: theme.colorScheme.error,
+                                          children: [
+                                            TextSpan(
+                                              text: chatState.error.toString(),
+                                              style: const TextStyle(fontWeight: FontWeight.normal),
                                             ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     );
                                   }
 
                                   if (chatState.messages.isEmpty) {
-                                    return Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.chat_bubble_outline,
-                                            size: 48,
-                                            color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Start a conversation',
-                                            style: theme.textTheme.titleLarge?.copyWith(
-                                              color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Ask me anything about app development',
-                                            style: theme.textTheme.bodyMedium?.copyWith(
-                                              color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
+                                    return const Center(child: Text('No messages yet'));
                                   }
 
-                                  return Scrollbar(
+                                  return ListView.builder(
                                     controller: _chatScrollController,
-                                    child: ListView.builder(
-                                      key: const PageStorageKey('chat_messages'),
-                                      controller: _chatScrollController,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
-                                      itemCount: chatState.messages.length,
-                                      reverse: false,
-                                      addAutomaticKeepAlives: false,
-                                      addRepaintBoundaries: false,
-                                      physics: const AlwaysScrollableScrollPhysics(),
-                                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                                      itemBuilder: (context, index) {
-                                        final message = chatState.messages[index];
-                                        final isUser = !message.isAI;
-                                        final isLastMessage = index == chatState.messages.length - 1;
-
-                                        // Auto-scroll to bottom for new messages
-                                        if (isLastMessage) {
-                                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                                            if (_chatScrollController.hasClients &&
-                                                _chatScrollController.position.pixels >
-                                                    _chatScrollController.position.maxScrollExtent - 300) {
-                                              _scrollToBottom();
-                                            }
-                                          });
-                                        }
-
-                                        return RepaintBoundary(
-                                          child: Padding(
-                                            padding: const EdgeInsets.only(bottom: 16.0),
-                                            child: Column(
-                                              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                                              children: [
-                                                MessageBubble(
-                                                  isUser: isUser,
-                                                  child: Column(
-                                                    crossAxisAlignment: isUser
-                                                        ? CrossAxisAlignment.end
-                                                        : CrossAxisAlignment.start,
-                                                    children: [
-                                                      if (!isUser)
-                                                        Padding(
-                                                          padding: const EdgeInsets.only(bottom: 4, left: 4),
-                                                          child: Row(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              Icon(
-                                                                Icons.smart_toy_outlined,
-                                                                size: 16,
-                                                                color: theme.colorScheme.primary,
-                                                              ),
-                                                              const SizedBox(width: 4),
-                                                              Text(
-                                                                message.senderName ?? _kAiUserName,
-                                                                style: theme.textTheme.bodySmall?.copyWith(
-                                                                  color: theme.colorScheme.primary,
-                                                                  fontWeight: FontWeight.w500,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      Container(
-                                                        margin: EdgeInsets.only(
-                                                          left: isUser ? 64 : 0,
-                                                          right: isUser ? 0 : 64,
-                                                        ),
-                                                        padding: const EdgeInsets.symmetric(
-                                                          horizontal: 16,
-                                                          vertical: 12,
-                                                        ),
-                                                        decoration: BoxDecoration(
-                                                          color: isUser
-                                                              ? theme.colorScheme.primary
-                                                              : theme.colorScheme.surface,
-                                                          borderRadius: BorderRadius.only(
-                                                            topLeft: const Radius.circular(16),
-                                                            topRight: const Radius.circular(16),
-                                                            bottomLeft: Radius.circular(isUser ? 16 : 4),
-                                                            bottomRight: Radius.circular(isUser ? 4 : 16),
-                                                          ),
-                                                          boxShadow: [
-                                                            BoxShadow(
-                                                              color: theme.shadowColor.withOpacity(0.1),
-                                                              blurRadius: 8,
-                                                              offset: const Offset(0, 2),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        child: SelectableText.rich(
-                                                          TextSpan(
-                                                            text: message.content,
-                                                            style: theme.textTheme.bodyLarge?.copyWith(
-                                                              color: isUser
-                                                                  ? theme.colorScheme.onPrimary
-                                                                  : theme.colorScheme.onSurface,
-                                                            ),
-                                                          ),
-                                                          scrollPhysics: const NeverScrollableScrollPhysics(),
-                                                          minLines: 1,
-                                                          maxLines: null,
-                                                        ),
+                                    padding: const EdgeInsets.all(16),
+                                    itemCount: chatState.messages.length,
+                                    itemBuilder: (context, index) {
+                                      final message = chatState.messages[index];
+                                      return MessageBubble(
+                                        isUser: !message.isAI,
+                                        child: Column(
+                                          crossAxisAlignment: !message.isAI ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                          children: [
+                                            if (!message.isAI)
+                                              Padding(
+                                                padding: const EdgeInsets.only(bottom: 4, left: 4),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.smart_toy_outlined,
+                                                      size: 16,
+                                                      color: Theme.of(context).colorScheme.primary,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      message.senderName ?? _kAiUserName,
+                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                        color: Theme.of(context).colorScheme.primary,
+                                                        fontWeight: FontWeight.w500,
                                                       ),
-                                                    ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            Container(
+                                              margin: EdgeInsets.only(
+                                                left: !message.isAI ? 64 : 0,
+                                                right: !message.isAI ? 0 : 64,
+                                              ),
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 12,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: !message.isAI
+                                                    ? Theme.of(context).colorScheme.primary
+                                                    : Theme.of(context).colorScheme.surface,
+                                                borderRadius: BorderRadius.only(
+                                                  topLeft: const Radius.circular(16),
+                                                  topRight: const Radius.circular(16),
+                                                  bottomLeft: Radius.circular(!message.isAI ? 16 : 4),
+                                                  bottomRight: Radius.circular(!message.isAI ? 4 : 16),
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Theme.of(context).shadowColor.withOpacity(0.1),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: SelectableText.rich(
+                                                TextSpan(
+                                                  text: message.content,
+                                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                                    color: !message.isAI
+                                                        ? Theme.of(context).colorScheme.onPrimary
+                                                        : Theme.of(context).colorScheme.onSurface,
                                                   ),
                                                 ),
-                                                // Add performance metrics for AI responses with proper alignment
-                                                if (!isUser)
-                                                  Padding(
-                                                    padding: const EdgeInsets.only(
-                                                      left: 0,
-                                                      right: 64,
-                                                      top: 4,
-                                                    ),
-                                                    child: BlocBuilder<LlmCubit, LlmState>(
-                                                      builder: (context, llmState) {
-                                                        return llmState.maybeWhen(
-                                                          success: (response) => PerformanceMetrics(
-                                                            response: response,
-                                                            isExpanded: _expandedMetrics[index] ?? false,
-                                                            onToggle: () {
-                                                              setState(() {
-                                                                _expandedMetrics[index] = !(_expandedMetrics[index] ?? false);
-                                                              });
-                                                            },
-                                                          ),
-                                                          orElse: () => const SizedBox.shrink(),
-                                                        );
-                                                      },
-                                                    ),
-                                                  ),
-                                              ],
+                                                scrollPhysics: const NeverScrollableScrollPhysics(),
+                                                minLines: 1,
+                                                maxLines: null,
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               );
@@ -1242,35 +1146,25 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   void _sendMessage() {
     if (_selectedModel == null) {
-      developer.log('No model selected');
       _showErrorSnackBar('Please select a model first');
       return;
     }
     
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) {
-      developer.log('Empty prompt');
       return;
     }
-
-    developer.log('Sending message with prompt: $prompt');
-    developer.log('Selected model: $_selectedModel');
 
     final authState = context.read<AuthCubit>().state;
     final userId = authState.maybeWhen(
       authenticated: (uid, displayName, _) => uid,
-      orElse: () {
-        developer.log('User not authenticated');
-        throw Exception('User must be authenticated to send messages');
-      },
+      orElse: () => throw Exception('User must be authenticated to send messages'),
     );
 
     final userName = authState.maybeWhen(
       authenticated: (_, displayName, __) => displayName,
       orElse: () => null,
     );
-
-    developer.log('Sending user message with ID: $userId and name: $userName');
 
     // First send the user's message
     context.read<ChatCubit>().sendMessage(
@@ -1279,21 +1173,21 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       isAI: false,
       senderName: userName,
     ).then((_) {
-      developer.log('User message sent successfully, generating AI response...');
-      
-      // Generate response based on whether an image is selected
+      // Generate response based on whether an image or document is selected
       if (_selectedImageBytes != null) {
+        // Always use vision model for images
         context.read<LlmCubit>().generateResponseWithImage(
           prompt: prompt,
           imageBytes: _selectedImageBytes!,
-          modelName: 'gemini-1.5-pro-vision-latest',
+          modelName: 'gemini-1.5-pro-vision-latest',  // Force vision model
         );
         _clearSelectedImage();
       } else if (_selectedDocument != null) {
+        // Use standard model for documents
         context.read<LlmCubit>().generateResponseWithDocument(
           prompt: prompt,
           documentPath: _selectedDocument!.path,
-          modelName: 'gemini-1.5-pro-vision-latest',
+          modelName: _selectedModel!,  // Use selected model
         );
         _clearSelectedDocument();
       } else {
@@ -1306,7 +1200,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       _promptController.clear();
       _scrollToBottom();
     }).catchError((error) {
-      developer.log('Error sending message: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to send message: $error'),
@@ -1339,10 +1232,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       showLeadingBackground: false,
       isSelected: isSelected,
       isPinned: isPinned,
-      onPin: (title) => context.read<ChatCubit>().pinChat(chatId),
-      onUnpin: (title) => context.read<ChatCubit>().unpinChat(chatId),
-      onDelete: (title) => context.read<ChatCubit>().deleteChat(chatId),
-      onRename: (oldTitle, newTitle) => context.read<ChatCubit>().renameChat(chatId, newTitle),
+      onPin: (id) => context.read<ChatCubit>().pinChat(id),
+      onUnpin: (id) => context.read<ChatCubit>().unpinChat(id),
+      onDelete: (id) => context.read<ChatCubit>().deleteChat(id),
+      onRename: (id, newTitle) => context.read<ChatCubit>().renameChat(id, newTitle),
     );
   }
 
@@ -1517,45 +1410,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 ),
               Row(
                 children: [
-                  PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.attach_file,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    tooltip: 'Add attachment',
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'image',
-                        child: Row(
-                          children: [
-                            Icon(Icons.image, color: theme.colorScheme.onSurface),
-                            const SizedBox(width: 8),
-                            const Text('Image'),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'document',
-                        child: Row(
-                          children: [
-                            Icon(Icons.description, color: theme.colorScheme.onSurface),
-                            const SizedBox(width: 8),
-                            const Text('Document'),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'image':
-                          _pickImage();
-                          break;
-                        case 'document':
-                          _pickDocument();
-                          break;
-                      }
-                    },
-                  ),
                   Expanded(
                     child: TextField(
                       controller: _promptController,
@@ -1577,10 +1431,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 12,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.edit_outlined,
-                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                       style: theme.textTheme.bodyLarge?.copyWith(
@@ -1620,6 +1470,35 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 ),
                               ),
                             ),
+                          Material(
+                            color: theme.colorScheme.surfaceVariant,
+                            borderRadius: BorderRadius.circular(20),
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.image_outlined,
+                                    color: _selectedImageBytes != null
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  onPressed: _pickImage,
+                                  tooltip: 'Add image',
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.attach_file,
+                                    color: _selectedDocument != null
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  onPressed: _pickDocument,
+                                  tooltip: 'Add document',
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Material(
                             color: theme.colorScheme.primary,
                             borderRadius: BorderRadius.circular(20),
