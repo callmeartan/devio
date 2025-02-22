@@ -374,13 +374,23 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   Future<void> _loadAvailableModels() async {
     try {
-      final service = LlmService();
-      final models = await service.getAvailableModels();
-      setState(() {
-        _availableModels = models;
-        _selectedModel = models.isNotEmpty ? models.first : null;
-      });
+      developer.log('Loading available models...');
+      final models = await context.read<LlmCubit>().getAvailableModels();
+      developer.log('Models loaded: $models');
+      
+      if (mounted) {
+        setState(() {
+          _availableModels = models;
+          // Update selected model based on provider
+          final provider = context.read<LlmCubit>().currentProvider;
+          if (_selectedModel == null || !models.contains(_selectedModel)) {
+            _selectedModel = provider == LlmProvider.gemini ? 'gemini-pro' : models.firstOrNull;
+          }
+          developer.log('Selected model: $_selectedModel');
+        });
+      }
     } catch (e) {
+      developer.log('Error loading models: $e');
       if (mounted) {
         _showErrorSnackBar('Failed to load models: $e');
       }
@@ -618,7 +628,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                         ),
                                       ),
                                     ),
-                                  ...unpinnedChats.map((chat) => _buildChatItem(chat, state.currentChatId, isDark, context)),
+                                  ...unpinnedChats.map(
+                                    (chat) => _buildChatItem(chat, state.currentChatId, isDark, context),
+                                  ),
                                 ],
                               ],
                             );
@@ -708,11 +720,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     ],
                   ),
                   actions: [
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      tooltip: 'Reload Models',
-                      onPressed: _loadAvailableModels,
-                    ),
+                    _buildModelSelector(context),
                   ],
                   bottom: PreferredSize(
                     preferredSize: const Size.fromHeight(1),
@@ -1273,6 +1281,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   void _sendMessage() {
     if (_selectedModel == null) {
       developer.log('No model selected');
+      _showErrorSnackBar('Please select a model first');
       return;
     }
     
@@ -1301,9 +1310,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     developer.log('Sending user message with ID: $userId and name: $userName');
 
-    // First send the user's message with the authenticated user's ID
+    // First send the user's message
     context.read<ChatCubit>().sendMessage(
-      senderId: userId,  // Using the authenticated user's ID
+      senderId: userId,
       content: prompt,
       isAI: false,
       senderName: userName,
@@ -1354,6 +1363,91 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       onUnpin: (title) => context.read<ChatCubit>().unpinChat(chatId),
       onDelete: (title) => context.read<ChatCubit>().deleteChat(chatId),
       onRename: (oldTitle, newTitle) => context.read<ChatCubit>().renameChat(chatId, newTitle),
+    );
+  }
+
+  Widget _buildModelSelector(BuildContext context) {
+    final llmCubit = context.read<LlmCubit>();
+    final theme = Theme.of(context);
+
+    return PopupMenuButton<LlmProvider>(
+      initialValue: llmCubit.currentProvider,
+      onSelected: (LlmProvider provider) {
+        llmCubit.setProvider(provider);
+        // Reload available models when provider changes
+        _loadAvailableModels();
+      },
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<LlmProvider>>[
+        PopupMenuItem<LlmProvider>(
+          value: LlmProvider.local,
+          child: Row(
+            children: [
+              Icon(
+                Icons.computer,
+                color: llmCubit.currentProvider == LlmProvider.local
+                    ? theme.colorScheme.primary
+                    : null,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Local Model',
+                style: TextStyle(
+                  color: llmCubit.currentProvider == LlmProvider.local
+                      ? theme.colorScheme.primary
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<LlmProvider>(
+          value: LlmProvider.gemini,
+          child: Row(
+            children: [
+              Icon(
+                Icons.cloud,
+                color: llmCubit.currentProvider == LlmProvider.gemini
+                    ? theme.colorScheme.primary
+                    : null,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Gemini',
+                style: TextStyle(
+                  color: llmCubit.currentProvider == LlmProvider.gemini
+                      ? theme.colorScheme.primary
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Row(
+          children: [
+            Icon(
+              llmCubit.currentProvider == LlmProvider.local
+                  ? Icons.computer
+                  : Icons.cloud,
+              size: 20,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              llmCubit.currentProvider == LlmProvider.local ? 'Local' : 'Gemini',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.arrow_drop_down,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
 } 
