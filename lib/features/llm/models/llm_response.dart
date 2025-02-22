@@ -10,7 +10,6 @@ class LlmResponse with _$LlmResponse {
     @Default(false) bool isError,
     String? errorMessage,
     @JsonKey(name: 'model_name') String? modelName,
-    @JsonKey(name: 'processing_time') double? processingTime,
     @JsonKey(name: 'total_duration') double? totalDuration,
     @JsonKey(name: 'load_duration') double? loadDuration,
     @JsonKey(name: 'prompt_eval_count') int? promptEvalCount,
@@ -19,6 +18,8 @@ class LlmResponse with _$LlmResponse {
     @JsonKey(name: 'eval_count') int? evalCount,
     @JsonKey(name: 'eval_duration') double? evalDuration,
     @JsonKey(name: 'eval_rate') double? evalRate,
+    @JsonKey(name: 'completion_tokens') int? completionTokens,
+    @JsonKey(name: 'total_tokens') int? totalTokens,
   }) = _LlmResponse;
 
   factory LlmResponse.fromJson(Map<String, dynamic> json) =>
