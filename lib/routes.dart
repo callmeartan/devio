@@ -18,6 +18,7 @@ import 'features/help/presentation/help_screen.dart';
 import 'features/feedback/presentation/feedback_screen.dart';
 import 'repositories/chat_repository.dart';
 import 'cubits/chat/chat_cubit.dart';
+import 'features/llm/presentation/image_analysis_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -136,6 +137,10 @@ final router = GoRouter(
     GoRoute(
       path: '/feedback',
       builder: (context, state) => const FeedbackScreen(),
+    ),
+    GoRoute(
+      path: '/image-analysis',
+      builder: (context, state) => const ImageAnalysisScreen(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

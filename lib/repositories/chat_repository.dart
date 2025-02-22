@@ -166,15 +166,34 @@ class ChatRepository {
   Future<void> clearChat() async {
     try {
       _checkAuth();
+      final userId = _auth.currentUser!.uid;
       final batch = _firestore.batch();
-      final messages = await _firestore.collection(_collectionPath).get();
       
-      for (var message in messages.docs) {
-        batch.delete(message.reference);
+      // Get all metadata first
+      final allMetadata = await _firestore
+          .collection(_chatMetadataPath)
+          .get();
+      
+      // Delete all metadata
+      for (var doc in allMetadata.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      // Get all messages
+      final allMessages = await _firestore
+          .collection(_collectionPath)
+          .get();
+      
+      // Delete all messages
+      for (var doc in allMessages.docs) {
+        batch.delete(doc.reference);
       }
       
       await batch.commit();
+      
+      developer.log('Cleared ${allMessages.docs.length} messages and ${allMetadata.docs.length} metadata entries');
     } catch (e) {
+      developer.log('Error clearing chat: $e');
       throw Exception('Failed to clear chat: $e');
     }
   }

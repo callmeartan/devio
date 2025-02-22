@@ -12,6 +12,11 @@ import '../widgets/drawer_menu_item.dart';
 import '../widgets/simple_drawer_menu_item.dart' as simple;
 import '../constants/assets.dart';
 import 'dart:developer' as developer;
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
+import 'package:path/path.dart' as path;
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 
 const String _kAiUserName = 'AI Assistant';
 
@@ -270,13 +275,19 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   final _chatScrollController = ScrollController();
   final _historyScrollController = ScrollController();
   final Map<int, bool> _expandedMetrics = {};
+  final ImagePicker _picker = ImagePicker();
   String? _selectedModel;
   List<String> _availableModels = [];
   bool _showScrollToBottom = false;
+  Uint8List? _selectedImageBytes;
+  String? _selectedImagePath;
+  File? _selectedDocument;
 
   @override
   void initState() {
     super.initState();
+    // Set Gemini as default provider
+    context.read<LlmCubit>().setProvider(LlmProvider.gemini);
     _loadAvailableModels();
     _chatScrollController.addListener(_scrollListener);
     
@@ -384,7 +395,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           // Update selected model based on provider
           final provider = context.read<LlmCubit>().currentProvider;
           if (_selectedModel == null || !models.contains(_selectedModel)) {
-            _selectedModel = provider == LlmProvider.gemini ? 'gemini-pro' : models.firstOrNull;
+            _selectedModel = provider == LlmProvider.gemini 
+                ? 'gemini-1.5-pro'  // Default to latest Gemini model
+                : models.firstOrNull;
+          }
+          // If switching to Gemini, ensure we have a Gemini model selected
+          else if (provider == LlmProvider.gemini && !_selectedModel!.startsWith('gemini-')) {
+            _selectedModel = 'gemini-1.5-pro';
           }
           developer.log('Selected model: $_selectedModel');
         });
@@ -427,6 +444,57 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         _chatScrollController.position.maxScrollExtent,
       );
     }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImageBytes = bytes;
+          _selectedImagePath = image.path;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
+    }
+  }
+
+  void _clearSelectedImage() {
+    setState(() {
+      _selectedImageBytes = null;
+      _selectedImagePath = null;
+    });
+  }
+
+  Future<void> _pickDocument() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = File(result.files.first.path!);
+        setState(() {
+          _selectedDocument = file;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking document: $e')),
+      );
+    }
+  }
+
+  void _clearSelectedDocument() {
+    setState(() {
+      _selectedDocument = null;
+    });
   }
 
   @override
@@ -825,7 +893,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
-                              items: _availableModels.map((String model) {
+                              items: _availableModels
+                                  .where((model) => context.read<LlmCubit>().currentProvider == LlmProvider.local || 
+                                                  model.startsWith('gemini-'))
+                                  .map((String model) {
                                 return DropdownMenuItem<String>(
                                   value: model,
                                   child: Text(
@@ -1114,116 +1185,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                       color: theme.colorScheme.onSurface.withOpacity(0.1),
                     ),
                     // Input field with constrained width
-                    Container(
-                      color: theme.colorScheme.surface,
-                      padding: EdgeInsets.only(
-                        left: 16,
-                        right: 16,
-                        top: 12,
-                        bottom: 12 + MediaQuery.of(context).padding.bottom,
-                      ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 768),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _promptController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Ask me anything...',
-                                    hintStyle: TextStyle(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: theme.colorScheme.surfaceVariant,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 12,
-                                    ),
-                                    prefixIcon: Icon(
-                                      Icons.edit_outlined,
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.onSurface,
-                                  ),
-                                  maxLines: null,
-                                  textInputAction: TextInputAction.newline,
-                                  onSubmitted: (_) => _sendMessage(),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              BlocBuilder<LlmCubit, LlmState>(
-                                builder: (context, state) {
-                                  final isLoading = state.maybeWhen(
-                                    loading: () => true,
-                                    orElse: () => false,
-                                  );
-
-                                  return Row(
-                                    children: [
-                                      if (_showScrollToBottom)
-                                        Padding(
-                                          padding: const EdgeInsets.only(right: 8),
-                                          child: Material(
-                                            color: theme.colorScheme.surfaceVariant,
-                                            borderRadius: BorderRadius.circular(20),
-                                            child: InkWell(
-                                              borderRadius: BorderRadius.circular(20),
-                                              onTap: _scrollToBottom,
-                                              child: Container(
-                                                padding: const EdgeInsets.all(12),
-                                                child: Icon(
-                                                  Icons.keyboard_arrow_down,
-                                                  color: theme.colorScheme.onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      Material(
-                                        color: theme.colorScheme.primary,
-                                        borderRadius: BorderRadius.circular(20),
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(20),
-                                          onTap: _selectedModel == null || isLoading
-                                              ? null
-                                              : _sendMessage,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(12),
-                                            child: isLoading
-                                                ? SizedBox(
-                                                    width: 24,
-                                                    height: 24,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                                        theme.colorScheme.onPrimary,
-                                                      ),
-                                                    ),
-                                                  )
-                                                : Icon(
-                                                    Icons.send_rounded,
-                                                    color: theme.colorScheme.onPrimary,
-                                                  ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    _buildInputField(),
                   ],
                 ),
               );
@@ -1318,11 +1280,29 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       senderName: userName,
     ).then((_) {
       developer.log('User message sent successfully, generating AI response...');
-      // After the user's message is sent, generate AI response
-      context.read<LlmCubit>().generateResponse(
-        prompt: prompt,
-        modelName: _selectedModel!,
-      );
+      
+      // Generate response based on whether an image is selected
+      if (_selectedImageBytes != null) {
+        context.read<LlmCubit>().generateResponseWithImage(
+          prompt: prompt,
+          imageBytes: _selectedImageBytes!,
+          modelName: 'gemini-1.5-pro-vision-latest',
+        );
+        _clearSelectedImage();
+      } else if (_selectedDocument != null) {
+        context.read<LlmCubit>().generateResponseWithDocument(
+          prompt: prompt,
+          documentPath: _selectedDocument!.path,
+          modelName: 'gemini-1.5-pro-vision-latest',
+        );
+        _clearSelectedDocument();
+      } else {
+        context.read<LlmCubit>().generateResponse(
+          prompt: prompt,
+          modelName: _selectedModel!,
+        );
+      }
+      
       _promptController.clear();
       _scrollToBottom();
     }).catchError((error) {
@@ -1446,6 +1426,236 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               size: 20,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputField() {
+    final theme = Theme.of(context);
+    
+    return Container(
+      color: theme.colorScheme.surface,
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 12,
+        bottom: 12 + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 768),
+          child: Column(
+            children: [
+              if (_selectedImageBytes != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  height: 100,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.memory(
+                          _selectedImageBytes!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Material(
+                          color: theme.colorScheme.surface.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(12),
+                          child: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: _clearSelectedImage,
+                            tooltip: 'Remove image',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_selectedDocument != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
+                    borderRadius: BorderRadius.circular(12),
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _selectedDocument!.path.toLowerCase().endsWith('.pdf')
+                            ? Icons.picture_as_pdf
+                            : Icons.description,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          path.basename(_selectedDocument!.path),
+                          style: theme.textTheme.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: _clearSelectedDocument,
+                        tooltip: 'Remove document',
+                      ),
+                    ],
+                  ),
+                ),
+              Row(
+                children: [
+                  PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.attach_file,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    tooltip: 'Add attachment',
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'image',
+                        child: Row(
+                          children: [
+                            Icon(Icons.image, color: theme.colorScheme.onSurface),
+                            const SizedBox(width: 8),
+                            const Text('Image'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'document',
+                        child: Row(
+                          children: [
+                            Icon(Icons.description, color: theme.colorScheme.onSurface),
+                            const SizedBox(width: 8),
+                            const Text('Document'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'image':
+                          _pickImage();
+                          break;
+                        case 'document':
+                          _pickDocument();
+                          break;
+                      }
+                    },
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _promptController,
+                      decoration: InputDecoration(
+                        hintText: _selectedImageBytes != null
+                            ? 'Ask about this image...'
+                            : _selectedDocument != null
+                                ? 'Ask about this document...'
+                                : 'Ask me anything...',
+                        hintStyle: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: theme.colorScheme.surfaceVariant,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.edit_outlined,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                      ),
+                      maxLines: null,
+                      textInputAction: TextInputAction.newline,
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  BlocBuilder<LlmCubit, LlmState>(
+                    builder: (context, state) {
+                      final isLoading = state.maybeWhen(
+                        loading: () => true,
+                        orElse: () => false,
+                      );
+
+                      return Row(
+                        children: [
+                          if (_showScrollToBottom)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Material(
+                                color: theme.colorScheme.surfaceVariant,
+                                borderRadius: BorderRadius.circular(20),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: _scrollToBottom,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Icon(
+                                      Icons.keyboard_arrow_down,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          Material(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(20),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: _selectedModel == null || isLoading
+                                  ? null
+                                  : _sendMessage,
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                child: isLoading
+                                    ? SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            theme.colorScheme.onPrimary,
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.send_rounded,
+                                        color: theme.colorScheme.onPrimary,
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

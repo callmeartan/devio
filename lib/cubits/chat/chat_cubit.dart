@@ -132,18 +132,69 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
+  Future<void> forceDeleteChat(String chatId) async {
+    try {
+      developer.log('Force deleting chat: $chatId');
+      
+      // Cancel subscription if it's the current chat
+      if (state.currentChatId == chatId) {
+        _chatSubscription?.cancel();
+      }
+      
+      // Delete from repository
+      await _chatRepository.deleteChat(chatId);
+      
+      // Clean up local state
+      _localMessages.remove(chatId);
+      
+      // Update state
+      if (state.currentChatId == chatId) {
+        emit(state.copyWith(currentChatId: null, messages: []));
+      }
+      
+      // Remove from pinned chats if needed
+      if (state.pinnedChatIds.contains(chatId)) {
+        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)..remove(chatId);
+        emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
+      }
+      
+      // Reload histories
+      await _loadChatHistories();
+      
+      developer.log('Successfully force deleted chat: $chatId');
+    } catch (e) {
+      developer.log('Error force deleting chat: $e');
+      emit(state.copyWith(error: 'Failed to force delete chat: $e'));
+    }
+  }
+
   Future<void> clearChat() async {
     try {
       developer.log('Clearing all chats');
       emit(state.copyWith(isLoading: true));
+      
+      // Cancel existing chat subscription
+      _chatSubscription?.cancel();
+      
+      // Clear chats in repository
       await _chatRepository.clearChat();
-      await _loadChatHistories(); // Refresh chat histories after clearing
-      emit(state.copyWith(
-        isLoading: false,
-        error: null,
-        currentChatId: null,
-        messages: [],
-      ));
+      
+      // Clear local state
+      _localMessages.clear();
+      
+      // Reset state and reload histories
+      emit(const ChatState());
+      await _loadChatHistories();
+      
+      // If any chats remain, try to force delete them
+      if (state.chatHistories.isNotEmpty) {
+        developer.log('Found remaining chats, attempting force delete');
+        for (var chat in state.chatHistories) {
+          await forceDeleteChat(chat['id'] as String);
+        }
+      }
+      
+      developer.log('Chat history cleared successfully');
     } catch (e) {
       developer.log('Error clearing chat: $e');
       emit(state.copyWith(

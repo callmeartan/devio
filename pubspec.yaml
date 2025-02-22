@@ -38,7 +38,7 @@ dependencies:
   flutter_bloc: ^9.0.0
   freezed_annotation: ^2.4.1
   json_annotation: ^4.8.1
-  intl: ^0.20.2
+  intl: ^0.19.0
   uuid: ^4.2.1
   google_sign_in: ^6.2.1
   sign_in_with_apple: ^6.1.4
@@ -60,6 +60,13 @@ dependencies:
   cached_network_image: ^3.3.1
   google_generative_ai: ^0.0.1-dev
   flutter_dotenv: ^5.1.0
+  image_picker: ^1.0.7
+
+  # Document handling
+  file_picker: ^6.1.1  # For picking documents
+  syncfusion_flutter_pdf: ^24.1.46  # For PDF handling
+  path: ^1.8.3
+  mime: ^1.0.4  # For MIME type detection
 
 dev_dependencies:
   flutter_test:
