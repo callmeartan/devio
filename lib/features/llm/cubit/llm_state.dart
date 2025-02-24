@@ -9,4 +9,9 @@ class LlmState with _$LlmState {
   const factory LlmState.loading() = _Loading;
   const factory LlmState.success(LlmResponse response) = _Success;
   const factory LlmState.error(String message) = _Error;
+  const factory LlmState.modelSwitching({
+    required String fromModel,
+    required String toModel,
+    required int attempt,
+  }) = ModelSwitching;
 } 

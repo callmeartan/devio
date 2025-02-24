@@ -404,6 +404,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             return !model.contains('vision');
           }).toList();
 
+          // Ensure we have at least one model available
+          if (filteredModels.isEmpty) {
+            _availableModels = provider == LlmProvider.gemini 
+                ? [_selectedImageBytes != null ? 'gemini-pro-vision' : 'gemini-pro']
+                : ['local-model'];
+          }
+
           // Update selected model based on filtered list
           if (_selectedModel == null || !filteredModels.contains(_selectedModel)) {
             _selectedModel = provider == LlmProvider.gemini 
@@ -415,12 +422,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             _selectedModel = _selectedImageBytes != null ? 'gemini-pro-vision' : 'gemini-pro';
           }
           
-          // Ensure selected model is in filtered list
-          if (_selectedModel != null && !filteredModels.contains(_selectedModel)) {
-            _selectedModel = filteredModels.firstOrNull;
-          }
-          
           developer.log('Selected model: $_selectedModel');
+          developer.log('Available models: $_availableModels');
         });
       }
     } catch (e) {
@@ -880,32 +883,111 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                               child: Row(
                                 children: [
                                   Expanded(
-                                    child: DropdownButtonFormField<String>(
-                                      value: _selectedModel,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Model',
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      items: _availableModels
-                                          .where((model) {
-                                            if (context.read<LlmCubit>().currentProvider == LlmProvider.local) {
-                                              return true;
-                                            }
-                                            if (_selectedImageBytes != null) {
-                                              return model.contains('vision');
-                                            }
-                                            return !model.contains('vision');
-                                          })
-                                          .map((model) => DropdownMenuItem(
-                                                value: model,
-                                                child: Text(model),
-                                              ))
-                                          .toList(),
-                                      onChanged: (value) {
-                                        if (value != null) {
-                                          setState(() => _selectedModel = value);
+                                    child: Builder(
+                                      builder: (context) {
+                                        // Get the filtered list first
+                                        final allModels = _availableModels;
+                                        
+                                        // Categorize models
+                                        final proModels = allModels.where((model) => 
+                                          !model.contains('vision') && !model.contains('ultra')).toList();
+                                        final visionModels = allModels.where((model) => 
+                                          model.contains('vision') && !model.contains('ultra')).toList();
+                                        final ultraModels = allModels.where((model) => 
+                                          model.contains('ultra')).toList();
+
+                                        // Filter based on current context
+                                        final List<DropdownMenuItem<String>> dropdownItems = [];
+                                        final provider = context.read<LlmCubit>().currentProvider;
+                                        
+                                        if (provider == LlmProvider.local) {
+                                          // Show all local models
+                                          return _buildLocalModelDropdown(context);
                                         }
-                                      },
+
+                                        // For Gemini provider
+                                        if (_selectedImageBytes != null) {
+                                          // Only show vision models when image is selected
+                                          if (visionModels.isNotEmpty) {
+                                            dropdownItems.add(
+                                              const DropdownMenuItem(
+                                                enabled: false,
+                                                child: _ModelGroupHeader(title: 'Vision Models'),
+                                              ),
+                                            );
+                                            dropdownItems.addAll(_buildModelItems(visionModels));
+                                          }
+                                          if (ultraModels.any((m) => m.contains('vision'))) {
+                                            dropdownItems.add(
+                                              const DropdownMenuItem(
+                                                enabled: false,
+                                                child: _ModelGroupHeader(title: 'Ultra Vision Models'),
+                                              ),
+                                            );
+                                            dropdownItems.addAll(
+                                              _buildModelItems(ultraModels.where((m) => m.contains('vision')).toList())
+                                            );
+                                          }
+                                        } else {
+                                          // Show text models
+                                          if (proModels.isNotEmpty) {
+                                            dropdownItems.add(
+                                              const DropdownMenuItem(
+                                                enabled: false,
+                                                child: _ModelGroupHeader(title: 'Pro Models'),
+                                              ),
+                                            );
+                                            dropdownItems.addAll(_buildModelItems(proModels));
+                                          }
+                                          if (ultraModels.any((m) => !m.contains('vision'))) {
+                                            dropdownItems.add(
+                                              const DropdownMenuItem(
+                                                enabled: false,
+                                                child: _ModelGroupHeader(title: 'Ultra Models'),
+                                              ),
+                                            );
+                                            dropdownItems.addAll(
+                                              _buildModelItems(ultraModels.where((m) => !m.contains('vision')).toList())
+                                            );
+                                          }
+                                        }
+
+                                        // Ensure selected model is valid
+                                        final availableValues = dropdownItems
+                                            .where((item) => item.enabled && item.value != null)
+                                            .map((item) => item.value!)
+                                            .toList();
+                                            
+                                        if (_selectedModel == null || !availableValues.contains(_selectedModel)) {
+                                          _selectedModel = availableValues.firstOrNull ?? 'gemini-pro';
+                                        }
+
+                                        return DropdownButtonFormField<String>(
+                                          value: _selectedModel,
+                                          decoration: InputDecoration(
+                                            labelText: 'Model',
+                                            border: const OutlineInputBorder(),
+                                            contentPadding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                            filled: true,
+                                            fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                                          ),
+                                          items: dropdownItems,
+                                          onChanged: (value) {
+                                            if (value != null) {
+                                              setState(() => _selectedModel = value);
+                                            }
+                                          },
+                                          dropdownColor: Theme.of(context).colorScheme.surface,
+                                          icon: Icon(
+                                            Icons.arrow_drop_down,
+                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                          ),
+                                          isExpanded: true,
+                                        );
+                                      }
                                     ),
                                   ),
                                 ],
@@ -965,55 +1047,47 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                               );
                             },
                             builder: (context, state) {
-                              return BlocBuilder<ChatCubit, ChatState>(
-                                builder: (context, chatState) {
-                                  if (chatState.isLoading) {
-                                    return const Center(child: CircularProgressIndicator());
-                                  }
-
-                                  if (chatState.error != null) {
-                                    return Center(
-                                      child: SelectableText.rich(
+                              return state.maybeWhen(
+                                initial: () => const SizedBox(),
+                                loading: () => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                                success: (response) => _buildSuccessState(response),
+                                error: (message) => Center(
+                                  child: SelectableText.rich(
+                                    TextSpan(
+                                      children: [
                                         TextSpan(
                                           text: 'Error: ',
                                           style: TextStyle(
                                             color: Theme.of(context).colorScheme.error,
                                             fontWeight: FontWeight.bold,
                                           ),
-                                          children: [
-                                            TextSpan(
-                                              text: chatState.error.toString(),
-                                              style: const TextStyle(fontWeight: FontWeight.normal),
-                                            ),
-                                          ],
                                         ),
+                                        TextSpan(text: message),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                modelSwitching: (fromModel, toModel, attempt) => Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const CircularProgressIndicator(),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Switching from $fromModel to $toModel...',
+                                        style: Theme.of(context).textTheme.bodyLarge,
                                       ),
-                                    );
-                                  }
-
-                                  if (chatState.messages.isEmpty) {
-                                    return const Center(child: Text('No messages yet'));
-                                  }
-
-                                  return ListView.builder(
-                                    controller: _chatScrollController,
-                                    padding: const EdgeInsets.all(16),
-                                    itemCount: chatState.messages.length,
-                                    itemBuilder: (context, index) {
-                                      final message = chatState.messages[index];
-                                      final messageId = message.id;
-                                      return ChatMessageWidget(
-                                        message: message,
-                                        showMetrics: _expandedMetrics[messageId] ?? false,
-                                        onMetricsToggle: () {
-                                          setState(() {
-                                            _expandedMetrics[messageId] = !(_expandedMetrics[messageId] ?? false);
-                                          });
-                                        },
-                                      );
-                                    },
-                                  );
-                                },
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Please wait while we process your request.',
+                                        style: Theme.of(context).textTheme.bodyMedium,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                orElse: () => const SizedBox(),
                               );
                             },
                           ),
@@ -1477,6 +1551,151 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSuccessState(LlmResponse response) {
+    if (response.modelName != _selectedModel) {
+      // Update the selected model if it was switched
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _selectedModel = response.modelName;
+        });
+      });
+    }
+    
+    return BlocBuilder<ChatCubit, ChatState>(
+      builder: (context, chatState) {
+        if (chatState.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (chatState.error != null) {
+          return Center(
+            child: SelectableText.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Error: ',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextSpan(text: chatState.error.toString()),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (chatState.messages.isEmpty) {
+          return const Center(child: Text('No messages yet'));
+        }
+
+        return ListView.builder(
+          controller: _chatScrollController,
+          padding: const EdgeInsets.all(16),
+          itemCount: chatState.messages.length,
+          itemBuilder: (context, index) {
+            final message = chatState.messages[index];
+            final messageId = message.id;
+            return ChatMessageWidget(
+              message: message,
+              showMetrics: _expandedMetrics[messageId] ?? false,
+              onMetricsToggle: () {
+                setState(() {
+                  _expandedMetrics[messageId] = !(_expandedMetrics[messageId] ?? false);
+                });
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildLocalModelDropdown(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: _selectedModel,
+      decoration: InputDecoration(
+        labelText: 'Local Model',
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 8,
+        ),
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      ),
+      items: _availableModels.map((model) => DropdownMenuItem(
+        value: model,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(model),
+        ),
+      )).toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() => _selectedModel = value);
+        }
+      },
+      dropdownColor: Theme.of(context).colorScheme.surface,
+      icon: Icon(
+        Icons.arrow_drop_down,
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+      ),
+      isExpanded: true,
+    );
+  }
+
+  List<DropdownMenuItem<String>> _buildModelItems(List<String> models) {
+    return models.map((model) => DropdownMenuItem(
+      value: model,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Text(
+          model,
+          style: TextStyle(
+            fontSize: 14,
+          ),
+        ),
+      ),
+    )).toList();
+  }
+}
+
+class _ModelGroupHeader extends StatelessWidget {
+  final String title;
+
+  const _ModelGroupHeader({
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          ),
+        ],
       ),
     );
   }

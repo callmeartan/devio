@@ -52,26 +52,51 @@ class LlmCubit extends Cubit<LlmState> {
     emit(const LlmState.loading());
 
     try {
-      final response = _currentProvider == LlmProvider.local
-          ? await _llmService.generateResponse(
-              prompt: prompt,
-              modelName: modelName ?? 'deepseek-r1:8b',
-              maxTokens: maxTokens ?? 1000,
-              temperature: temperature ?? 0.7,
-            )
-          : await _geminiService.generateResponse(
-              prompt: prompt,
-              modelName: modelName ?? 'gemini-pro',
-              maxTokens: maxTokens ?? 1000,
-              temperature: temperature ?? 0.7,
-            );
+      if (_currentProvider == LlmProvider.local) {
+        final response = await _llmService.generateResponse(
+          prompt: prompt,
+          modelName: modelName ?? 'deepseek-r1:8b',
+          maxTokens: maxTokens ?? 1000,
+          temperature: temperature ?? 0.7,
+        );
 
-      if (response.isError) {
-        dev.log('Error in response: ${response.errorMessage}');
-        emit(LlmState.error(response.errorMessage ?? 'Unknown error occurred'));
+        if (response.isError) {
+          dev.log('Error in response: ${response.errorMessage}');
+          emit(LlmState.error(response.errorMessage ?? 'Unknown error occurred'));
+        } else {
+          dev.log('Response generated successfully');
+          emit(LlmState.success(response));
+        }
       } else {
-        dev.log('Response generated successfully');
-        emit(LlmState.success(response));
+        final response = await _geminiService.generateResponse(
+          prompt: prompt,
+          modelName: modelName ?? 'gemini-pro',
+          maxTokens: maxTokens ?? 1000,
+          temperature: temperature ?? 0.7,
+        );
+
+        if (response.isError) {
+          dev.log('Error in response: ${response.errorMessage}');
+          if (response.errorMessage?.contains('503') == true || 
+              response.errorMessage?.contains('overloaded') == true) {
+            // Model switching is handled internally by GeminiService
+            emit(LlmState.error('All available models are currently overloaded. Please try again later.'));
+          } else {
+            emit(LlmState.error(response.errorMessage ?? 'Unknown error occurred'));
+          }
+        } else {
+          if (response.modelName != modelName) {
+            // If a different model was used, notify the user
+            emit(LlmState.modelSwitching(
+              fromModel: modelName ?? 'gemini-pro',
+              toModel: response.modelName ?? 'unknown',
+              attempt: 1,
+            ));
+            await Future.delayed(const Duration(seconds: 2)); // Show switching message briefly
+          }
+          dev.log('Response generated successfully');
+          emit(LlmState.success(response));
+        }
       }
     } catch (e) {
       dev.log('Error generating response: $e');
@@ -101,15 +126,30 @@ class LlmCubit extends Cubit<LlmState> {
         prompt: prompt,
         imageBytes: imageBytes,
         mimeType: mimeType ?? 'image/jpeg',
-        modelName: modelName ?? 'gemini-1.5-pro-vision-latest',
+        modelName: modelName ?? 'gemini-pro-vision',
         maxTokens: maxTokens ?? 1000,
         temperature: temperature ?? 0.7,
       );
 
       if (response.isError) {
         dev.log('Error in response: ${response.errorMessage}');
-        emit(LlmState.error(response.errorMessage ?? 'Unknown error occurred'));
+        if (response.errorMessage?.contains('503') == true || 
+            response.errorMessage?.contains('overloaded') == true) {
+          // Model switching is handled internally by GeminiService
+          emit(LlmState.error('All available vision models are currently overloaded. Please try again later.'));
+        } else {
+          emit(LlmState.error(response.errorMessage ?? 'Unknown error occurred'));
+        }
       } else {
+        if (response.modelName != modelName) {
+          // If a different model was used, notify the user
+          emit(LlmState.modelSwitching(
+            fromModel: modelName ?? 'gemini-pro-vision',
+            toModel: response.modelName ?? 'unknown',
+            attempt: 1,
+          ));
+          await Future.delayed(const Duration(seconds: 2)); // Show switching message briefly
+        }
         dev.log('Response generated successfully');
         emit(LlmState.success(response));
       }
