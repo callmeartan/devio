@@ -71,6 +71,8 @@ class MyApp extends StatelessWidget {
             surface: Colors.white,
             background: Colors.white,
             error: Colors.red.shade900,
+            primaryContainer: Colors.grey[100],
+            onPrimaryContainer: Colors.black,
           ),
           useMaterial3: true,
           scaffoldBackgroundColor: Colors.white,

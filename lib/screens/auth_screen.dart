@@ -106,23 +106,21 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _signInWithApple() async {
     setState(() => _socialLoading = 'apple');
     try {
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
+      final authCubit = context.read<AuthCubit>();
+      await authCubit.signInWithApple();
       
-      final oAuthCredential = OAuthProvider('apple.com').credential(
-        idToken: credential.identityToken,
-        accessToken: credential.authorizationCode,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(oAuthCredential);
+      // Only navigate if the state is authenticated
       if (!mounted) return;
-      context.go('/llm');
+      final state = authCubit.state;
+      state.maybeWhen(
+        authenticated: (uid, displayName, email) => context.go('/llm'),
+        error: (message) => _showError(message),
+        orElse: () {},
+      );
     } catch (e) {
-      _showError('Apple sign in failed: ${e.toString()}');
+      if (mounted) {
+        _showError('Apple sign in failed: ${e.toString()}');
+      }
     } finally {
       if (mounted) setState(() => _socialLoading = '');
     }

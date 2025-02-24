@@ -29,8 +29,32 @@ service cloud.firestore {
         (!('isPinned' in metadata) || metadata.isPinned is bool);
     }
 
+    function isValidUserData() {
+      let userData = request.resource.data;
+      return 
+        userData.displayName is string &&
+        userData.email is string &&
+        userData.lastSignInTime is timestamp &&
+        userData.provider is string;
+    }
+
     function debug(msg) {
       return msg;
+    }
+
+    // Users collection rules
+    match /users/{userId} {
+      // Allow read if authenticated and reading own document
+      allow read: if isAuthenticated() && isOwner(userId);
+      
+      // Allow write if authenticated, writing own document, and data is valid
+      allow create, update: if 
+        isAuthenticated() && 
+        isOwner(userId) && 
+        isValidUserData();
+        
+      // Allow delete if authenticated and deleting own document
+      allow delete: if isAuthenticated() && isOwner(userId);
     }
 
     match /chats/{messageId} {

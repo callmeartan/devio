@@ -6,6 +6,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:devio/firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 part 'auth_cubit.freezed.dart';
 part 'auth_state.dart';
@@ -13,8 +14,9 @@ part 'auth_state.dart';
 class AuthCubit extends Cubit<AuthState> {
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
+  final FirebaseFirestore _firestore;
 
-  AuthCubit({FirebaseAuth? auth, GoogleSignIn? googleSignIn})
+  AuthCubit({FirebaseAuth? auth, GoogleSignIn? googleSignIn, FirebaseFirestore? firestore})
       : _auth = auth ?? FirebaseAuth.instance,
         _googleSignIn = googleSignIn ?? GoogleSignIn(
           scopes: ['email', 'profile'],
@@ -22,6 +24,7 @@ class AuthCubit extends Cubit<AuthState> {
               ? DefaultFirebaseOptions.currentPlatform.iosClientId
               : null,
         ),
+        _firestore = firestore ?? FirebaseFirestore.instance,
         super(const AuthState.initial()) {
     // Listen to auth state changes
     _auth.authStateChanges().listen((User? user) {
@@ -169,11 +172,29 @@ class AuthCubit extends Cubit<AuthState> {
       final user = userCredential.user;
       
       if (user != null) {
-        // Update display name if provided and current is empty
-        if ((user.displayName?.isEmpty ?? true) && 
-            appleCredential.givenName != null) {
-          final displayName = '${appleCredential.givenName} ${appleCredential.familyName}'.trim();
+        // Store name from Apple Sign In if it's the first time (when name is provided)
+        if (appleCredential.givenName != null || appleCredential.familyName != null) {
+          final displayName = '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'.trim();
+          
+          // Store in Firebase Auth
           await user.updateDisplayName(displayName);
+          
+          // Store in Firestore for future reference
+          await _firestore.collection('users').doc(user.uid).set({
+            'displayName': displayName,
+            'email': user.email,
+            'lastSignInTime': FieldValue.serverTimestamp(),
+            'provider': 'apple.com',
+          }, SetOptions(merge: true));
+        } else {
+          // Try to get the stored name from Firestore if not provided by Apple
+          final userDoc = await _firestore.collection('users').doc(user.uid).get();
+          if (userDoc.exists && userDoc.data()?['displayName'] != null) {
+            final storedDisplayName = userDoc.data()?['displayName'] as String;
+            if (user.displayName == null || user.displayName!.isEmpty) {
+              await user.updateDisplayName(storedDisplayName);
+            }
+          }
         }
         
         emit(AuthState.authenticated(
@@ -198,17 +219,89 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  Future<void> updateProfile({String? displayName}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('No user found');
+      }
+
+      // Update display name in Firebase Auth if provided
+      if (displayName != null) {
+        await user.updateDisplayName(displayName);
+      }
+
+      // Update user data in Firestore
+      await _firestore.collection('users').doc(user.uid).set({
+        'displayName': displayName ?? user.displayName,
+        'email': user.email,
+        'lastSignInTime': FieldValue.serverTimestamp(),
+        'provider': user.providerData.first.providerId,
+      }, SetOptions(merge: true));
+
+      // Update state with new user data
+      emit(AuthState.authenticated(
+        uid: user.uid,
+        displayName: displayName ?? user.displayName,
+        email: user.email,
+      ));
+    } catch (e) {
+      developer.log('Error updating profile: $e');
+      emit(AuthState.error(e.toString()));
+      rethrow;
+    }
+  }
+
   Future<void> deleteAccount() async {
     emit(const AuthState.loading());
     try {
       final user = _auth.currentUser;
       if (user != null) {
+        final userId = user.uid;
         // Get the provider data before deleting
         final providers = user.providerData.map((e) => e.providerId).toList();
         
-        // Check if user needs to reauthenticate
+        // First, delete all user data from Firestore
         try {
-          // Delete the user account
+          // Get all user's chats
+          final userChats = await _firestore
+              .collection('chats')
+              .where('senderId', isEqualTo: userId)
+              .get();
+          
+          // Get user's chat metadata
+          final userChatMetadata = await _firestore
+              .collection('chat_metadata')
+              .where('userId', isEqualTo: userId)
+              .get();
+          
+          // Delete all data in a batch
+          final batch = _firestore.batch();
+          
+          // Delete user document
+          batch.delete(_firestore.collection('users').doc(userId));
+          
+          // Delete all user's chats
+          for (var doc in userChats.docs) {
+            batch.delete(doc.reference);
+          }
+          
+          // Delete all user's chat metadata
+          for (var doc in userChatMetadata.docs) {
+            batch.delete(doc.reference);
+          }
+          
+          // Commit the batch deletion
+          await batch.commit();
+          
+          developer.log('Successfully deleted all user data from Firestore');
+        } catch (e) {
+          developer.log('Error deleting Firestore data: $e');
+          // Continue with account deletion even if Firestore deletion fails
+        }
+
+        // Then try to delete the auth account
+        try {
           await user.delete();
         } on FirebaseAuthException catch (e) {
           if (e.code == 'requires-recent-login') {
@@ -228,6 +321,10 @@ class AuthCubit extends Cubit<AuthState> {
               );
               
               await user.reauthenticateWithCredential(oauthCredential);
+              
+              // Try deleting all data again after reauthentication
+              await _deleteAllUserData(userId);
+              // Try deleting account again after reauthentication
               await user.delete();
             } else if (providers.contains('google.com')) {
               // Reauthenticate with Google
@@ -241,6 +338,10 @@ class AuthCubit extends Cubit<AuthState> {
               );
               
               await user.reauthenticateWithCredential(credential);
+              
+              // Try deleting all data again after reauthentication
+              await _deleteAllUserData(userId);
+              // Try deleting account again after reauthentication
               await user.delete();
             } else {
               throw Exception('Please sign out and sign in again before deleting your account');
@@ -262,5 +363,34 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthState.error(e.toString()));
       rethrow; // Rethrow to handle in UI
     }
+  }
+
+  // Helper method to delete all user data
+  Future<void> _deleteAllUserData(String userId) async {
+    final batch = _firestore.batch();
+    
+    // Delete user document
+    batch.delete(_firestore.collection('users').doc(userId));
+    
+    // Delete user's chats
+    final userChats = await _firestore
+        .collection('chats')
+        .where('senderId', isEqualTo: userId)
+        .get();
+    for (var doc in userChats.docs) {
+      batch.delete(doc.reference);
+    }
+    
+    // Delete user's chat metadata
+    final userChatMetadata = await _firestore
+        .collection('chat_metadata')
+        .where('userId', isEqualTo: userId)
+        .get();
+    for (var doc in userChatMetadata.docs) {
+      batch.delete(doc.reference);
+    }
+    
+    // Commit all deletions
+    await batch.commit();
   }
 } 

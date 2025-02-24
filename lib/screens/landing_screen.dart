@@ -175,8 +175,8 @@ class _AnimatedBackground extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 theme.colorScheme.background,
-                theme.colorScheme.background.withOpacity(0.8),
-                theme.colorScheme.primary.withOpacity(0.1),
+                theme.colorScheme.background,
+                Colors.grey.shade100,
               ],
             ),
           ),
@@ -192,8 +192,8 @@ class _AnimatedBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  theme.colorScheme.primary.withOpacity(0.2),
-                  theme.colorScheme.primary.withOpacity(0),
+                  Colors.grey.shade200,
+                  Colors.transparent,
                 ],
               ),
             ),
@@ -215,8 +215,8 @@ class _AnimatedBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  theme.colorScheme.secondary.withOpacity(0.2),
-                  theme.colorScheme.secondary.withOpacity(0),
+                  Colors.grey.shade200,
+                  Colors.transparent,
                 ],
               ),
             ),
@@ -266,7 +266,7 @@ class _FloatingCodeAnimation extends StatelessWidget {
               codeSnippets[index % codeSnippets.length],
               style: TextStyle(
                 fontFamily: 'monospace',
-                color: theme.colorScheme.primary.withOpacity(0.25),
+                color: Colors.black38,
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
               ),
@@ -305,7 +305,7 @@ class _ParticleEffect extends StatelessWidget {
         height: 4,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: theme.colorScheme.primary.withOpacity(0.3),
+          color: Colors.black12,
         ),
       ).animate(
         onPlay: (controller) => controller.repeat(),
@@ -360,7 +360,7 @@ class _GlowingButtonState extends State<_GlowingButton> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(isHovered ? 0.3 : 0.1),
+              color: Colors.black.withOpacity(isHovered ? 0.2 : 0.1),
               blurRadius: isHovered ? 20 : 10,
               spreadRadius: isHovered ? 2 : 0,
             ),

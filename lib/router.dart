@@ -5,9 +5,13 @@ import 'package:devio/screens/intro_screen.dart';
 import 'package:devio/screens/auth_screen.dart';
 import 'package:devio/screens/llm_chat_screen.dart';
 import 'package:devio/features/profile/presentation/profile_screen.dart';
+import 'package:devio/features/profile/presentation/edit_profile_screen.dart';
+import 'package:devio/features/settings/presentation/settings_screen.dart';
+import 'package:devio/features/notifications/presentation/notifications_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
+import 'package:devio/features/settings/cubit/preferences_cubit.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -25,7 +29,7 @@ final appRouter = GoRouter(
     ) ?? false;
 
     // List of routes that require authentication
-    final authenticatedRoutes = ['/llm', '/profile'];
+    final authenticatedRoutes = ['/llm', '/profile', '/settings', '/notifications', '/edit-profile'];
     
     // If user is authenticated and trying to access auth or landing routes, redirect to LLM
     if (isAuthenticated && (state.matchedLocation == '/auth' || state.matchedLocation == '/landing')) {
@@ -77,6 +81,33 @@ final appRouter = GoRouter(
       path: '/profile',
       name: 'profile',
       builder: (context, state) => const ProfileScreen(),
+    ),
+    GoRoute(
+      path: '/edit-profile',
+      name: 'edit_profile',
+      builder: (context, state) => const EditProfileScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      name: 'settings',
+      builder: (context, state) => MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) => PreferencesCubit(
+              context.read<SharedPreferences>(),
+            ),
+          ),
+          BlocProvider.value(
+            value: context.read<AuthCubit>(),
+          ),
+        ],
+        child: const SettingsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/notifications',
+      name: 'notifications',
+      builder: (context, state) => const NotificationsScreen(),
     ),
   ],
 ); 

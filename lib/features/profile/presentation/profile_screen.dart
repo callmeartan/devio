@@ -12,139 +12,202 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Profile',
-          style: theme.textTheme.titleLarge,
-        ),
-      ),
+      backgroundColor: theme.colorScheme.background,
       body: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Profile Header
-              Hero(
-                tag: 'profile_picture',
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Icon(
-                    Icons.person_outline,
-                    size: 50,
-                    color: theme.colorScheme.onPrimaryContainer,
+          return CustomScrollView(
+            slivers: [
+              // Custom App Bar with Profile Info
+              SliverAppBar(
+                expandedHeight: 200.0,
+                floating: false,
+                pinned: true,
+                backgroundColor: theme.colorScheme.surface,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          theme.colorScheme.primary.withOpacity(0.8),
+                          theme.colorScheme.surface,
+                        ],
+                      ),
+                    ),
+                  ),
+                  centerTitle: true,
+                  title: state.maybeWhen(
+                    authenticated: (_, displayName, __) => Text(
+                      displayName ?? 'User',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    orElse: () => const Text('User'),
                   ),
                 ),
+                leading: IconButton(
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                  onPressed: () => context.pop(),
+                ),
               ),
-              const SizedBox(height: 16),
-              state.maybeWhen(
-                authenticated: (uid, displayName, email) => Column(
+              
+              // Profile Content
+              SliverToBoxAdapter(
+                child: Column(
                   children: [
-                    Text(
-                      displayName ?? 'User',
-                      style: theme.textTheme.headlineSmall,
-                      textAlign: TextAlign.center,
-                    ),
-                    Text(
-                      email ?? '',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    // Profile Picture and Email
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Column(
+                        children: [
+                          Hero(
+                            tag: 'profile_picture',
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: theme.colorScheme.primaryContainer,
+                                border: Border.all(
+                                  color: theme.colorScheme.primary.withOpacity(0.2),
+                                  width: 4,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: theme.colorScheme.primary.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                size: 60,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          state.maybeWhen(
+                            authenticated: (_, __, email) => Text(
+                              email ?? '',
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              ),
+                            ),
+                            orElse: () => const SizedBox.shrink(),
+                          ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
                     ),
+
+                    // Account Section
+                    _buildSection(
+                      theme,
+                      title: 'Account',
+                      icon: Icons.person_outline,
+                      children: [
+                        _buildTile(
+                          theme,
+                          icon: Icons.edit_outlined,
+                          title: 'Edit Profile',
+                          onTap: () => context.push('/edit-profile'),
+                          showDivider: true,
+                        ),
+                        _buildTile(
+                          theme,
+                          icon: Icons.logout,
+                          title: 'Log Out',
+                          onTap: () => _showLogoutDialog(context),
+                          isDestructive: true,
+                        ),
+                      ],
+                    ),
+
+                    // Preferences Section
+                    _buildSection(
+                      theme,
+                      title: 'Preferences',
+                      icon: Icons.settings_outlined,
+                      children: [
+                        BlocBuilder<PreferencesCubit, PreferencesState>(
+                          builder: (context, prefsState) => _buildTile(
+                            theme,
+                            icon: prefsState.themeMode == ThemeMode.dark
+                                ? Icons.dark_mode
+                                : prefsState.themeMode == ThemeMode.light
+                                    ? Icons.light_mode
+                                    : Icons.brightness_auto,
+                            title: 'Theme',
+                            subtitle: _getThemeModeName(prefsState.themeMode),
+                            onTap: () => _showThemeDialog(context, prefsState.themeMode),
+                            showDivider: true,
+                          ),
+                        ),
+                        _buildTile(
+                          theme,
+                          icon: Icons.notifications_outlined,
+                          title: 'Notifications',
+                          onTap: () => context.push('/notifications'),
+                          showDivider: true,
+                        ),
+                        _buildTile(
+                          theme,
+                          icon: Icons.settings,
+                          title: 'Settings',
+                          onTap: () => context.push('/settings'),
+                          showDivider: true,
+                        ),
+                        _buildTile(
+                          theme,
+                          icon: Icons.delete_outline,
+                          title: 'Clear Chat History',
+                          onTap: () => _showClearChatHistoryDialog(context),
+                          isDestructive: true,
+                        ),
+                      ],
+                    ),
+
+                    // App Section
+                    _buildSection(
+                      theme,
+                      title: 'App',
+                      icon: Icons.info_outline,
+                      children: [
+                        _buildTile(
+                          theme,
+                          icon: Icons.info_outline,
+                          title: 'About',
+                          onTap: () {},
+                          showDivider: true,
+                        ),
+                        _buildTile(
+                          theme,
+                          icon: Icons.privacy_tip_outlined,
+                          title: 'Privacy Policy',
+                          onTap: () {},
+                          showDivider: true,
+                        ),
+                        _buildTile(
+                          theme,
+                          icon: Icons.description_outlined,
+                          title: 'Terms of Service',
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 32),
                   ],
                 ),
-                orElse: () => const SizedBox.shrink(),
-              ),
-              const SizedBox(height: 32),
-              
-              // Profile Actions
-              _buildSection(
-                theme,
-                title: 'Account',
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.edit_outlined),
-                    title: const Text('Edit Profile'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.logout_outlined),
-                    title: const Text('Log Out'),
-                    textColor: theme.colorScheme.error,
-                    iconColor: theme.colorScheme.error,
-                    onTap: () => _showLogoutDialog(context),
-                  ),
-                ],
-              ),
-              
-              _buildSection(
-                theme,
-                title: 'Preferences',
-                children: [
-                  BlocBuilder<PreferencesCubit, PreferencesState>(
-                    builder: (context, prefsState) => ListTile(
-                      leading: Icon(
-                        prefsState.themeMode == ThemeMode.dark
-                            ? Icons.dark_mode
-                            : prefsState.themeMode == ThemeMode.light
-                                ? Icons.light_mode
-                                : Icons.brightness_auto,
-                      ),
-                      title: const Text('Theme'),
-                      subtitle: Text(_getThemeModeName(prefsState.themeMode)),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () => _showThemeDialog(context, prefsState.themeMode),
-                    ),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.notifications_outlined),
-                    title: const Text('Notifications'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => context.push('/notifications'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.settings_outlined),
-                    title: const Text('Settings'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => context.push('/settings'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.delete_outline),
-                    title: const Text('Clear Chat History'),
-                    textColor: theme.colorScheme.error,
-                    iconColor: theme.colorScheme.error,
-                    onTap: () => _showClearChatHistoryDialog(context),
-                  ),
-                ],
-              ),
-              
-              _buildSection(
-                theme,
-                title: 'App',
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.info_outline),
-                    title: const Text('About'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.privacy_tip_outlined),
-                    title: const Text('Privacy Policy'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.description_outlined),
-                    title: const Text('Terms of Service'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {},
-                  ),
-                ],
               ),
             ],
           );
@@ -166,25 +229,34 @@ class ProfileScreen extends StatelessWidget {
 
   void _showThemeDialog(BuildContext context, ThemeMode currentMode) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF202123) : Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Choose Theme'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: ThemeMode.values.map((mode) => RadioListTile<ThemeMode>(
-            title: Text(_getThemeModeName(mode)),
+            title: Text(
+              _getThemeModeName(mode),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
             secondary: Icon(
               mode == ThemeMode.dark
                   ? Icons.dark_mode
                   : mode == ThemeMode.light
                       ? Icons.light_mode
                       : Icons.brightness_auto,
-              color: theme.colorScheme.primary,
+              color: isDark ? Colors.white : Colors.black,
             ),
             value: mode,
             groupValue: currentMode,
+            activeColor: isDark ? Colors.white : Colors.black,
             onChanged: (value) {
               if (value != null) {
                 context.read<PreferencesCubit>().setThemeMode(value);
@@ -193,6 +265,17 @@ class ProfileScreen extends StatelessWidget {
             },
           )).toList(),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -255,35 +338,107 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(ThemeData theme, {
+  Widget _buildSection(
+    ThemeData theme, {
     required String title,
+    required IconData icon,
     required List<Widget> children,
   }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.1),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.colorScheme.shadow.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: children,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTile(
+    ThemeData theme, {
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+    bool showDivider = false,
+    bool isDestructive = false,
+  }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-          child: Text(
+        ListTile(
+          leading: Icon(
+            icon,
+            color: isDestructive
+                ? theme.colorScheme.error
+                : theme.colorScheme.onSurface.withOpacity(0.8),
+          ),
+          title: Text(
             title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: isDestructive
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.onSurface,
             ),
           ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.1),
-            ),
+          subtitle: subtitle != null
+              ? Text(
+                  subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                )
+              : null,
+          trailing: Icon(
+            Icons.chevron_right,
+            color: theme.colorScheme.onSurface.withOpacity(0.3),
           ),
-          child: Column(
-            children: children,
-          ),
+          onTap: onTap,
         ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            indent: 56,
+            color: theme.colorScheme.outline.withOpacity(0.1),
+          ),
       ],
     );
   }

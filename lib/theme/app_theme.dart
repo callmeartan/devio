@@ -23,6 +23,8 @@ class AppTheme {
       onSecondary: Colors.white,
       onSurface: _textColor,
       onBackground: _textColor,
+      primaryContainer: _surfaceColor,
+      onPrimaryContainer: _textColor,
     ),
     scaffoldBackgroundColor: _backgroundColor,
     textTheme: TextTheme(
@@ -132,6 +134,8 @@ class AppTheme {
       onSurface: _darkTextColor,
       onPrimary: Colors.black,
       onSecondary: Colors.black,
+      primaryContainer: _darkSurfaceColor,
+      onPrimaryContainer: _darkTextColor,
     ),
     scaffoldBackgroundColor: _darkBackgroundColor,
     textTheme: TextTheme(
