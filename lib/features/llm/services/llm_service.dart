@@ -18,7 +18,9 @@ class LlmService {
   static String _getDefaultBaseUrl() {
     // When running on iOS simulator or device, we need to use the host machine's IP
     if (Platform.isIOS) {
-      return 'http://192.168.1.105:8080';  // Your computer's IP address
+      return 'http://192fl.168.1.11:8080';  // Your computer's IP address
+      // return 'http://192.168.1.105:8080';  // Your computer's IP address Artan'
+
     }
     return 'http://localhost:8080';
   }

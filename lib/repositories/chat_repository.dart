@@ -166,51 +166,38 @@ class ChatRepository {
   Future<void> clearChat() async {
     try {
       _checkAuth();
-      developer.log('Starting chat clear process...');
+      final userId = _auth.currentUser!.uid;
+      developer.log('Starting chat clear process for user: $userId');
+      
+      // Get all messages for the current user
+      final allMessages = await _firestore
+          .collection(_collectionPath)
+          .where('senderId', isEqualTo: userId)
+          .get();
+      
+      // Get all chat IDs from the messages
+      final chatIds = allMessages.docs
+          .map((doc) => (doc.data()['chatId'] as String))
+          .toSet()
+          .toList();
       
       // Clear chat metadata first
       developer.log('Clearing chat metadata...');
       final metadataBatch = _firestore.batch();
-      final allMetadata = await _firestore
-          .collection(_chatMetadataPath)
-          .get();
-      
-      for (var doc in allMetadata.docs) {
-        metadataBatch.delete(doc.reference);
+      for (var chatId in chatIds) {
+        metadataBatch.delete(_firestore.collection(_chatMetadataPath).doc(chatId));
       }
       await metadataBatch.commit();
-      developer.log('Cleared ${allMetadata.docs.length} metadata entries');
+      developer.log('Cleared metadata for ${chatIds.length} chats');
       
       // Then clear messages
       developer.log('Clearing chat messages...');
       final messageBatch = _firestore.batch();
-      final allMessages = await _firestore
-          .collection(_collectionPath)
-          .get();
-      
       for (var doc in allMessages.docs) {
         messageBatch.delete(doc.reference);
       }
       await messageBatch.commit();
       developer.log('Cleared ${allMessages.docs.length} messages');
-      
-      // Create empty collections if they don't exist
-      await _firestore.collection(_collectionPath).doc('placeholder').set({
-        'id': 'placeholder',
-        'content': 'placeholder',
-        'timestamp': Timestamp.now(),
-        'isAI': false,
-        'senderId': 'system',
-        'chatId': 'placeholder'
-      });
-      await _firestore.collection(_chatMetadataPath).doc('placeholder').set({
-        'title': 'placeholder',
-        'isPinned': false
-      });
-      
-      // Delete the placeholders
-      await _firestore.collection(_collectionPath).doc('placeholder').delete();
-      await _firestore.collection(_chatMetadataPath).doc('placeholder').delete();
       
       developer.log('Chat clear process completed successfully');
     } catch (e) {

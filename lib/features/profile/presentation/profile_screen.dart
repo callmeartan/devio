@@ -243,6 +243,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
               context.read<ChatCubit>().clearChat();
+              context.go('/');
             },
             child: Text(
               'Clear History',

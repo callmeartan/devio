@@ -198,8 +198,9 @@ class ChatCubit extends Cubit<ChatState> {
       // Clear local state
       _localMessages.clear();
       
-      // Reset state completely
+      // Reset state completely and start new chat
       emit(const ChatState());
+      startNewChat();
       
       // Small delay to ensure Firebase operations complete
       await Future.delayed(const Duration(milliseconds: 500));

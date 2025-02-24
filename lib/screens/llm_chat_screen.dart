@@ -337,7 +337,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   void _sendInitialGreeting() {
-    final greeting = 'Hello! I\'m your AI development assistant. I can help you with:\n\n'
+    final greeting = 'Hello! I\'m Devio your AI development assistant. I can help you with:\n\n'
         '• Flutter/Dart development\n'
         '• Code review and optimization\n'
         '• Architecture decisions\n'

@@ -17,7 +17,7 @@ Your message was: "$userMessage"''';
   }
 
   String getInitialGreeting() {
-    return '''Hello! 👋 I'm your AI development guide. I'm here to help you throughout your app development journey - from ideation to deployment. 
+    return '''Hello! 👋 I'm Devio your AI development guide. I'm here to help you throughout your app development journey - from ideation to deployment. 
 
 How can I assist you today?''';
   }
