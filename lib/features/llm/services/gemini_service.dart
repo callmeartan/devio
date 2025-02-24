@@ -14,6 +14,11 @@ class GeminiService {
   final DocumentService _documentService;
   static const _timeout = Duration(seconds: 120);
   static const _maxRetries = 3;
+  static const _healthCheckTimeout = Duration(seconds: 5);
+  
+  // Cache of working models
+  static final Map<String, DateTime> _workingModelsCache = {};
+  static const _cacheDuration = Duration(minutes: 5);
   
   // List of fallback models in order of preference
   static const List<String> _fallbackModels = [
@@ -39,6 +44,58 @@ class GeminiService {
 
   String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
+  // Check if a model is available (with caching)
+  Future<bool> _isModelAvailable(String model) async {
+    // Check cache first
+    final cachedTime = _workingModelsCache[model];
+    if (cachedTime != null && DateTime.now().difference(cachedTime) < _cacheDuration) {
+      dev.log('Using cached status for model: $model');
+      return true;
+    }
+
+    try {
+      dev.log('Checking availability of model: $model');
+      final response = await _client.post(
+        Uri.parse('$_baseUrl/models/$model:generateContent?key=$_apiKey'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'contents': [{
+            'parts': [{
+              'text': 'test'
+            }]
+          }],
+          'generationConfig': {
+            'temperature': 0.7,
+            'maxOutputTokens': 1,
+          },
+        }),
+      ).timeout(_healthCheckTimeout);
+
+      final isAvailable = response.statusCode != 503;
+      if (isAvailable) {
+        _workingModelsCache[model] = DateTime.now();
+      }
+      return isAvailable;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Find the best available model
+  Future<String?> _findBestAvailableModel(List<String> models) async {
+    // Check all models in parallel
+    final futures = models.map((model) async {
+      final isAvailable = await _isModelAvailable(model);
+      return isAvailable ? model : null;
+    }).toList();
+
+    // Wait for all checks to complete
+    final results = await Future.wait(futures);
+    return results.firstWhere((model) => model != null, orElse: () => null);
+  }
+
   Future<LlmResponse> generateResponse({
     required String prompt,
     String modelName = 'gemini-pro',
@@ -54,9 +111,22 @@ class GeminiService {
       modelsToTry.addAll(_fallbackModels.where((m) => m != modelName));
     }
 
+    // Try to find the best available model first
+    final bestModel = await _findBestAvailableModel(modelsToTry);
+    if (bestModel != null) {
+      modelsToTry.remove(bestModel);
+      modelsToTry.insert(0, bestModel);
+    }
+
     LlmResponse? lastError;
     
     for (final currentModel in modelsToTry) {
+      // Skip models we know are unavailable
+      if (!_workingModelsCache.containsKey(currentModel) && 
+          bestModel != null && currentModel != bestModel) {
+        continue;
+      }
+
       for (int attempt = 0; attempt < _maxRetries; attempt++) {
         try {
           dev.log('Attempting with model $currentModel (attempt ${attempt + 1})');
@@ -88,6 +158,9 @@ class GeminiService {
             final text = jsonResponse['candidates'][0]['content']['parts'][0]['text'];
             final tokenMetrics = jsonResponse['usageMetadata'];
 
+            // Cache successful model
+            _workingModelsCache[currentModel] = DateTime.now();
+
             return LlmResponse(
               text: text,
               modelName: currentModel,
@@ -98,12 +171,14 @@ class GeminiService {
             );
           } else if (response.statusCode == 503) {
             dev.log('Model $currentModel overloaded (attempt ${attempt + 1})');
+            // Remove from cache if model becomes unavailable
+            _workingModelsCache.remove(currentModel);
+            
             lastError = LlmResponse(
               text: '',
               isError: true,
               errorMessage: 'Model overloaded: ${response.body}',
             );
-            // Wait before retrying
             await Future.delayed(Duration(seconds: attempt + 1));
             continue;
           } else {
@@ -113,7 +188,7 @@ class GeminiService {
               isError: true,
               errorMessage: 'Failed to generate response: ${response.statusCode} - ${response.body}',
             );
-            break; // Don't retry on non-503 errors
+            break;
           }
         } catch (e) {
           dev.log('Error in Gemini generateResponse: $e');
@@ -123,9 +198,9 @@ class GeminiService {
             errorMessage: 'Error connecting to Gemini API: $e',
           );
           if (e is TimeoutException) {
-            continue; // Retry on timeout
+            continue;
           }
-          break; // Don't retry on other errors
+          break;
         }
       }
     }

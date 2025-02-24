@@ -17,6 +17,7 @@ import 'package:path/path.dart' as path;
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../widgets/chat_message_widget.dart';
+import '../widgets/loading_animation.dart';
 
 const String _kAiUserName = 'AI Assistant';
 
@@ -295,18 +296,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     authState.maybeWhen(
       authenticated: (uid, displayName, email) {
         developer.log('User is authenticated - UID: $uid, Name: $displayName, Email: $email');
-        // Add initial greeting for new chats
-        if (context.read<ChatCubit>().state.currentChatId == null) {
-          _sendInitialGreeting();
-        }
       },
       unauthenticated: () {
         developer.log('User is not authenticated, signing in anonymously...');
         context.read<AuthCubit>().signInAnonymously().then((_) {
           developer.log('Anonymous sign-in successful');
-          if (context.read<ChatCubit>().state.currentChatId == null) {
-            _sendInitialGreeting();
-          }
         }).catchError((error) {
           developer.log('Anonymous sign-in failed: $error');
           context.go('/auth', extra: {'mode': 'login'});
@@ -320,9 +314,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         developer.log('Unknown authentication state, signing in anonymously...');
         context.read<AuthCubit>().signInAnonymously().then((_) {
           developer.log('Anonymous sign-in successful');
-          if (context.read<ChatCubit>().state.currentChatId == null) {
-            _sendInitialGreeting();
-          }
         }).catchError((error) {
           developer.log('Anonymous sign-in failed: $error');
           context.go('/auth', extra: {'mode': 'login'});
@@ -334,31 +325,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
-  }
-
-  void _sendInitialGreeting() {
-    final greeting = 'Hello! I\'m Devio your AI development assistant. I can help you with:\n\n'
-        '• Flutter/Dart development\n'
-        '• Code review and optimization\n'
-        '• Architecture decisions\n'
-        '• Best practices and patterns\n'
-        '• Debugging and problem-solving\n\n'
-        'How can I assist you today?';
-
-    // Get the authenticated user's ID
-    final authState = context.read<AuthCubit>().state;
-    final userId = authState.maybeWhen(
-      authenticated: (uid, _, __) => uid,
-      orElse: () => throw Exception('User must be authenticated to send messages'),
-    );
-
-    // Send initial greeting with the authenticated user's ID
-    context.read<ChatCubit>().sendMessage(
-      senderId: userId,  // Using authenticated user's ID
-      content: greeting,
-      isAI: true,  // Mark as AI message
-      senderName: _kAiUserName,  // Still use AI name for display
-    );
   }
 
   @override
@@ -1046,48 +1012,60 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 orElse: () {},
                               );
                             },
-                            builder: (context, state) {
-                              return state.maybeWhen(
-                                initial: () => const SizedBox(),
-                                loading: () => const Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                                success: (response) => _buildSuccessState(response),
-                                error: (message) => Center(
-                                  child: SelectableText.rich(
-                                    TextSpan(
-                                      children: [
+                            builder: (context, llmState) {
+                              return BlocBuilder<ChatCubit, ChatState>(
+                                builder: (context, chatState) {
+                                  if (chatState.isLoading) {
+                                    return const Center(child: CircularProgressIndicator());
+                                  }
+
+                                  if (chatState.error != null) {
+                                    return Center(
+                                      child: SelectableText.rich(
                                         TextSpan(
-                                          text: 'Error: ',
-                                          style: TextStyle(
-                                            color: Theme.of(context).colorScheme.error,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                          children: [
+                                            TextSpan(
+                                              text: 'Error: ',
+                                              style: TextStyle(
+                                                color: Theme.of(context).colorScheme.error,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            TextSpan(
+                                              text: chatState.error.toString(),
+                                            ),
+                                          ],
                                         ),
-                                        TextSpan(text: message),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                modelSwitching: (fromModel, toModel, attempt) => Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const CircularProgressIndicator(),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'Switching from $fromModel to $toModel...',
-                                        style: Theme.of(context).textTheme.bodyLarge,
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Please wait while we process your request.',
-                                        style: Theme.of(context).textTheme.bodyMedium,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                orElse: () => const SizedBox(),
+                                    );
+                                  }
+
+                                  if (chatState.messages.isEmpty) {
+                                    return LoadingAnimation(
+                                      onTap: () => _sendInitialGreeting(),
+                                      showRefreshIndicator: true,
+                                    );
+                                  }
+
+                                  return ListView.builder(
+                                    controller: _chatScrollController,
+                                    padding: const EdgeInsets.all(16),
+                                    itemCount: chatState.messages.length,
+                                    itemBuilder: (context, index) {
+                                      final message = chatState.messages[index];
+                                      final messageId = message.id;
+                                      return ChatMessageWidget(
+                                        message: message,
+                                        showMetrics: _expandedMetrics[messageId] ?? false,
+                                        onMetricsToggle: () {
+                                          setState(() {
+                                            _expandedMetrics[messageId] = !(_expandedMetrics[messageId] ?? false);
+                                          });
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
                               );
                             },
                           ),
@@ -1222,6 +1200,31 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     }).catchError((error) {
       _showErrorSnackBar('Failed to send message: $error');
     });
+  }
+
+  void _sendInitialGreeting() {
+    final greeting = 'Hello! I\'m Devio your AI development assistant. I can help you with:\n\n'
+        '• Flutter/Dart development\n'
+        '• Code review and optimization\n'
+        '• Architecture decisions\n'
+        '• Best practices and patterns\n'
+        '• Debugging and problem-solving\n\n'
+        'How can I assist you today?';
+
+    // Get the authenticated user's ID
+    final authState = context.read<AuthCubit>().state;
+    final userId = authState.maybeWhen(
+      authenticated: (uid, _, __) => uid,
+      orElse: () => throw Exception('User must be authenticated to send messages'),
+    );
+
+    // Send initial greeting with the authenticated user's ID
+    context.read<ChatCubit>().sendMessage(
+      senderId: userId,  // Using authenticated user's ID
+      content: greeting,
+      isAI: true,  // Mark as AI message
+      senderName: _kAiUserName,  // Still use AI name for display
+    );
   }
 
   Widget _buildChatItem(Map<String, dynamic> chat, String? currentChatId, bool isDark, BuildContext context) {
@@ -1552,67 +1555,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSuccessState(LlmResponse response) {
-    if (response.modelName != _selectedModel) {
-      // Update the selected model if it was switched
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {
-          _selectedModel = response.modelName;
-        });
-      });
-    }
-    
-    return BlocBuilder<ChatCubit, ChatState>(
-      builder: (context, chatState) {
-        if (chatState.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (chatState.error != null) {
-          return Center(
-            child: SelectableText.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Error: ',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  TextSpan(text: chatState.error.toString()),
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (chatState.messages.isEmpty) {
-          return const Center(child: Text('No messages yet'));
-        }
-
-        return ListView.builder(
-          controller: _chatScrollController,
-          padding: const EdgeInsets.all(16),
-          itemCount: chatState.messages.length,
-          itemBuilder: (context, index) {
-            final message = chatState.messages[index];
-            final messageId = message.id;
-            return ChatMessageWidget(
-              message: message,
-              showMetrics: _expandedMetrics[messageId] ?? false,
-              onMetricsToggle: () {
-                setState(() {
-                  _expandedMetrics[messageId] = !(_expandedMetrics[messageId] ?? false);
-                });
-              },
-            );
-          },
-        );
-      },
     );
   }
 
