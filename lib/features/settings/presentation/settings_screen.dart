@@ -82,12 +82,6 @@ class SettingsScreen extends StatelessWidget {
                         subtitle: Text(_getThemeModeName(state.themeMode)),
                         onTap: () => _showThemeDialog(context, state.themeMode),
                       ),
-                      ListTile(
-                        leading: const Icon(Icons.language_outlined),
-                        title: const Text('Language'),
-                        subtitle: Text(state.languageCode.toUpperCase()),
-                        onTap: () => _showLanguageDialog(context, state.languageCode),
-                      ),
                     ],
                   ),
                   
@@ -179,35 +173,6 @@ class SettingsScreen extends StatelessWidget {
             onChanged: (value) {
               if (value != null) {
                 context.read<PreferencesCubit>().setThemeMode(value);
-              }
-              Navigator.pop(context);
-            },
-          )).toList(),
-        ),
-      ),
-    );
-  }
-
-  void _showLanguageDialog(BuildContext context, String currentLanguage) {
-    final languages = {
-      'en': 'English',
-      'es': 'Español',
-      'fr': 'Français',
-    };
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Choose Language'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: languages.entries.map((entry) => RadioListTile<String>(
-            title: Text(entry.value),
-            value: entry.key,
-            groupValue: currentLanguage,
-            onChanged: (value) {
-              if (value != null) {
-                context.read<PreferencesCubit>().setLanguage(value);
               }
               Navigator.pop(context);
             },

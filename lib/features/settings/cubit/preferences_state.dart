@@ -11,7 +11,6 @@ class PreferencesState with _$PreferencesState {
     @Default(true) bool isNotificationsEnabled,
     @Default(true) bool isPushNotificationsEnabled,
     @Default(true) bool isEmailNotificationsEnabled,
-    @Default('en') String languageCode,
     @Default(false) bool isLoading,
     String? error,
   }) = _PreferencesState;

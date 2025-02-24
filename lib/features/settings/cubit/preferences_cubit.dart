@@ -9,7 +9,6 @@ class PreferencesCubit extends Cubit<PreferencesState> {
   static const String _notificationsKey = 'notifications_enabled';
   static const String _pushNotificationsKey = 'push_notifications_enabled';
   static const String _emailNotificationsKey = 'email_notifications_enabled';
-  static const String _languageKey = 'language_code';
 
   PreferencesCubit(this._prefs) : super(const PreferencesState()) {
     _loadPreferences();
@@ -25,14 +24,12 @@ class PreferencesCubit extends Cubit<PreferencesState> {
       final isNotificationsEnabled = _prefs.getBool(_notificationsKey) ?? true;
       final isPushNotificationsEnabled = _prefs.getBool(_pushNotificationsKey) ?? true;
       final isEmailNotificationsEnabled = _prefs.getBool(_emailNotificationsKey) ?? true;
-      final languageCode = _prefs.getString(_languageKey) ?? 'en';
 
       emit(state.copyWith(
         themeMode: themeMode,
         isNotificationsEnabled: isNotificationsEnabled,
         isPushNotificationsEnabled: isPushNotificationsEnabled,
         isEmailNotificationsEnabled: isEmailNotificationsEnabled,
-        languageCode: languageCode,
         isLoading: false,
       ));
     } catch (e) {
@@ -104,20 +101,6 @@ class PreferencesCubit extends Cubit<PreferencesState> {
     } catch (e) {
       emit(state.copyWith(
         error: 'Failed to toggle email notifications: $e',
-      ));
-    }
-  }
-
-  Future<void> setLanguage(String languageCode) async {
-    try {
-      await _prefs.setString(_languageKey, languageCode);
-      emit(state.copyWith(
-        languageCode: languageCode,
-        error: null,
-      ));
-    } catch (e) {
-      emit(state.copyWith(
-        error: 'Failed to save language: $e',
       ));
     }
   }
