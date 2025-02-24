@@ -4,6 +4,7 @@ import 'package:devio/screens/landing_screen.dart';
 import 'package:devio/screens/intro_screen.dart';
 import 'package:devio/screens/auth_screen.dart';
 import 'package:devio/screens/llm_chat_screen.dart';
+import 'package:devio/features/profile/presentation/profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
@@ -23,9 +24,17 @@ final appRouter = GoRouter(
       orElse: () => false,
     ) ?? false;
 
-    // If user is authenticated, redirect to LLM chat screen
-    if (isAuthenticated && state.matchedLocation != '/llm') {
+    // List of routes that require authentication
+    final authenticatedRoutes = ['/llm', '/profile'];
+    
+    // If user is authenticated and trying to access auth or landing routes, redirect to LLM
+    if (isAuthenticated && (state.matchedLocation == '/auth' || state.matchedLocation == '/landing')) {
       return '/llm';
+    }
+    
+    // If user is not authenticated and trying to access authenticated routes, redirect to landing
+    if (!isAuthenticated && authenticatedRoutes.contains(state.matchedLocation)) {
+      return '/landing';
     }
 
     // If user hasn't seen intro and trying to access a different route, let them proceed
@@ -63,6 +72,11 @@ final appRouter = GoRouter(
       path: '/llm',
       name: 'llm',
       builder: (context, state) => const LlmChatScreen(),
+    ),
+    GoRoute(
+      path: '/profile',
+      name: 'profile',
+      builder: (context, state) => const ProfileScreen(),
     ),
   ],
 ); 
