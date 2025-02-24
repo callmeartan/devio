@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -28,15 +25,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -51,7 +42,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCQiq1RfFo1Wj3-4gQuRTvdf-BYAc8JZz4',
-    appId: '1:575951766528:android:6bac9ec525f472408f44e5',
+    appId: '1:575951766528:android:8bb36eefa4ef2be88f44e5',
     messagingSenderId: '575951766528',
     projectId: 'devio-cc71f',
     storageBucket: 'devio-cc71f.firebasestorage.app',
@@ -63,8 +54,38 @@ class DefaultFirebaseOptions {
     messagingSenderId: '575951766528',
     projectId: 'devio-cc71f',
     storageBucket: 'devio-cc71f.firebasestorage.app',
+    androidClientId: '575951766528-lg18aj9d77ah09vr0ftd1tjjgkmip1s8.apps.googleusercontent.com',
     iosClientId: '575951766528-kisqr9pk6ki6lhce91n3rdgookec850f.apps.googleusercontent.com',
     iosBundleId: 'dev.artan.devio',
+  );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyA8tfDiosUmyYOEJNy59jXnwO8ryAtXZaE',
+    appId: '1:575951766528:web:c66a3d01fead253a8f44e5',
+    messagingSenderId: '575951766528',
+    projectId: 'devio-cc71f',
+    authDomain: 'devio-cc71f.firebaseapp.com',
+    storageBucket: 'devio-cc71f.firebasestorage.app',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyCGrLf7g9z01GKKeJeSTr9nOX8msS79tII',
+    appId: '1:575951766528:ios:efd10c30bbf2e2b78f44e5',
+    messagingSenderId: '575951766528',
+    projectId: 'devio-cc71f',
+    storageBucket: 'devio-cc71f.firebasestorage.app',
+    androidClientId: '575951766528-lg18aj9d77ah09vr0ftd1tjjgkmip1s8.apps.googleusercontent.com',
+    iosClientId: '575951766528-kisqr9pk6ki6lhce91n3rdgookec850f.apps.googleusercontent.com',
+    iosBundleId: 'dev.artan.devio',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyA8tfDiosUmyYOEJNy59jXnwO8ryAtXZaE',
+    appId: '1:575951766528:web:fdd4ef0ae67baa5c8f44e5',
+    messagingSenderId: '575951766528',
+    projectId: 'devio-cc71f',
+    authDomain: 'devio-cc71f.firebaseapp.com',
+    storageBucket: 'devio-cc71f.firebasestorage.app',
   );
 
 }

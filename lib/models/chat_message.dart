@@ -20,6 +20,15 @@ class ChatMessage with _$ChatMessage {
     required DateTime timestamp,
     @Default(false) bool isAI,
     String? senderName,
+    // Performance metrics
+    double? totalDuration,
+    double? loadDuration,
+    int? promptEvalCount,
+    double? promptEvalDuration,
+    double? promptEvalRate,
+    int? evalCount,
+    double? evalDuration,
+    double? evalRate,
   }) = _ChatMessage;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => _$ChatMessageFromJson(json);
@@ -30,6 +39,14 @@ class ChatMessage with _$ChatMessage {
     required String content,
     required bool isAI,
     String? senderName,
+    double? totalDuration,
+    double? loadDuration,
+    int? promptEvalCount,
+    double? promptEvalDuration,
+    double? promptEvalRate,
+    int? evalCount,
+    double? evalDuration,
+    double? evalRate,
   }) {
     final messageId = const Uuid().v4();
     return ChatMessage(
@@ -40,6 +57,14 @@ class ChatMessage with _$ChatMessage {
       timestamp: DateTime.now(),
       isAI: isAI,
       senderName: senderName,
+      totalDuration: totalDuration,
+      loadDuration: loadDuration,
+      promptEvalCount: promptEvalCount,
+      promptEvalDuration: promptEvalDuration,
+      promptEvalRate: promptEvalRate,
+      evalCount: evalCount,
+      evalDuration: evalDuration,
+      evalRate: evalRate,
     );
   }
 
@@ -61,12 +86,28 @@ class ChatMessage with _$ChatMessage {
     String? chatId,
     required String content,
     required String userId,
+    double? totalDuration,
+    double? loadDuration,
+    int? promptEvalCount,
+    double? promptEvalDuration,
+    double? promptEvalRate,
+    int? evalCount,
+    double? evalDuration,
+    double? evalRate,
   }) => ChatMessage.create(
     chatId: chatId,
     senderId: userId,
     content: content,
     isAI: true,
     senderName: 'AI Assistant',
+    totalDuration: totalDuration,
+    loadDuration: loadDuration,
+    promptEvalCount: promptEvalCount,
+    promptEvalDuration: promptEvalDuration,
+    promptEvalRate: promptEvalRate,
+    evalCount: evalCount,
+    evalDuration: evalDuration,
+    evalRate: evalRate,
   );
 
   static DateTime _timestampFromJson(dynamic json) {

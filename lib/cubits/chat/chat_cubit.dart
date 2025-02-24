@@ -80,6 +80,14 @@ class ChatCubit extends Cubit<ChatState> {
     required String content,
     required bool isAI,
     String? senderName,
+    double? totalDuration,
+    double? loadDuration,
+    int? promptEvalCount,
+    double? promptEvalDuration,
+    double? promptEvalRate,
+    int? evalCount,
+    double? evalDuration,
+    double? evalRate,
   }) async {
     try {
       developer.log('Sending message for chat: ${state.currentChatId}');
@@ -89,6 +97,14 @@ class ChatCubit extends Cubit<ChatState> {
         content: content,
         isAI: isAI,
         senderName: senderName,
+        totalDuration: totalDuration,
+        loadDuration: loadDuration,
+        promptEvalCount: promptEvalCount,
+        promptEvalDuration: promptEvalDuration,
+        promptEvalRate: promptEvalRate,
+        evalCount: evalCount,
+        evalDuration: evalDuration,
+        evalRate: evalRate,
       );
       
       // Add message to local state immediately
@@ -170,8 +186,8 @@ class ChatCubit extends Cubit<ChatState> {
 
   Future<void> clearChat() async {
     try {
-      developer.log('Clearing all chats');
-      emit(state.copyWith(isLoading: true));
+      developer.log('Starting chat clear process in cubit');
+      emit(state.copyWith(isLoading: true, error: null));
       
       // Cancel existing chat subscription
       _chatSubscription?.cancel();
@@ -182,21 +198,18 @@ class ChatCubit extends Cubit<ChatState> {
       // Clear local state
       _localMessages.clear();
       
-      // Reset state and reload histories
+      // Reset state completely
       emit(const ChatState());
+      
+      // Small delay to ensure Firebase operations complete
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Reload histories
       await _loadChatHistories();
       
-      // If any chats remain, try to force delete them
-      if (state.chatHistories.isNotEmpty) {
-        developer.log('Found remaining chats, attempting force delete');
-        for (var chat in state.chatHistories) {
-          await forceDeleteChat(chat['id'] as String);
-        }
-      }
-      
-      developer.log('Chat history cleared successfully');
+      developer.log('Chat clear process completed in cubit');
     } catch (e) {
-      developer.log('Error clearing chat: $e');
+      developer.log('Error clearing chat in cubit: $e');
       emit(state.copyWith(
         isLoading: false,
         error: 'Failed to clear chat: $e',

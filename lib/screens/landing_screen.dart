@@ -104,60 +104,62 @@ class LandingScreen extends StatelessWidget {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Spacer(),
-                          // Logo
-                          SizedBox(
-                            width: 120,
-                            height: 120,
-                            child: Image.asset(
-                              AppAssets.logo,
-                              fit: BoxFit.contain,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 24),
+                            // Logo
+                            SizedBox(
+                              width: 120,
+                              height: 120,
+                              child: Image.asset(
+                                AppAssets.logo,
+                                fit: BoxFit.contain,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 32),
-                          Text(
-                            'Welcome to Devio',
-                            style: theme.textTheme.displaySmall,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Your AI-Powered Development Companion',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: theme.colorScheme.secondary,
+                            const SizedBox(height: 32),
+                            Text(
+                              'Welcome to Devio',
+                              style: theme.textTheme.displaySmall,
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Transform your ideas into reality with AI-driven guidance throughout your development journey.',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onBackground.withOpacity(0.7),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Your AI-Powered Development Companion',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                color: theme.colorScheme.secondary,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const Spacer(),
-                          ElevatedButton(
-                            onPressed: () => context.go(
-                              '/auth',
-                              extra: {'mode': 'signup'},
+                            const SizedBox(height: 24),
+                            Text(
+                              'Transform your ideas into reality with AI-driven guidance throughout your development journey.',
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onBackground.withOpacity(0.7),
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            child: const Text('Get Started'),
-                          ),
-                          const SizedBox(height: 16),
-                          OutlinedButton(
-                            onPressed: () => context.go(
-                              '/auth',
-                              extra: {'mode': 'login'},
+                            const SizedBox(height: 48),
+                            ElevatedButton(
+                              onPressed: () => context.go(
+                                '/auth',
+                                extra: {'mode': 'signup'},
+                              ),
+                              child: const Text('Get Started'),
                             ),
-                            child: const Text('Login'),
-                          ),
-                          const SizedBox(height: 32),
-                        ],
+                            const SizedBox(height: 16),
+                            OutlinedButton(
+                              onPressed: () => context.go(
+                                '/auth',
+                                extra: {'mode': 'login'},
+                              ),
+                              child: const Text('Login'),
+                            ),
+                            const SizedBox(height: 32),
+                          ],
+                        ),
                       ),
                     ),
                   ),

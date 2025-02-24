@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../features/llm/cubit/llm_cubit.dart';
 import '../features/llm/cubit/llm_state.dart';
-import '../features/llm/services/llm_service.dart';
 import '../features/llm/models/llm_response.dart';
 import 'package:go_router/go_router.dart';
 import '../blocs/auth/auth_cubit.dart';
@@ -17,6 +16,7 @@ import 'dart:typed_data';
 import 'package:path/path.dart' as path;
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import '../widgets/chat_message_widget.dart';
 
 const String _kAiUserName = 'AI Assistant';
 
@@ -274,13 +274,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   final _promptController = TextEditingController();
   final _chatScrollController = ScrollController();
   final _historyScrollController = ScrollController();
-  final Map<int, bool> _expandedMetrics = {};
+  final Map<String, bool> _expandedMetrics = {};
   final ImagePicker _picker = ImagePicker();
   String? _selectedModel;
   List<String> _availableModels = [];
   bool _showScrollToBottom = false;
   Uint8List? _selectedImageBytes;
-  String? _selectedImagePath;
   File? _selectedDocument;
 
   @override
@@ -408,12 +407,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           // Update selected model based on filtered list
           if (_selectedModel == null || !filteredModels.contains(_selectedModel)) {
             _selectedModel = provider == LlmProvider.gemini 
-                ? (_selectedImageBytes != null ? 'gemini-1.5-pro-vision-latest' : 'gemini-1.5-pro')
+                ? (_selectedImageBytes != null ? 'gemini-pro-vision' : 'gemini-pro')
                 : filteredModels.firstOrNull;
           }
           // If switching to Gemini, ensure we have a Gemini model selected
           else if (provider == LlmProvider.gemini && !_selectedModel!.startsWith('gemini-')) {
-            _selectedModel = _selectedImageBytes != null ? 'gemini-1.5-pro-vision-latest' : 'gemini-1.5-pro';
+            _selectedModel = _selectedImageBytes != null ? 'gemini-pro-vision' : 'gemini-pro';
           }
           
           // Ensure selected model is in filtered list
@@ -471,11 +470,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         final bytes = await image.readAsBytes();
         setState(() {
           _selectedImageBytes = bytes;
-          _selectedImagePath = image.path;
-          // Switch to vision model when image is selected
-          if (context.read<LlmCubit>().currentProvider == LlmProvider.gemini) {
-            _selectedModel = 'gemini-1.5-pro-vision-latest';
-          }
         });
       }
     } catch (e) {
@@ -488,11 +482,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   void _clearSelectedImage() {
     setState(() {
       _selectedImageBytes = null;
-      _selectedImagePath = null;
-      // Switch back to non-vision model when image is cleared
-      if (context.read<LlmCubit>().currentProvider == LlmProvider.gemini) {
-        _selectedModel = 'gemini-1.5-pro';
-      }
     });
   }
 
@@ -690,7 +679,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             final unpinnedChats = state.chatHistories.where((chat) => chat['isPinned'] != true).toList();
 
                             return ListView(
-                              controller: _historyScrollController,
+                              controller: _chatScrollController,
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               children: [
                                 if (pinnedChats.isNotEmpty) ...[
@@ -945,6 +934,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     content: response.text,
                                     isAI: true,
                                     senderName: _kAiUserName,
+                                    totalDuration: response.totalDuration,
+                                    loadDuration: response.loadDuration,
+                                    promptEvalCount: response.promptEvalCount,
+                                    promptEvalDuration: response.promptEvalDuration,
+                                    promptEvalRate: response.promptEvalRate,
+                                    evalCount: response.evalCount,
+                                    evalDuration: response.evalDuration,
+                                    evalRate: response.evalRate,
                                   ).then((_) {
                                     _scrollToBottom();
                                   }).catchError((error) {
@@ -956,10 +953,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     );
                                   });
                                 },
-                                error: (error) {
+                                error: (message) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Error: $error'),
+                                      content: Text('Error: $message'),
                                       backgroundColor: Theme.of(context).colorScheme.error,
                                     ),
                                   );
@@ -1004,76 +1001,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     itemCount: chatState.messages.length,
                                     itemBuilder: (context, index) {
                                       final message = chatState.messages[index];
-                                      return MessageBubble(
-                                        isUser: !message.isAI,
-                                        child: Column(
-                                          crossAxisAlignment: !message.isAI ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                                          children: [
-                                            if (!message.isAI)
-                                              Padding(
-                                                padding: const EdgeInsets.only(bottom: 4, left: 4),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.smart_toy_outlined,
-                                                      size: 16,
-                                                      color: Theme.of(context).colorScheme.primary,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      message.senderName ?? _kAiUserName,
-                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                        color: Theme.of(context).colorScheme.primary,
-                                                        fontWeight: FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            Container(
-                                              margin: EdgeInsets.only(
-                                                left: !message.isAI ? 64 : 0,
-                                                right: !message.isAI ? 0 : 64,
-                                              ),
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical: 12,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: !message.isAI
-                                                    ? Theme.of(context).colorScheme.primary
-                                                    : Theme.of(context).colorScheme.surface,
-                                                borderRadius: BorderRadius.only(
-                                                  topLeft: const Radius.circular(16),
-                                                  topRight: const Radius.circular(16),
-                                                  bottomLeft: Radius.circular(!message.isAI ? 16 : 4),
-                                                  bottomRight: Radius.circular(!message.isAI ? 4 : 16),
-                                                ),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Theme.of(context).shadowColor.withOpacity(0.1),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: SelectableText.rich(
-                                                TextSpan(
-                                                  text: message.content,
-                                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                                    color: !message.isAI
-                                                        ? Theme.of(context).colorScheme.onPrimary
-                                                        : Theme.of(context).colorScheme.onSurface,
-                                                  ),
-                                                ),
-                                                scrollPhysics: const NeverScrollableScrollPhysics(),
-                                                minLines: 1,
-                                                maxLines: null,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      final messageId = message.id;
+                                      return ChatMessageWidget(
+                                        message: message,
+                                        showMetrics: _expandedMetrics[messageId] ?? false,
+                                        onMetricsToggle: () {
+                                          setState(() {
+                                            _expandedMetrics[messageId] = !(_expandedMetrics[messageId] ?? false);
+                                          });
+                                        },
                                       );
                                     },
                                   );
@@ -1149,9 +1085,21 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       _showErrorSnackBar('Please select a model first');
       return;
     }
-    
+
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) {
+      return;
+    }
+
+    // Check if we're trying to send an image with a non-vision model
+    if (_selectedImageBytes != null && !_selectedModel!.contains('vision')) {
+      _showErrorSnackBar('Please select a vision-capable model to analyze images');
+      return;
+    }
+
+    // Check if we're using the correct provider for image analysis
+    if (_selectedImageBytes != null && context.read<LlmCubit>().currentProvider != LlmProvider.gemini) {
+      _showErrorSnackBar('Image analysis is only available with Gemini');
       return;
     }
 
@@ -1175,19 +1123,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     ).then((_) {
       // Generate response based on whether an image or document is selected
       if (_selectedImageBytes != null) {
-        // Always use vision model for images
         context.read<LlmCubit>().generateResponseWithImage(
           prompt: prompt,
           imageBytes: _selectedImageBytes!,
-          modelName: 'gemini-1.5-pro-vision-latest',  // Force vision model
+          modelName: _selectedModel!,
         );
         _clearSelectedImage();
       } else if (_selectedDocument != null) {
-        // Use standard model for documents
         context.read<LlmCubit>().generateResponseWithDocument(
           prompt: prompt,
           documentPath: _selectedDocument!.path,
-          modelName: _selectedModel!,  // Use selected model
+          modelName: _selectedModel!,
         );
         _clearSelectedDocument();
       } else {
@@ -1200,12 +1146,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       _promptController.clear();
       _scrollToBottom();
     }).catchError((error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to send message: $error'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      _showErrorSnackBar('Failed to send message: $error');
     });
   }
 

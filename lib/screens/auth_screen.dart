@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:github_sign_in/github_sign_in.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/constants/assets.dart';
+import 'package:devio/blocs/auth/auth_cubit.dart';
 
 class AuthScreen extends StatefulWidget {
   final bool isLogin;
@@ -82,20 +83,21 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _signInWithGoogle() async {
     setState(() => _socialLoading = 'google');
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) throw Exception('Google sign in aborted');
-
-      final GoogleSignInAuthentication googleAuth = 
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final authCubit = context.read<AuthCubit>();
+      await authCubit.signInWithGoogle();
+      
+      // Only navigate if the state is authenticated
       if (!mounted) return;
-      context.go('/llm');
+      final state = authCubit.state;
+      state.maybeWhen(
+        authenticated: (uid, displayName, email) => context.go('/llm'),
+        error: (message) => _showError(message),
+        orElse: () {},
+      );
     } catch (e) {
-      _showError('Google sign in failed: ${e.toString()}');
+      if (mounted) {
+        _showError('Google Sign In Error: ${e.toString()}');
+      }
     } finally {
       if (mounted) setState(() => _socialLoading = '');
     }

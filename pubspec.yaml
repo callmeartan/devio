@@ -48,6 +48,7 @@ dependencies:
   http: ^0.13.6
   shared_preferences: ^2.2.2
   url_launcher: ^6.2.4
+  file_picker: ^6.1.1
   
   # Firebase
   firebase_core: ^3.11.0
@@ -63,7 +64,6 @@ dependencies:
   image_picker: ^1.0.7
 
   # Document handling
-  file_picker: ^6.1.1  # For picking documents
   syncfusion_flutter_pdf: ^24.1.46  # For PDF handling
   path: ^1.8.3
   mime: ^1.0.4  # For MIME type detection
@@ -92,6 +92,16 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Platform-specific configurations
+  plugin:
+    platforms:
+      windows:
+        pluginClass: FilePickerPlugin
+      macos:
+        pluginClass: FilePickerPlugin
+      linux:
+        pluginClass: FilePickerPlugin
 
   # To add assets to your application, add an assets section, like this:
   assets:

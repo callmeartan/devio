@@ -7,12 +7,56 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:575951766528:android:8bb36eefa4ef2be88f44e5",
+        "android_client_info": {
+          "package_name": "com.devio.devio"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "575951766528-9t081b7q3mc7skkgnedkju8erqtgj5ec.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQiq1RfFo1Wj3-4gQuRTvdf-BYAc8JZz4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "575951766528-9t081b7q3mc7skkgnedkju8erqtgj5ec.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "575951766528-2d0hq5f0gf0t8dsgv3av59qv67v5us58.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.devio"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:575951766528:android:6bac9ec525f472408f44e5",
         "android_client_info": {
           "package_name": "dev.artan.devio"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "575951766528-lg18aj9d77ah09vr0ftd1tjjgkmip1s8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "dev.artan.devio",
+            "certificate_hash": "c9b1b901cf326bc3f494b5bc19960aab33cc36f8"
+          }
+        },
         {
           "client_id": "575951766528-9t081b7q3mc7skkgnedkju8erqtgj5ec.apps.googleusercontent.com",
           "client_type": 3

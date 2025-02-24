@@ -274,12 +274,7 @@ class GeminiService {
   List<String> getAvailableModels() {
     return [
       'gemini-pro',
-      'gemini-1.5-pro',
-      'gemini-1.5-pro-latest',
-      'gemini-1.5-pro-vision',
-      'gemini-1.5-pro-vision-latest',
-      'gemini-ultra',
-      'gemini-ultra-vision',
+      'gemini-pro-vision',
     ];
   }
 
