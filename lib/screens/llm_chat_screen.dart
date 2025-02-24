@@ -18,8 +18,24 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../widgets/chat_message_widget.dart';
 import '../widgets/loading_animation.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 const String _kAiUserName = 'AI Assistant';
+
+class ChatMessage {
+  final String text;
+  final bool isUser;
+  final String? senderName;
+  final DateTime timestamp;
+
+  ChatMessage({
+    required this.text,
+    required this.isUser,
+    this.senderName,
+    DateTime? timestamp,
+  }) : timestamp = timestamp ?? DateTime.now();
+}
 
 class MessageBubble extends StatelessWidget {
   final Widget child;
@@ -291,11 +307,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     _loadAvailableModels();
     _chatScrollController.addListener(_scrollListener);
     
-    // Check auth state and sign in anonymously if needed
+    // Check auth state but only sign in if unauthenticated
     final authState = context.read<AuthCubit>().state;
     authState.maybeWhen(
       authenticated: (uid, displayName, email) {
-        developer.log('User is authenticated - UID: $uid, Name: $displayName, Email: $email');
+        developer.log('User is already authenticated - UID: $uid');
       },
       unauthenticated: () {
         developer.log('User is not authenticated, signing in anonymously...');
@@ -310,15 +326,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         developer.log('Authentication error: $message');
         context.go('/auth', extra: {'mode': 'login'});
       },
-      orElse: () {
-        developer.log('Unknown authentication state, signing in anonymously...');
-        context.read<AuthCubit>().signInAnonymously().then((_) {
-          developer.log('Anonymous sign-in successful');
-        }).catchError((error) {
-          developer.log('Anonymous sign-in failed: $error');
-          context.go('/auth', extra: {'mode': 'login'});
-        });
-      },
+      orElse: () => null, // Do nothing for other states like initial or loading
     );
 
     // Schedule scroll to bottom after build
@@ -1639,6 +1647,165 @@ class _ModelGroupHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ChatBubble extends StatelessWidget {
+  final ChatMessage message;
+
+  const _ChatBubble({
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Align(
+      alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: EdgeInsets.only(
+          top: 8,
+          bottom: 8,
+          left: message.isUser ? 64 : 0,
+          right: message.isUser ? 0 : 64,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: message.isUser 
+              ? Colors.grey.shade800 
+              : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          message.text,
+          style: GoogleFonts.spaceGrotesk(
+            color: message.isUser ? Colors.white : Colors.black,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MessageInput extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onSubmit;
+
+  const _MessageInput({
+    required this.controller,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Colors.grey.shade200,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: 'Type your message...',
+                hintStyle: GoogleFonts.spaceGrotesk(
+                  color: Colors.grey.shade600,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+              ),
+              style: GoogleFonts.spaceGrotesk(),
+              onSubmitted: (_) => onSubmit(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: onSubmit,
+            icon: const Icon(Icons.send),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey.shade800,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.all(12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypingIndicator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              _DotWidget(),
+              const SizedBox(width: 4),
+              _DotWidget(delay: const Duration(milliseconds: 200)),
+              const SizedBox(width: 4),
+              _DotWidget(delay: const Duration(milliseconds: 400)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DotWidget extends StatelessWidget {
+  final Duration delay;
+
+  const _DotWidget({this.delay = Duration.zero});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade800,
+        shape: BoxShape.circle,
+      ),
+    ).animate(
+      onPlay: (controller) => controller.repeat(),
+    ).scale(
+      begin: const Offset(0.5, 0.5),
+      end: const Offset(1.0, 1.0),
+      duration: const Duration(milliseconds: 600),
+      delay: delay,
+      curve: Curves.easeInOut,
     );
   }
 } 

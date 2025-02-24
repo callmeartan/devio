@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:devio/constants/assets.dart';
 import 'dart:math' as math;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -142,6 +143,10 @@ class _IntroScreenState extends State<IntroScreen> {
                               curve: Curves.easeInOut,
                             );
                           } else {
+                            // Set the flag that user has seen intro
+                            SharedPreferences.getInstance().then((prefs) {
+                              prefs.setBool('has_seen_intro', true);
+                            });
                             context.go('/auth', extra: {'mode': 'signup'});
                           }
                         },
