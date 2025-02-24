@@ -7,11 +7,11 @@ import 'firebase_options.dart';
 import 'features/settings/cubit/preferences_cubit.dart';
 import 'features/settings/cubit/preferences_state.dart';
 import 'blocs/auth/auth_cubit.dart';
-import 'routes.dart';
-import 'theme/app_theme.dart';
 import 'repositories/chat_repository.dart';
 import 'cubits/chat/chat_cubit.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:devio/router.dart';
+import 'features/llm/cubit/llm_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,40 +54,69 @@ class MyApp extends StatelessWidget {
             chatRepository: context.read<ChatRepository>(),
           ),
         ),
+        BlocProvider(
+          create: (context) => LlmCubit(),
+        ),
       ],
-      child: BlocListener<AuthCubit, AuthState>(
-        listener: (context, state) {
-          // Listen for auth state changes if needed
-        },
-        child: BlocBuilder<PreferencesCubit, PreferencesState>(
-          builder: (context, state) {
-            if (state.error != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.error!),
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                    action: SnackBarAction(
-                      label: 'Dismiss',
-                      textColor: Theme.of(context).colorScheme.onError,
-                      onPressed: () {
-                        context.read<PreferencesCubit>().clearError();
-                      },
-                    ),
-                  ),
-                );
-              });
-            }
-
-            return MaterialApp.router(
-              title: 'Devio',
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              themeMode: state.themeMode,
-              routerConfig: router,
-              debugShowCheckedModeBanner: false,
-            );
-          },
+      child: MaterialApp.router(
+        title: 'DevIO',
+        debugShowCheckedModeBanner: false,
+        routerConfig: appRouter,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.black,
+            brightness: Brightness.light,
+            primary: Colors.black,
+            secondary: Colors.black87,
+            surface: Colors.white,
+            background: Colors.white,
+            error: Colors.red.shade900,
+          ),
+          useMaterial3: true,
+          scaffoldBackgroundColor: Colors.white,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            elevation: 0,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.black,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 32,
+                vertical: 16,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.black, width: 1),
+            ),
+          ),
         ),
       ),
     );

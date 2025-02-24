@@ -68,6 +68,10 @@ dependencies:
   path: ^1.8.3
   mime: ^1.0.4  # For MIME type detection
 
+  # New dependencies
+  flutter_animate: ^4.5.0
+  google_fonts: ^4.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
