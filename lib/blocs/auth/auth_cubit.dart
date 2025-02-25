@@ -263,37 +263,7 @@ class AuthCubit extends Cubit<AuthState> {
         
         // First, delete all user data from Firestore
         try {
-          // Get all user's chats
-          final userChats = await _firestore
-              .collection('chats')
-              .where('senderId', isEqualTo: userId)
-              .get();
-          
-          // Get user's chat metadata
-          final userChatMetadata = await _firestore
-              .collection('chat_metadata')
-              .where('userId', isEqualTo: userId)
-              .get();
-          
-          // Delete all data in a batch
-          final batch = _firestore.batch();
-          
-          // Delete user document
-          batch.delete(_firestore.collection('users').doc(userId));
-          
-          // Delete all user's chats
-          for (var doc in userChats.docs) {
-            batch.delete(doc.reference);
-          }
-          
-          // Delete all user's chat metadata
-          for (var doc in userChatMetadata.docs) {
-            batch.delete(doc.reference);
-          }
-          
-          // Commit the batch deletion
-          await batch.commit();
-          
+          await _deleteAllUserData(userId);
           developer.log('Successfully deleted all user data from Firestore');
         } catch (e) {
           developer.log('Error deleting Firestore data: $e');
@@ -303,8 +273,8 @@ class AuthCubit extends Cubit<AuthState> {
         // Then try to delete the auth account
         try {
           await user.delete();
-        } on FirebaseAuthException catch (e) {
-          if (e.code == 'requires-recent-login') {
+        } catch (e) {
+          if (e is FirebaseAuthException && e.code == 'requires-recent-login') {
             // Handle different providers
             if (providers.contains('apple.com')) {
               // Reauthenticate with Apple
@@ -321,11 +291,6 @@ class AuthCubit extends Cubit<AuthState> {
               );
               
               await user.reauthenticateWithCredential(oauthCredential);
-              
-              // Try deleting all data again after reauthentication
-              await _deleteAllUserData(userId);
-              // Try deleting account again after reauthentication
-              await user.delete();
             } else if (providers.contains('google.com')) {
               // Reauthenticate with Google
               final googleUser = await _googleSignIn.signIn();
@@ -338,22 +303,22 @@ class AuthCubit extends Cubit<AuthState> {
               );
               
               await user.reauthenticateWithCredential(credential);
-              
-              // Try deleting all data again after reauthentication
-              await _deleteAllUserData(userId);
-              // Try deleting account again after reauthentication
-              await user.delete();
-            } else {
-              throw Exception('Please sign out and sign in again before deleting your account');
             }
+            
+            // Try deleting all data again after reauthentication
+            await _deleteAllUserData(userId);
+            // Try deleting account again after reauthentication
+            await user.delete();
           } else {
-            throw Exception(e.message ?? 'Failed to delete account');
+            throw e;
           }
         }
         
         // Sign out and clean up after successful deletion
         await _googleSignIn.signOut();
         await _auth.signOut();
+        
+        // Emit unauthenticated state for proper redirection
         emit(const AuthState.unauthenticated());
       } else {
         emit(const AuthState.error('No user found to delete'));
@@ -361,7 +326,7 @@ class AuthCubit extends Cubit<AuthState> {
     } catch (e) {
       developer.log('Error deleting account: $e');
       emit(AuthState.error(e.toString()));
-      rethrow; // Rethrow to handle in UI
+      rethrow;
     }
   }
 

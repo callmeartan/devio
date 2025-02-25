@@ -44,52 +44,23 @@ service cloud.firestore {
 
     // Users collection rules
     match /users/{userId} {
-      // Allow read if authenticated and reading own document
-      allow read: if isAuthenticated() && isOwner(userId);
-      
-      // Allow write if authenticated, writing own document, and data is valid
-      allow create, update: if 
-        isAuthenticated() && 
-        isOwner(userId) && 
-        isValidUserData();
-        
-      // Allow delete if authenticated and deleting own document
-      allow delete: if isAuthenticated() && isOwner(userId);
+      allow read, write: if isAuthenticated() && isOwner(userId);
     }
 
     match /chats/{messageId} {
-      // Read: Any authenticated user can read messages
-      allow read: if debug('Reading chats: ' + request.auth.uid) != null && isAuthenticated();
-      
-      // Create: Authenticated users can create messages if they are the sender
-      allow create: if 
-        debug('Creating chat: ' + request.auth.uid) != null &&
-        isAuthenticated() &&
-        isValidMessage() &&
-        isOwner(request.resource.data.senderId);
-      
-      // Update: Messages cannot be updated (they are immutable)
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwner(request.resource.data.senderId);
       allow update: if false;
-      
-      // Delete: Only message owners can delete their messages
-      allow delete: if 
-        debug('Deleting chat: ' + request.auth.uid) != null &&
-        isAuthenticated() &&
-        isOwner(resource.data.senderId);
+      allow delete: if isAuthenticated() && (
+        isOwner(resource.data.senderId) || 
+        resource.data.senderId == request.auth.uid
+      );
     }
 
     match /chat_metadata/{chatId} {
-      // Read: Any authenticated user can read chat metadata
-      allow read: if debug('Reading metadata: ' + request.auth.uid) != null && isAuthenticated();
-      
-      // Write: Any authenticated user can create/update chat metadata
-      allow write: if 
-        debug('Writing metadata: ' + request.auth.uid) != null &&
-        isAuthenticated() &&
-        isValidChatMetadata();
-      
-      // Delete: Any authenticated user can delete chat metadata
-      allow delete: if debug('Deleting metadata: ' + request.auth.uid) != null && isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isValidChatMetadata();
+      allow delete: if isAuthenticated();
     }
   }
 } 

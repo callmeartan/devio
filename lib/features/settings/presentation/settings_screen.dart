@@ -247,7 +247,7 @@ class SettingsScreen extends StatelessWidget {
               try {
                 await context.read<AuthCubit>().deleteAccount();
                 if (context.mounted) {
-                  router.go('/');
+                  router.go('/intro');
                 }
               } catch (e) {
                 if (context.mounted) {
