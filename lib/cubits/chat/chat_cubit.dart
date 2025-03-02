@@ -320,6 +320,25 @@ class ChatCubit extends Cubit<ChatState> {
     _updateMessagesState(chatId);
   }
 
+  // Add a method to search chats
+  void searchChats(String query) {
+    developer.log('Searching chats with query: $query');
+    emit(state.copyWith(searchQuery: query));
+  }
+
+  // Get filtered chat histories based on search query
+  List<Map<String, dynamic>> getFilteredChatHistories() {
+    if (state.searchQuery.isEmpty) {
+      return state.chatHistories;
+    }
+    
+    final query = state.searchQuery.toLowerCase();
+    return state.chatHistories.where((chat) {
+      final title = (chat['title'] as String).toLowerCase();
+      return title.contains(query);
+    }).toList();
+  }
+
   @override
   Future<void> close() {
     _chatSubscription?.cancel();

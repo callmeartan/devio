@@ -12,5 +12,6 @@ class ChatState with _$ChatState {
     String? currentChatId,
     @Default(false) bool isLoading,
     String? error,
+    @Default('') String searchQuery,
   }) = _ChatState;
 } 
