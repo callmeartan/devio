@@ -426,8 +426,8 @@ class GeminiService {
     }
   }
 
-  List<String> getAvailableModels() {
-    return [
+  Future<List<String>> getAvailableModels() async {
+    final allModels = [
       // Pro models for text generation
       'gemini-pro',
       'gemini-1.5-pro',
@@ -443,6 +443,38 @@ class GeminiService {
       'gemini-ultra',  // Higher capability model
       'gemini-ultra-vision',  // Higher capability vision model
     ];
+    
+    // Check cache first for all models
+    final cachedAvailableModels = allModels.where(
+      (model) => _workingModelsCache.containsKey(model) && 
+                 DateTime.now().difference(_workingModelsCache[model]!) < _cacheDuration
+    ).toList();
+    
+    // If we have cached models, return them immediately
+    if (cachedAvailableModels.isNotEmpty) {
+      dev.log('Using cached available models: $cachedAvailableModels');
+      return cachedAvailableModels;
+    }
+    
+    // Otherwise check availability of all models in parallel
+    dev.log('Checking availability of all models...');
+    final futures = allModels.map((model) async {
+      final isAvailable = await _isModelAvailable(model);
+      return isAvailable ? model : null;
+    }).toList();
+    
+    final results = await Future.wait(futures);
+    final availableModels = results.whereType<String>().toList();
+    
+    // If no models are available, return at least the basic ones
+    // (they might be temporarily unavailable but we still want to show them)
+    if (availableModels.isEmpty) {
+      dev.log('No models available, returning default models');
+      return ['gemini-pro', 'gemini-pro-vision'];
+    }
+    
+    dev.log('Available models: $availableModels');
+    return availableModels;
   }
 
   void dispose() {

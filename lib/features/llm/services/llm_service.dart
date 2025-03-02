@@ -28,7 +28,7 @@ class LlmService {
       dev.log('Fetching available models from: $baseUrl/models');
       final response = await _client.get(
         Uri.parse('$baseUrl/models'),
-      ).timeout(_timeout);
+      ).timeout(const Duration(seconds: 5)); // Use shorter timeout for model check
 
       dev.log('Models response status code: ${response.statusCode}');
       if (response.statusCode == 200) {
@@ -38,12 +38,24 @@ class LlmService {
         return models;
       } else {
         dev.log('Error fetching models: ${response.body}');
-        throw Exception('Failed to fetch models: ${response.statusCode} - ${response.body}');
+        // Return default models instead of throwing
+        return _getDefaultModels();
       }
     } catch (e) {
       dev.log('Error connecting to server: $e');
-      throw Exception('Error connecting to server: $e');
+      // Return default models instead of throwing
+      return _getDefaultModels();
     }
+  }
+
+  List<String> _getDefaultModels() {
+    // Return a list of commonly available models
+    return [
+      'deepseek-r1:8b',
+      'llama3:8b',
+      'mistral:7b',
+      'phi3:14b',
+    ];
   }
 
   Future<LlmResponse> generateResponse({

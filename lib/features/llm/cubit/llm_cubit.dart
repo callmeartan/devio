@@ -35,7 +35,7 @@ class LlmCubit extends Cubit<LlmState> {
     dev.log('Getting available models for provider: $_currentProvider');
     final models = _currentProvider == LlmProvider.local
         ? await _llmService.getAvailableModels()
-        : _geminiService.getAvailableModels();
+        : await _geminiService.getAvailableModels();
     dev.log('Available models: $models');
     return models;
   }
