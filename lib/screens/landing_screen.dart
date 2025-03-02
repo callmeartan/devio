@@ -182,52 +182,6 @@ class _AnimatedBackground extends StatelessWidget {
           ),
         ),
         ...List.generate(20, (index) => _ParticleEffect()),
-        Positioned(
-          right: -150,
-          top: -150,
-          child: Container(
-            width: 400,
-            height: 400,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  Colors.grey.shade200,
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ).animate(
-            onPlay: (controller) => controller.repeat(),
-          ).move(
-            duration: 8.seconds,
-            begin: Offset.zero,
-            end: const Offset(50, 30),
-          ),
-        ),
-        Positioned(
-          left: -100,
-          bottom: -100,
-          child: Container(
-            width: 300,
-            height: 300,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  Colors.grey.shade200,
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ).animate(
-            onPlay: (controller) => controller.repeat(),
-          ).move(
-            duration: 7.seconds,
-            begin: Offset.zero,
-            end: const Offset(-40, -25),
-          ),
-        ),
       ],
     );
   }

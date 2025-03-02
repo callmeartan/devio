@@ -147,7 +147,7 @@ class _IntroScreenState extends State<IntroScreen> {
                             SharedPreferences.getInstance().then((prefs) {
                               prefs.setBool('has_seen_intro', true);
                             });
-                            context.go('/auth', extra: {'mode': 'signup'});
+                            context.go('/landing');
                           }
                         },
                         text: _currentPage < _pages.length - 1

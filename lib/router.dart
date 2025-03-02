@@ -46,7 +46,7 @@ final appRouter = GoRouter(
       return null;
     }
 
-    // If user has seen intro but not authenticated, redirect to landing
+    // If user has seen intro, redirect to landing
     if (hasSeenIntro && state.matchedLocation == '/') {
       return '/landing';
     }
