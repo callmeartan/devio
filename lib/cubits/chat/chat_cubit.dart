@@ -280,6 +280,46 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
+  // Add a method to add a placeholder message
+  void addPlaceholderMessage({
+    required String id,
+    required String senderId,
+    required bool isAI,
+    String? senderName,
+  }) {
+    developer.log('Adding placeholder message with ID: $id');
+    
+    // Create a placeholder message
+    final message = ChatMessage(
+      id: id,
+      chatId: state.currentChatId ?? 'new-chat',
+      senderId: senderId,
+      content: '',  // Empty content for placeholder
+      isAI: isAI,
+      senderName: senderName,
+      timestamp: DateTime.now(),
+      isPlaceholder: true,  // Mark as placeholder
+    );
+    
+    // Add to local messages
+    final chatId = message.chatId;
+    _localMessages[chatId] = [...(_localMessages[chatId] ?? []), message];
+    _updateMessagesState(chatId);
+  }
+  
+  // Add a method to remove a placeholder message
+  void removePlaceholderMessage(String placeholderId) {
+    developer.log('Removing placeholder message with ID: $placeholderId');
+    
+    if (state.currentChatId == null) return;
+    
+    // Remove the placeholder from local messages
+    final chatId = state.currentChatId!;
+    final messages = _localMessages[chatId] ?? [];
+    _localMessages[chatId] = messages.where((m) => m.id != placeholderId).toList();
+    _updateMessagesState(chatId);
+  }
+
   @override
   Future<void> close() {
     _chatSubscription?.cancel();

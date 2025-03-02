@@ -300,6 +300,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   File? _selectedDocument;
   bool _isLoadingModels = false;
   bool _showModelSelection = false;
+  bool _isWaitingForAiResponse = false;
+  String? _placeholderMessageId;
 
   @override
   void initState() {
@@ -832,14 +834,19 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 768),
                           child: BlocConsumer<LlmCubit, LlmState>(
-                            listener: (context, state) {
-                              state.maybeWhen(
+                            listener: (context, llmState) {
+                              llmState.maybeWhen(
                                 success: (response) {
                                   final authState = context.read<AuthCubit>().state;
                                   final userId = authState.maybeWhen(
                                     authenticated: (uid, _, __) => uid,
                                     orElse: () => throw Exception('User must be authenticated to send messages'),
                                   );
+
+                                  // Remove the placeholder message if it exists
+                                  if (_placeholderMessageId != null) {
+                                    context.read<ChatCubit>().removePlaceholderMessage(_placeholderMessageId!);
+                                  }
 
                                   context.read<ChatCubit>().sendMessage(
                                     senderId: userId,
@@ -856,7 +863,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     evalRate: response.evalRate,
                                   ).then((_) {
                                     _scrollToBottom();
+                                    // Reset waiting flag
+                                    setState(() {
+                                      _isWaitingForAiResponse = false;
+                                      _placeholderMessageId = null;
+                                    });
                                   }).catchError((error) {
+                                    setState(() {
+                                      _isWaitingForAiResponse = false;
+                                      _placeholderMessageId = null;
+                                    });
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('Error sending AI response: $error'),
@@ -866,6 +882,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                   });
                                 },
                                 error: (message) {
+                                  // Remove the placeholder message if it exists
+                                  if (_placeholderMessageId != null) {
+                                    context.read<ChatCubit>().removePlaceholderMessage(_placeholderMessageId!);
+                                  }
+                                  
+                                  setState(() {
+                                    _isWaitingForAiResponse = false;
+                                    _placeholderMessageId = null;
+                                  });
+                                  
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Error: $message'),
@@ -879,7 +905,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             builder: (context, llmState) {
                               return BlocBuilder<ChatCubit, ChatState>(
                                 builder: (context, chatState) {
-                                  if (chatState.isLoading) {
+                                  if (chatState.isLoading && chatState.messages.isEmpty) {
                                     return const Center(child: CircularProgressIndicator());
                                   }
 
@@ -921,6 +947,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     itemBuilder: (context, index) {
                                       final message = chatState.messages[index];
                                       final messageId = message.id;
+                                      
+                                      // Check if this is a placeholder message
+                                      if (messageId == _placeholderMessageId) {
+                                        return _buildTypingIndicator(context);
+                                      }
+                                      
                                       return ChatMessageWidget(
                                         message: message,
                                         showMetrics: _expandedMetrics[messageId] ?? false,
@@ -1022,6 +1054,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       return;
     }
 
+    // Check if we're already waiting for a response
+    if (_isWaitingForAiResponse) {
+      return;
+    }
+
     final authState = context.read<AuthCubit>().state;
     final userId = authState.maybeWhen(
       authenticated: (uid, displayName, _) => uid,
@@ -1033,6 +1070,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       orElse: () => null,
     );
 
+    // Set waiting flag
+    setState(() {
+      _isWaitingForAiResponse = true;
+    });
+
     // First send the user's message
     context.read<ChatCubit>().sendMessage(
       senderId: userId,
@@ -1040,6 +1082,20 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       isAI: false,
       senderName: userName,
     ).then((_) {
+      // Add a placeholder message for the AI response
+      final placeholderId = 'placeholder-${DateTime.now().millisecondsSinceEpoch}';
+      setState(() {
+        _placeholderMessageId = placeholderId;
+      });
+      
+      // Add the placeholder message to the chat
+      context.read<ChatCubit>().addPlaceholderMessage(
+        id: placeholderId,
+        senderId: 'ai',
+        isAI: true,
+        senderName: _kAiUserName,
+      );
+
       // Generate response based on whether an image or document is selected
       if (_selectedImageBytes != null) {
         context.read<LlmCubit>().generateResponseWithImage(
@@ -1065,6 +1121,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       _promptController.clear();
       _scrollToBottom();
     }).catchError((error) {
+      setState(() {
+        _isWaitingForAiResponse = false;
+        _placeholderMessageId = null;
+      });
       _showErrorSnackBar('Failed to send message: $error');
     });
   }
@@ -1604,6 +1664,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                       maxLines: null,
                       textInputAction: TextInputAction.newline,
                       onSubmitted: (_) => _sendMessage(),
+                      enabled: !_isWaitingForAiResponse,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1619,7 +1680,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 ? Colors.black
                                 : Colors.black.withOpacity(0.5),
                           ),
-                          onPressed: _pickImage,
+                          onPressed: _isWaitingForAiResponse ? null : _pickImage,
                           tooltip: 'Add image',
                         ),
                         IconButton(
@@ -1629,7 +1690,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 ? Colors.black
                                 : Colors.black.withOpacity(0.5),
                           ),
-                          onPressed: _pickDocument,
+                          onPressed: _isWaitingForAiResponse ? null : _pickDocument,
                           tooltip: 'Add document',
                         ),
                       ],
@@ -1639,36 +1700,27 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   Material(
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(20),
-                    child: BlocBuilder<LlmCubit, LlmState>(
-                      builder: (context, state) {
-                        final isLoading = state.maybeWhen(
-                          loading: () => true,
-                          orElse: () => false,
-                        );
-
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(20),
-                          onTap: _selectedModel == null || isLoading
-                              ? null
-                              : _sendMessage,
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            child: isLoading
-                                ? SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.send_rounded,
-                                    color: Colors.white,
-                                  ),
-                          ),
-                        );
-                      },
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: (_selectedModel == null || _isWaitingForAiResponse)
+                          ? null
+                          : _sendMessage,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        child: _isWaitingForAiResponse
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.send_rounded,
+                                color: Colors.white,
+                              ),
+                      ),
                     ),
                   ),
                 ],
@@ -1738,6 +1790,44 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTypingIndicator(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: Colors.black.withOpacity(0.1),
+            child: Icon(
+              Icons.smart_toy_outlined,
+              size: 18,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _DotWidget(),
+                const SizedBox(width: 4),
+                _DotWidget(delay: const Duration(milliseconds: 200)),
+                const SizedBox(width: 4),
+                _DotWidget(delay: const Duration(milliseconds: 400)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

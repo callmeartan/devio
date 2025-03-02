@@ -29,6 +29,7 @@ class ChatMessage with _$ChatMessage {
     int? evalCount,
     double? evalDuration,
     double? evalRate,
+    @Default(false) bool isPlaceholder,
   }) = _ChatMessage;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => _$ChatMessageFromJson(json);
@@ -65,6 +66,7 @@ class ChatMessage with _$ChatMessage {
       evalCount: evalCount,
       evalDuration: evalDuration,
       evalRate: evalRate,
+      isPlaceholder: false,
     );
   }
 
