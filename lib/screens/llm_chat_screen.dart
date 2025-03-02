@@ -543,7 +543,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               return Scaffold(
                 backgroundColor: theme.colorScheme.background,
                 drawer: Drawer(
-                  backgroundColor: theme.colorScheme.surface,
+                  backgroundColor: isDark ? const Color(0xFF202123) : theme.colorScheme.surface,
                   child: Column(
                     children: [
                       SafeArea(
@@ -559,16 +559,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       duration: const Duration(milliseconds: 200),
                                       height: 40,
                                       decoration: BoxDecoration(
-                                        color: _searchFocusNode.hasFocus
-                                            ? (isDark ? Colors.grey.shade700 : Colors.white)
-                                            : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+                                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                                         borderRadius: BorderRadius.circular(8),
                                         boxShadow: [
                                           BoxShadow(
                                             color: _searchFocusNode.hasFocus
                                                 ? theme.colorScheme.primary.withOpacity(0.1)
                                                 : Colors.black.withOpacity(0.05),
-                                            blurRadius: _searchFocusNode.hasFocus ? 6 : 4,
+                                            blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
                                         ],
@@ -777,10 +775,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
                             if (filteredChats.isEmpty) {
                               if (state.searchQuery.isNotEmpty) {
-                              return Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
+                                return Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
                                       Container(
                                         padding: const EdgeInsets.all(16),
                                         decoration: BoxDecoration(
