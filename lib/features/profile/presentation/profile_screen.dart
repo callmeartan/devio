@@ -147,7 +147,7 @@ class ProfileScreen extends StatelessWidget {
                                     ? Icons.light_mode
                                     : Icons.brightness_auto,
                             title: 'Theme',
-                            subtitle: _getThemeModeName(prefsState.themeMode),
+                            subtitle: _getThemeModeDescription(prefsState.themeMode),
                             onTap: () => _showThemeDialog(context, prefsState.themeMode),
                             showDivider: true,
                           ),
@@ -216,6 +216,18 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  String _getThemeModeDescription(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system:
+        final isPlatformDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+        return 'System (${isPlatformDark ? 'Dark' : 'Light'})';
+      case ThemeMode.light:
+        return 'Light mode';
+      case ThemeMode.dark:
+        return 'Dark mode';
+    }
+  }
+
   String _getThemeModeName(ThemeMode mode) {
     switch (mode) {
       case ThemeMode.system:
@@ -239,31 +251,37 @@ class ProfileScreen extends StatelessWidget {
         title: const Text('Choose Theme'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: ThemeMode.values.map((mode) => RadioListTile<ThemeMode>(
-            title: Text(
-              _getThemeModeName(mode),
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: isDark ? Colors.white : Colors.black,
-              ),
+          children: [
+            _buildThemeOption(
+              context,
+              mode: ThemeMode.system,
+              currentMode: currentMode,
+              icon: Icons.brightness_auto,
+              title: 'System',
+              subtitle: 'Follow system settings',
+              isDark: isDark,
             ),
-            secondary: Icon(
-              mode == ThemeMode.dark
-                  ? Icons.dark_mode
-                  : mode == ThemeMode.light
-                      ? Icons.light_mode
-                      : Icons.brightness_auto,
-              color: isDark ? Colors.white : Colors.black,
+            const SizedBox(height: 8),
+            _buildThemeOption(
+              context,
+              mode: ThemeMode.light,
+              currentMode: currentMode,
+              icon: Icons.light_mode,
+              title: 'Light',
+              subtitle: 'Light theme',
+              isDark: isDark,
             ),
-            value: mode,
-            groupValue: currentMode,
-            activeColor: isDark ? Colors.white : Colors.black,
-            onChanged: (value) {
-              if (value != null) {
-                context.read<PreferencesCubit>().setThemeMode(value);
-              }
-              Navigator.pop(context);
-            },
-          )).toList(),
+            const SizedBox(height: 8),
+            _buildThemeOption(
+              context,
+              mode: ThemeMode.dark,
+              currentMode: currentMode,
+              icon: Icons.dark_mode,
+              title: 'Dark',
+              subtitle: 'Dark theme',
+              isDark: isDark,
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -280,18 +298,98 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildThemeOption(
+    BuildContext context, {
+    required ThemeMode mode,
+    required ThemeMode currentMode,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isDark,
+  }) {
+    final isSelected = mode == currentMode;
+    final theme = Theme.of(context);
+    
+    return InkWell(
+      onTap: () {
+        context.read<PreferencesCubit>().setThemeMode(mode);
+        Navigator.pop(context);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : isDark ? Colors.white : Colors.black,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: isDark ? Colors.white : Colors.black,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: theme.colorScheme.primary,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showLogoutDialog(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF202123) : Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Log Out'),
         content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -311,16 +409,24 @@ class ProfileScreen extends StatelessWidget {
 
   void _showClearChatHistoryDialog(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF202123) : Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Clear Chat History'),
         content: const Text('Are you sure you want to clear all chat history? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -498,14 +604,14 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'At DevIO, we prioritize your privacy and do not collect any personal information from our users.',
+                'This Privacy Policy describes how DevIO ("we", "our", or "us") collects, uses, and protects your information when you use our mobile application.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                '1. No Data Collection',
+                '1. Information We Collect',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
@@ -513,14 +619,14 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'DevIO does not collect, store, or process any personal information from users. All interactions with the app remain on your device.',
+                'We collect information necessary to provide our services, including account information, chat history, and app preferences. This information is stored securely on Firebase.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                '2. Local Storage',
+                '2. How We Use Your Information',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
@@ -528,14 +634,14 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Any data generated during your use of the app (such as chat history or preferences) is stored locally on your device and is not transmitted to our servers or third parties.',
+                'We use the information we collect to provide and improve our services, personalize your experience, and maintain the functionality of the app. Your data is used solely for these purposes.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                '3. Authentication',
+                '3. Data Storage and Security',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
@@ -543,14 +649,14 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'While we use Firebase Authentication for account management, we only store the minimum required information for this service to function. We do not use this information for any other purpose.',
+                'Your data is stored on Firebase, a secure cloud platform. We implement appropriate security measures to protect against unauthorized access, alteration, disclosure, or destruction of your information.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
-                '4. Third-Party Services',
+                '4. Data Retention',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
@@ -558,7 +664,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Our app may use third-party services (like Firebase) that have their own privacy policies. We recommend reviewing their privacy policies for more information.',
+                'We retain your data for as long as your account is active or as needed to provide you services. You can request deletion of your data at any time through the app settings.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
@@ -656,7 +762,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                '3. Privacy and Data',
+                '3. User Data',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
@@ -664,7 +770,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'DevIO does not collect personal data from users. Any data generated during your use of the app is stored locally on your device and is not transmitted to our servers or third parties.',
+                'Your data is stored on Firebase and is used to provide and improve our services. We implement appropriate security measures to protect your information as detailed in our Privacy Policy.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),

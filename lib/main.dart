@@ -12,6 +12,7 @@ import 'cubits/chat/chat_cubit.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:devio/router.dart';
 import 'features/llm/cubit/llm_cubit.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,68 +59,17 @@ class MyApp extends StatelessWidget {
           create: (context) => LlmCubit(),
         ),
       ],
-      child: MaterialApp.router(
-        title: 'DevIO',
-        debugShowCheckedModeBanner: false,
-        routerConfig: appRouter,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.black,
-            brightness: Brightness.light,
-            primary: Colors.black,
-            secondary: Colors.black87,
-            surface: Colors.white,
-            background: Colors.white,
-            error: Colors.red.shade900,
-            primaryContainer: Colors.grey[100],
-            onPrimaryContainer: Colors.black,
-          ),
-          useMaterial3: true,
-          scaffoldBackgroundColor: Colors.white,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black,
-            elevation: 0,
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.black,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 32,
-                vertical: 16,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: Colors.grey.shade100,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.black, width: 1),
-            ),
-          ),
-        ),
+      child: BlocBuilder<PreferencesCubit, PreferencesState>(
+        builder: (context, state) {
+          return MaterialApp.router(
+            title: 'DevIO',
+            debugShowCheckedModeBanner: false,
+            routerConfig: appRouter,
+            themeMode: state.themeMode,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+          );
+        },
       ),
     );
   }

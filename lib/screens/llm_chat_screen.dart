@@ -543,7 +543,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               return Scaffold(
                 backgroundColor: theme.colorScheme.background,
                 drawer: Drawer(
-                  backgroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.surface,
                   child: Column(
                     children: [
                       SafeArea(
@@ -992,13 +992,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   ),
                 ),
                 appBar: AppBar(
-                  backgroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.surface,
                   elevation: 0,
                   leading: Builder(
                     builder: (context) => IconButton(
                       icon: Icon(
                         Icons.menu,
-                        color: Colors.black,
+                        color: theme.colorScheme.onSurface,
                       ),
                       onPressed: () {
                         Scaffold.of(context).openDrawer();
@@ -1015,6 +1015,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           child: Image.asset(
                             AppAssets.logo,
                             fit: BoxFit.contain,
+                            color: theme.brightness == Brightness.dark ? Colors.white : null,
                           ),
                         ),
                       ),
@@ -1029,7 +1030,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     preferredSize: const Size.fromHeight(1),
                     child: Divider(
                       height: 1,
-                      color: Colors.black.withOpacity(0.1),
+                      color: theme.colorScheme.onSurface.withOpacity(0.1),
                     ),
                   ),
                 ),
@@ -1409,112 +1410,136 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   Widget _buildModelSelectionUI(BuildContext context) {
     final theme = Theme.of(context);
-    final llmCubit = context.read<LlmCubit>();
     
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      constraints: const BoxConstraints(maxWidth: 600, maxHeight: 300),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.onSurface.withOpacity(0.1),
+            width: 1,
           ),
-        ],
+        ),
       ),
-      padding: const EdgeInsets.all(16),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.model_training,
-                      size: 24,
-                      color: Colors.black,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Select AI Model',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (_isLoadingModels)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                          ),
-                        ),
-                      ),
-                  ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.smart_toy_outlined,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Select AI Model',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
                 ),
-                Row(
-                  children: [
-                    _buildProviderSelector(context),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(Icons.refresh, size: 20),
-                      onPressed: _isLoadingModels ? null : _loadAvailableModels,
-                      tooltip: 'Refresh available models',
-                      color: Colors.black.withOpacity(0.7),
-                    ),
-                  ],
+              ),
+              const Spacer(),
+              // Refresh button
+              IconButton(
+                icon: Icon(
+                  Icons.refresh,
+                  size: 20,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_isLoadingModels)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Text(
-                    'Checking available models...',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: Colors.black.withOpacity(0.7),
-                    ),
+                onPressed: _loadAvailableModels,
+                tooltip: 'Refresh models',
+              ),
+              // Close button
+              IconButton(
+                icon: Icon(
+                  Icons.close,
+                  size: 20,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _showModelSelection = false;
+                  });
+                },
+                tooltip: 'Close model selection',
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Provider selector
+          Row(
+            children: [
+              _buildProviderSelector(context),
+              const Spacer(),
+              // Model selector dropdown
+              if (_isLoadingModels)
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
                   ),
                 ),
-              )
-            else if (_availableModels.isEmpty)
-              Center(
-                child: Column(
-                  children: [
-                    Text(
-                      'No models available at the moment',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: Colors.black.withOpacity(0.7),
-                      ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Model list
+          if (_isLoadingModels)
+            Center(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
                     ),
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      onPressed: _loadAvailableModels,
-                      icon: Icon(Icons.refresh),
-                      label: Text('Retry'),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Loading available models...',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
-                  ],
-                ),
-              )
-            else
-              _buildModelSelector(context),
-          ],
-        ),
+                  ),
+                ],
+              ),
+            )
+          else if (_availableModels.isEmpty)
+            Center(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  Icon(
+                    Icons.error_outline,
+                    size: 24,
+                    color: theme.colorScheme.error,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No models available at the moment',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: _loadAvailableModels,
+                    icon: Icon(Icons.refresh),
+                    label: Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          else
+            _buildModelSelector(context),
+        ],
       ),
     );
   }
@@ -1530,7 +1555,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         _loadAvailableModels();
       },
       tooltip: 'Select AI provider',
-      color: Colors.white,
+      color: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 4,
       itemBuilder: (BuildContext context) => <PopupMenuEntry<LlmProvider>>[
@@ -1541,8 +1566,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               Icon(
                 Icons.computer,
                 color: llmCubit.currentProvider == LlmProvider.local
-                    ? Colors.black
-                    : Colors.black.withOpacity(0.7),
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withOpacity(0.7),
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -1550,8 +1575,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 'Local Model',
                 style: TextStyle(
                   color: llmCubit.currentProvider == LlmProvider.local
-                      ? Colors.black
-                      : Colors.black.withOpacity(0.7),
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ],
@@ -1564,8 +1589,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               Icon(
                 Icons.cloud,
                 color: llmCubit.currentProvider == LlmProvider.gemini
-                    ? Colors.black
-                    : Colors.black.withOpacity(0.7),
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withOpacity(0.7),
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -1573,8 +1598,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 'Gemini',
                 style: TextStyle(
                   color: llmCubit.currentProvider == LlmProvider.gemini
-                      ? Colors.black
-                      : Colors.black.withOpacity(0.7),
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ],
@@ -1584,7 +1609,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.05),
+          color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -1594,21 +1619,23 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   ? Icons.computer
                   : Icons.cloud,
               size: 16,
-              color: Colors.black,
+              color: theme.colorScheme.primary,
             ),
             const SizedBox(width: 4),
             Text(
-              llmCubit.currentProvider == LlmProvider.local ? 'Local' : 'Gemini',
+              llmCubit.currentProvider == LlmProvider.local
+                  ? 'Local'
+                  : 'Gemini',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.black,
+                color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(width: 2),
+            const SizedBox(width: 4),
             Icon(
               Icons.arrow_drop_down,
               size: 16,
-              color: Colors.black,
+              color: theme.colorScheme.onSurface,
             ),
           ],
         ),
@@ -1646,6 +1673,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   Widget _buildModelRadioGroup(List<String> models) {
+    final theme = Theme.of(context);
+    
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: models.map((model) {
@@ -1660,6 +1689,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     _getModelDisplayName(model),
                     style: TextStyle(
                       fontSize: 14,
+                      color: theme.colorScheme.onSurface,
                       fontWeight: model == _selectedModel ? FontWeight.w600 : FontWeight.normal,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -1689,7 +1719,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             _getModelDescription(model),
             style: TextStyle(
               fontSize: 12,
-              color: Colors.black54,
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
@@ -1709,7 +1739,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               });
             }
           },
-          activeColor: Colors.black,
+          activeColor: theme.colorScheme.primary,
           dense: true,
           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           visualDensity: VisualDensity.compact,
@@ -1776,7 +1806,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     final theme = Theme.of(context);
     
     return Container(
-      color: Colors.white,
+      color: theme.colorScheme.surface,
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
@@ -1793,7 +1823,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   margin: const EdgeInsets.only(bottom: 8),
                   height: 100,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black.withOpacity(0.2)),
+                    border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.2)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Stack(
@@ -1810,10 +1840,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         top: 4,
                         right: 4,
                         child: Material(
-                          color: Colors.white.withOpacity(0.8),
+                          color: theme.colorScheme.surface.withOpacity(0.8),
                           borderRadius: BorderRadius.circular(12),
                           child: IconButton(
-                            icon: const Icon(Icons.close, color: Colors.black),
+                            icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
                             onPressed: _clearSelectedImage,
                             tooltip: 'Remove image',
                           ),
@@ -1827,9 +1857,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black.withOpacity(0.2)),
+                    border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.2)),
                     borderRadius: BorderRadius.circular(12),
-                    color: Colors.black.withOpacity(0.05),
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
                   ),
                   child: Row(
                     children: [
@@ -1837,7 +1867,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         _selectedDocument!.path.toLowerCase().endsWith('.pdf')
                             ? Icons.picture_as_pdf
                             : Icons.description,
-                        color: Colors.black,
+                        color: theme.colorScheme.onSurface,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -1849,7 +1879,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close),
+                        icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
                         onPressed: _clearSelectedDocument,
                         tooltip: 'Remove document',
                       ),
@@ -1868,21 +1898,21 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 ? 'Ask about this document...'
                                 : 'Ask me anything...',
                         hintStyle: TextStyle(
-                          color: Colors.black.withOpacity(0.5),
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.black.withOpacity(0.05),
+                        fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.5),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 12,
                         ),
                       ),
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: Colors.black,
+                        color: theme.colorScheme.onSurface,
                       ),
                       maxLines: null,
                       textInputAction: TextInputAction.newline,
@@ -1892,7 +1922,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   ),
                   const SizedBox(width: 8),
                   Material(
-                    color: Colors.black.withOpacity(0.05),
+                    color: theme.colorScheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(20),
                     child: Row(
                       children: [
@@ -1900,8 +1930,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           icon: Icon(
                             Icons.image_outlined,
                             color: _selectedImageBytes != null
-                                ? Colors.black
-                                : Colors.black.withOpacity(0.5),
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                           onPressed: _isWaitingForAiResponse ? null : _pickImage,
                           tooltip: 'Add image',
@@ -1910,8 +1940,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           icon: Icon(
                             Icons.attach_file,
                             color: _selectedDocument != null
-                                ? Colors.black
-                                : Colors.black.withOpacity(0.5),
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                           onPressed: _isWaitingForAiResponse ? null : _pickDocument,
                           tooltip: 'Add document',
@@ -1921,7 +1951,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   ),
                   const SizedBox(width: 8),
                   Material(
-                    color: Colors.black,
+                    color: theme.colorScheme.primary,
                     borderRadius: BorderRadius.circular(20),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(20),
@@ -1936,12 +1966,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 height: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
                                 ),
                               )
-                            : const Icon(
+                            : Icon(
                                 Icons.send_rounded,
-                                color: Colors.white,
+                                color: theme.colorScheme.onPrimary,
                               ),
                       ),
                     ),
@@ -1957,7 +1987,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   Widget _buildCompactModelIndicator(BuildContext context) {
     final theme = Theme.of(context);
-    final llmCubit = context.read<LlmCubit>();
     
     return InkWell(
       onTap: () {
@@ -1965,43 +1994,26 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           _showModelSelection = !_showModelSelection;
         });
       },
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
+          color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              children: [
-                Icon(
-                  Icons.model_training,
-                  size: 16,
-                  color: Colors.black,
-                ),
-                if (_availableModels.length > 1 && !_showModelSelection)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
+            Icon(
+              Icons.smart_toy_outlined,
+              size: 16,
+              color: theme.colorScheme.primary,
             ),
             const SizedBox(width: 4),
             Text(
               _selectedModel != null ? _getModelDisplayName(_selectedModel!) : 'Select Model',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.black,
+                color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -2009,7 +2021,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             Icon(
               _showModelSelection ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
               size: 16,
-              color: Colors.black,
+              color: theme.colorScheme.onSurface,
             ),
           ],
         ),
@@ -2018,6 +2030,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   Widget _buildTypingIndicator(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Padding(
       padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
       child: Row(
@@ -2025,18 +2039,18 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: Colors.black.withOpacity(0.1),
+            backgroundColor: theme.colorScheme.surfaceVariant,
             child: Icon(
               Icons.smart_toy_outlined,
               size: 18,
-              color: Colors.black,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.05),
+              color: theme.colorScheme.surfaceVariant,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -2065,6 +2079,8 @@ class _ModelGroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
@@ -2073,8 +2089,8 @@ class _ModelGroupHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.black,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
@@ -2082,7 +2098,7 @@ class _ModelGroupHeader extends StatelessWidget {
           const SizedBox(height: 4),
           Container(
             height: 1,
-            color: Colors.black.withOpacity(0.2),
+            color: theme.colorScheme.onSurface.withOpacity(0.2),
           ),
         ],
       ),
@@ -2115,14 +2131,20 @@ class _ChatBubble extends StatelessWidget {
           vertical: 12,
         ),
         decoration: BoxDecoration(
-          color: message.isUser ? Colors.black : Colors.white,
+          color: message.isUser 
+              ? theme.colorScheme.primary 
+              : theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: message.isUser ? null : Border.all(color: Colors.black.withOpacity(0.1)),
+          border: message.isUser 
+              ? null 
+              : Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
         ),
         child: Text(
           message.text,
           style: GoogleFonts.spaceGrotesk(
-            color: message.isUser ? Colors.white : Colors.black,
+            color: message.isUser 
+                ? theme.colorScheme.onPrimary 
+                : theme.colorScheme.onSurface,
             fontSize: 16,
           ),
         ),
@@ -2147,10 +2169,10 @@ class _MessageInput extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         border: Border(
           top: BorderSide(
-            color: Colors.black.withOpacity(0.1),
+            color: theme.colorScheme.outline.withOpacity(0.1),
           ),
         ),
       ),
@@ -2162,20 +2184,20 @@ class _MessageInput extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: 'Type your message...',
                 hintStyle: GoogleFonts.spaceGrotesk(
-                  color: Colors.black.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.black.withOpacity(0.05),
+                fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.5),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 12,
                 ),
               ),
-              style: GoogleFonts.spaceGrotesk(color: Colors.black),
+              style: GoogleFonts.spaceGrotesk(color: theme.colorScheme.onSurface),
               onSubmitted: (_) => onSubmit(),
             ),
           ),
@@ -2184,40 +2206,13 @@ class _MessageInput extends StatelessWidget {
             onPressed: onSubmit,
             icon: const Icon(Icons.send),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               padding: const EdgeInsets.all(12),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TypingIndicator extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              _DotWidget(),
-              const SizedBox(width: 4),
-              _DotWidget(delay: const Duration(milliseconds: 200)),
-              const SizedBox(width: 4),
-              _DotWidget(delay: const Duration(milliseconds: 400)),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -2229,11 +2224,13 @@ class _DotWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Container(
       width: 8,
       height: 8,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: theme.colorScheme.onSurfaceVariant,
         shape: BoxShape.circle,
       ),
     ).animate(
