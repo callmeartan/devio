@@ -547,48 +547,64 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   child: Column(
                     children: [
                       SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: isDark ? Colors.grey.shade900 : Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                decoration: BoxDecoration(
+                                  color: _searchFocusNode.hasFocus
+                                      ? (isDark ? Colors.grey.shade700 : Colors.white)
+                                      : (isDark ? Colors.grey.shade800 : Colors.grey.shade100),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
                                       color: _searchFocusNode.hasFocus
-                                          ? theme.colorScheme.primary.withOpacity(0.5)
-                                          : (isDark 
-                                              ? Colors.white.withOpacity(0.1) 
-                                              : Colors.black.withOpacity(0.1)),
-                                      width: _searchFocusNode.hasFocus ? 1.5 : 1.0,
+                                          ? theme.colorScheme.primary.withOpacity(0.1)
+                                          : Colors.black.withOpacity(0.05),
+                                      blurRadius: _searchFocusNode.hasFocus ? 6 : 4,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: _searchFocusNode.hasFocus
-                                            ? theme.colorScheme.primary.withOpacity(0.1)
-                                            : Colors.black.withOpacity(0.05),
-                                        blurRadius: _searchFocusNode.hasFocus ? 6 : 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                  ],
+                                  border: Border.all(
+                                    color: _searchFocusNode.hasFocus
+                                        ? theme.colorScheme.primary.withOpacity(0.3)
+                                        : Colors.transparent,
+                                    width: 1.5,
                                   ),
-                                  child: BlocBuilder<ChatCubit, ChatState>(
-                                    buildWhen: (previous, current) => 
-                                      previous.searchQuery != current.searchQuery,
-                                    builder: (context, state) {
-                                      final isSearchActive = state.searchQuery.isNotEmpty;
-                                      return Row(
-                                    children: [
-                                          AnimatedContainer(
+                                ),
+                                child: BlocBuilder<ChatCubit, ChatState>(
+                                  buildWhen: (previous, current) => 
+                                    previous.searchQuery != current.searchQuery,
+                                  builder: (context, state) {
+                                    final isSearchActive = state.searchQuery.isNotEmpty;
+                                    return Focus(
+                                      onFocusChange: (hasFocus) {
+                                        // Trigger rebuild to update container styling
+                                        setState(() {});
+                                      },
+                                      child: TextField(
+                                        controller: _searchController,
+                                        focusNode: _searchFocusNode,
+                                        decoration: InputDecoration(
+                                          hintText: 'Search chats',
+                                          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                                            color: isDark 
+                                                ? Colors.white.withOpacity(0.5) 
+                                                : Colors.black.withOpacity(0.5),
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: const EdgeInsets.symmetric(
+                                            vertical: 14,
+                                            horizontal: 16,
+                                          ),
+                                          prefixIcon: AnimatedContainer(
                                             duration: const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                                        child: Icon(
-                                          Icons.search,
-                                          size: 20,
+                                            padding: const EdgeInsets.all(12),
+                                            child: Icon(
+                                              Icons.search,
+                                              size: 20,
                                               color: isSearchActive || _searchFocusNode.hasFocus
                                                   ? theme.colorScheme.primary
                                                   : (isDark 
@@ -596,64 +612,80 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                                       : Colors.black.withOpacity(0.5)),
                                             ),
                                           ),
-                                          Expanded(
-                                            child: Focus(
-                                              onFocusChange: (hasFocus) {
-                                                // Trigger rebuild to update the icon color
-                                                setState(() {});
-                                              },
-                                              child: TextField(
-                                                controller: _searchController,
-                                                focusNode: _searchFocusNode,
-                                                decoration: InputDecoration(
-                                                  hintText: 'Search chats',
-                                                  hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                                          suffixIcon: isSearchActive
+                                            ? Container(
+                                                margin: const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color: isDark 
+                                                      ? Colors.grey.shade600 
+                                                      : Colors.grey.shade200,
+                                                  borderRadius: BorderRadius.circular(50),
+                                                ),
+                                                child: IconButton(
+                                                  icon: Icon(
+                                                    Icons.clear,
+                                                    size: 16,
                                                     color: isDark 
-                                                        ? Colors.white.withOpacity(0.5) 
-                                                        : Colors.black.withOpacity(0.5),
+                                                        ? Colors.white.withOpacity(0.9) 
+                                                        : Colors.black.withOpacity(0.6),
                                                   ),
-                                                  border: InputBorder.none,
-                                                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                                                  suffixIcon: isSearchActive
-                                                      ? IconButton(
-                                                          icon: Icon(
-                                                            Icons.clear,
-                                                            size: 16,
-                                                            color: isDark 
-                                                                ? Colors.white.withOpacity(0.7) 
-                                                                : Colors.black.withOpacity(0.5),
-                                                          ),
-                                                          onPressed: () {
-                                                            _searchController.clear();
-                                                            context.read<ChatCubit>().searchChats('');
-                                                            // Keep focus on the field after clearing
-                                                            _searchFocusNode.requestFocus();
-                                                          },
-                                                          constraints: const BoxConstraints(),
-                                                          padding: EdgeInsets.zero,
-                                                        )
-                                                      : null,
+                                                  onPressed: () {
+                                                    _searchController.clear();
+                                                    context.read<ChatCubit>().searchChats('');
+                                                    // Keep focus on the field after clearing
+                                                    _searchFocusNode.requestFocus();
+                                                  },
+                                                  padding: EdgeInsets.zero,
+                                                  constraints: const BoxConstraints(),
                                                 ),
+                                              )
+                                            : null,
+                                        ),
                                         style: theme.textTheme.bodyMedium?.copyWith(
-                                                  color: isDark ? Colors.white : Colors.black,
-                                                ),
-                                                onChanged: (value) {
-                                                  context.read<ChatCubit>().searchChats(value);
-                                                },
-                                                textInputAction: TextInputAction.search,
-                                                cursorColor: theme.colorScheme.primary,
-                                                cursorWidth: 1.5,
-                                              ),
+                                          color: isDark ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        onChanged: (value) {
+                                          context.read<ChatCubit>().searchChats(value);
+                                        },
+                                        textInputAction: TextInputAction.search,
+                                        cursorColor: theme.colorScheme.primary,
+                                        cursorWidth: 1.5,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            BlocBuilder<ChatCubit, ChatState>(
+                              buildWhen: (previous, current) => 
+                                previous.searchQuery != current.searchQuery,
+                              builder: (context, state) {
+                                final chatCubit = context.read<ChatCubit>();
+                                final filteredChats = chatCubit.getFilteredChatHistories();
+                                final isSearchActive = state.searchQuery.isNotEmpty;
+                                
+                                if (!isSearchActive) return const SizedBox.shrink();
+                                
+                                return Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        '${filteredChats.length} result${filteredChats.length != 1 ? 's' : ''}',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: isDark 
+                                              ? Colors.white.withOpacity(0.7) 
+                                              : Colors.black.withOpacity(0.6),
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
-                                      );
-                                    },
                                   ),
-                                ),
-                              ),
-                            ],
-                          ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                       const Divider(height: 1),
@@ -737,7 +769,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                         ),
                                         child: Icon(
                                           Icons.search_off_rounded,
-                                      size: 32,
+                                          size: 32,
                                           color: isDark 
                                               ? Colors.white.withOpacity(0.7) 
                                               : Colors.black.withOpacity(0.7),
@@ -752,8 +784,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                               : Colors.black.withOpacity(0.9),
                                           fontWeight: FontWeight.w500,
                                         ),
-                                    ),
-                                    const SizedBox(height: 8),
+                                      ),
+                                      const SizedBox(height: 8),
                                       Text(
                                         'Try a different search term',
                                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -764,7 +796,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                         textAlign: TextAlign.center,
                                       ),
                                       const SizedBox(height: 16),
-                                      TextButton.icon(
+                                      ElevatedButton.icon(
                                         onPressed: () {
                                           _searchController.clear();
                                           context.read<ChatCubit>().searchChats('');
@@ -772,18 +804,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                         icon: Icon(
                                           Icons.clear,
                                           size: 16,
-                                          color: theme.colorScheme.primary,
                                         ),
-                                        label: Text(
-                                          'Clear search',
-                                          style: TextStyle(
-                                            color: theme.colorScheme.primary,
-                                          ),
-                                        ),
-                                        style: TextButton.styleFrom(
+                                        label: const Text('Clear search'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: theme.colorScheme.primary,
+                                          foregroundColor: Colors.white,
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 16,
                                             vertical: 8,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
                                         ),
                                       ),
