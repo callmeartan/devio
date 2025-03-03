@@ -5,6 +5,7 @@ import '../../../blocs/auth/auth_cubit.dart';
 import '../../../features/settings/cubit/preferences_cubit.dart';
 import '../../../features/settings/cubit/preferences_state.dart';
 import '../../../cubits/chat/chat_cubit.dart';
+import 'dart:ui';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -15,198 +16,263 @@ class ProfileScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: isDark ? Colors.black : theme.colorScheme.background,
       body: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
           return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
             slivers: [
-              // Custom App Bar with Profile Info
+              // Header with gradient and profile info
               SliverAppBar(
-                expandedHeight: 200.0,
+                expandedHeight: 240.0,
                 floating: false,
                 pinned: true,
-                backgroundColor: theme.colorScheme.surface,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark 
+                          ? Colors.grey.withOpacity(0.3) 
+                          : Colors.white.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_back,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                      onPressed: () => context.pop(),
+                    ),
+                  ),
+                ),
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          theme.colorScheme.primary.withOpacity(0.8),
-                          theme.colorScheme.surface,
-                        ],
+                        colors: isDark 
+                            ? [
+                                Colors.grey.shade800,
+                                Colors.grey.shade900,
+                                Colors.black,
+                              ]
+                            : [
+                                theme.colorScheme.primary.withOpacity(0.7),
+                                theme.colorScheme.surface,
+                              ],
+                        stops: isDark ? [0.0, 0.5, 1.0] : [0.0, 1.0],
                       ),
                     ),
-                  ),
-                  centerTitle: true,
-                  title: state.maybeWhen(
-                    authenticated: (_, displayName, __) => Text(
-                      displayName ?? 'User',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                      ),
+                    child: Stack(
+                      children: [
+                        // Subtle pattern overlay
+                        Opacity(
+                          opacity: 0.05,
+                          child: CustomPaint(
+                            painter: WavePatternPainter(
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
+                            size: Size.infinite,
+                          ),
+                        ),
+                        // Profile info at bottom
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      state.maybeWhen(
+                                        authenticated: (_, displayName, __) => Text(
+                                          displayName ?? 'User',
+                                          style: theme.textTheme.headlineSmall?.copyWith(
+                                            color: isDark ? Colors.white : Colors.black,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        orElse: () => Text(
+                                          'User',
+                                          style: theme.textTheme.headlineSmall?.copyWith(
+                                            color: isDark ? Colors.white : Colors.black,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      state.maybeWhen(
+                                        authenticated: (_, __, email) => Text(
+                                          email ?? '',
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: isDark 
+                                                ? Colors.white.withOpacity(0.7) 
+                                                : Colors.black.withOpacity(0.7),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        orElse: () => const SizedBox.shrink(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isDark 
+                                        ? Colors.grey.shade800 
+                                        : theme.colorScheme.primary.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: isDark 
+                                          ? Colors.grey.shade700 
+                                          : theme.colorScheme.primary.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Developer',
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      color: isDark 
+                                          ? Colors.white 
+                                          : theme.colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    orElse: () => const Text('User'),
                   ),
-                ),
-                leading: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                  onPressed: () => context.pop(),
                 ),
               ),
               
               // Profile Content
               SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    // Profile Picture and Email
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Column(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                  child: Column(
+                    children: [
+                      // Account Section
+                      _buildSection(
+                        context,
+                        title: 'Account',
+                        icon: Icons.person_outline,
                         children: [
-                          Hero(
-                            tag: 'profile_picture',
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: theme.colorScheme.primaryContainer,
-                                border: Border.all(
-                                  color: theme.colorScheme.primary.withOpacity(0.2),
-                                  width: 4,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: theme.colorScheme.primary.withOpacity(0.1),
-                                    blurRadius: 10,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.person,
-                                size: 60,
-                                color: theme.colorScheme.onPrimaryContainer,
-                              ),
-                            ),
+                          _buildTile(
+                            context,
+                            icon: Icons.edit_outlined,
+                            title: 'Edit Profile',
+                            onTap: () => context.push('/edit-profile'),
+                            showDivider: true,
                           ),
-                          const SizedBox(height: 16),
-                          state.maybeWhen(
-                            authenticated: (_, __, email) => Text(
-                              email ?? '',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.7),
-                              ),
-                            ),
-                            orElse: () => const SizedBox.shrink(),
+                          _buildTile(
+                            context,
+                            icon: Icons.logout,
+                            title: 'Log Out',
+                            onTap: () => _showLogoutDialog(context),
+                            isDestructive: true,
                           ),
                         ],
                       ),
-                    ),
-
-                    // Account Section
-                    _buildSection(
-                      theme,
-                      title: 'Account',
-                      icon: Icons.person_outline,
-                      children: [
-                        _buildTile(
-                          theme,
-                          icon: Icons.edit_outlined,
-                          title: 'Edit Profile',
-                          onTap: () => context.push('/edit-profile'),
-                          showDivider: true,
-                        ),
-                        _buildTile(
-                          theme,
-                          icon: Icons.logout,
-                          title: 'Log Out',
-                          onTap: () => _showLogoutDialog(context),
-                          isDestructive: true,
-                        ),
-                      ],
-                    ),
-
-                    // Preferences Section
-                    _buildSection(
-                      theme,
-                      title: 'Preferences',
-                      icon: Icons.settings_outlined,
-                      children: [
-                        BlocBuilder<PreferencesCubit, PreferencesState>(
-                          builder: (context, prefsState) => _buildTile(
-                            theme,
-                            icon: prefsState.themeMode == ThemeMode.dark
-                                ? Icons.dark_mode
-                                : prefsState.themeMode == ThemeMode.light
-                                    ? Icons.light_mode
-                                    : Icons.brightness_auto,
-                            title: 'Theme',
-                            subtitle: _getThemeModeDescription(prefsState.themeMode),
-                            onTap: () => _showThemeDialog(context, prefsState.themeMode),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Preferences Section
+                      _buildSection(
+                        context,
+                        title: 'Preferences',
+                        icon: Icons.settings_outlined,
+                        children: [
+                          BlocBuilder<PreferencesCubit, PreferencesState>(
+                            builder: (context, prefsState) => _buildTile(
+                              context,
+                              icon: prefsState.themeMode == ThemeMode.dark
+                                  ? Icons.dark_mode
+                                  : prefsState.themeMode == ThemeMode.light
+                                      ? Icons.light_mode
+                                      : Icons.brightness_auto,
+                              title: 'Theme',
+                              subtitle: _getThemeModeDescription(prefsState.themeMode),
+                              onTap: () => _showThemeDialog(context, prefsState.themeMode),
+                              showDivider: true,
+                            ),
+                          ),
+                          _buildTile(
+                            context,
+                            icon: Icons.notifications_outlined,
+                            title: 'Notifications',
+                            onTap: () => context.push('/notifications'),
                             showDivider: true,
                           ),
-                        ),
-                        _buildTile(
-                          theme,
-                          icon: Icons.notifications_outlined,
-                          title: 'Notifications',
-                          onTap: () => context.push('/notifications'),
-                          showDivider: true,
-                        ),
-                        _buildTile(
-                          theme,
-                          icon: Icons.settings,
-                          title: 'Settings',
-                          onTap: () => context.push('/settings'),
-                          showDivider: true,
-                        ),
-                        _buildTile(
-                          theme,
-                          icon: Icons.delete_outline,
-                          title: 'Clear Chat History',
-                          onTap: () => _showClearChatHistoryDialog(context),
-                          isDestructive: true,
-                        ),
-                      ],
-                    ),
-
-                    // App Section
-                    _buildSection(
-                      theme,
-                      title: 'App',
-                      icon: Icons.info_outline,
-                      children: [
-                        _buildTile(
-                          theme,
-                          icon: Icons.info_outline,
-                          title: 'About',
-                          onTap: () => _showAboutDialog(context),
-                          showDivider: true,
-                        ),
-                        _buildTile(
-                          theme,
-                          icon: Icons.privacy_tip_outlined,
-                          title: 'Privacy Policy',
-                          onTap: () => _showPrivacyPolicyDialog(context),
-                          showDivider: true,
-                        ),
-                        _buildTile(
-                          theme,
-                          icon: Icons.description_outlined,
-                          title: 'Terms of Service',
-                          onTap: () => _showTermsOfServiceDialog(context),
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 32),
-                  ],
+                          _buildTile(
+                            context,
+                            icon: Icons.settings,
+                            title: 'Settings',
+                            onTap: () => context.push('/settings'),
+                            showDivider: true,
+                          ),
+                          _buildTile(
+                            context,
+                            icon: Icons.delete_outline,
+                            title: 'Clear Chat History',
+                            onTap: () => _showClearChatHistoryDialog(context),
+                            isDestructive: true,
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // App Section
+                      _buildSection(
+                        context,
+                        title: 'App',
+                        icon: Icons.info_outline,
+                        children: [
+                          _buildTile(
+                            context,
+                            icon: Icons.info_outline,
+                            title: 'About',
+                            onTap: () => _showAboutDialog(context),
+                            showDivider: true,
+                          ),
+                          _buildTile(
+                            context,
+                            icon: Icons.privacy_tip_outlined,
+                            title: 'Privacy Policy',
+                            onTap: () => _showPrivacyPolicyDialog(context),
+                            showDivider: true,
+                          ),
+                          _buildTile(
+                            context,
+                            icon: Icons.description_outlined,
+                            title: 'Terms of Service',
+                            onTap: () => _showTermsOfServiceDialog(context),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -854,62 +920,57 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSection(
-    ThemeData theme, {
+    BuildContext context, {
     required String title,
     required IconData icon,
     required List<Widget> children,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.1),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isDark ? Colors.white : theme.colorScheme.primary,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.shadow.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: isDark ? Colors.white : theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
-            child: Column(
-              children: children,
+              ),
+            ],
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? Colors.grey.shade900 : theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark 
+                  ? Colors.grey.shade800 
+                  : theme.colorScheme.outline.withOpacity(0.1),
             ),
           ),
-        ],
-      ),
+          child: Column(
+            children: children,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildTile(
-    ThemeData theme, {
+    BuildContext context, {
     required IconData icon,
     required String title,
     String? subtitle,
@@ -917,6 +978,9 @@ class ProfileScreen extends StatelessWidget {
     bool showDivider = false,
     bool isDestructive = false,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Column(
       children: [
         ListTile(
@@ -924,27 +988,35 @@ class ProfileScreen extends StatelessWidget {
             icon,
             color: isDestructive
                 ? theme.colorScheme.error
-                : theme.colorScheme.onSurface.withOpacity(0.8),
+                : isDark 
+                    ? Colors.white.withOpacity(0.8) 
+                    : theme.colorScheme.onSurface.withOpacity(0.8),
           ),
           title: Text(
             title,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: isDestructive
                   ? theme.colorScheme.error
-                  : theme.colorScheme.onSurface,
+                  : isDark 
+                      ? Colors.white 
+                      : theme.colorScheme.onSurface,
             ),
           ),
           subtitle: subtitle != null
               ? Text(
                   subtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: isDark 
+                        ? Colors.white.withOpacity(0.6) 
+                        : theme.colorScheme.onSurface.withOpacity(0.6),
                   ),
                 )
               : null,
           trailing: Icon(
             Icons.chevron_right,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: isDark 
+                ? Colors.white.withOpacity(0.3) 
+                : theme.colorScheme.onSurface.withOpacity(0.3),
           ),
           onTap: onTap,
         ),
@@ -952,9 +1024,48 @@ class ProfileScreen extends StatelessWidget {
           Divider(
             height: 1,
             indent: 56,
-            color: theme.colorScheme.outline.withOpacity(0.1),
+            color: isDark 
+                ? Colors.grey.shade800 
+                : theme.colorScheme.outline.withOpacity(0.1),
           ),
       ],
     );
   }
+}
+
+// Wave pattern painter for the background
+class WavePatternPainter extends CustomPainter {
+  final Color color;
+  
+  WavePatternPainter({required this.color});
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+      
+    final path = Path();
+    
+    // Create wave pattern
+    for (int i = 0; i < 10; i++) {
+      final y = size.height * 0.1 + (i * size.height * 0.08);
+      path.moveTo(0, y);
+      
+      for (int j = 0; j < 10; j++) {
+        final x1 = size.width * (j * 0.1 + 0.05);
+        final x2 = size.width * (j * 0.1 + 0.1);
+        path.quadraticBezierTo(
+          x1, y + (i % 2 == 0 ? 10 : -10),
+          x2, y,
+        );
+      }
+    }
+    
+    canvas.drawPath(path, paint);
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 } 
