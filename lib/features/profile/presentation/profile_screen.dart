@@ -19,6 +19,11 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: isDark ? Colors.black : theme.colorScheme.background,
       body: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
+          final displayName = state.maybeWhen(
+            authenticated: (_, name, __) => name ?? 'User',
+            orElse: () => 'User',
+          );
+          
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -27,7 +32,7 @@ class ProfileScreen extends StatelessWidget {
                 expandedHeight: 240.0,
                 floating: false,
                 pinned: true,
-                backgroundColor: Colors.transparent,
+                backgroundColor: isDark ? Colors.black : theme.colorScheme.background,
                 elevation: 0,
                 leading: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -47,7 +52,21 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                title: AnimatedOpacity(
+                  opacity: MediaQuery.of(context).viewPadding.top > 0 ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Text(
+                    displayName,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: isDark ? Colors.white : theme.colorScheme.onBackground,
+                    ),
+                  ),
+                ),
                 flexibleSpace: FlexibleSpaceBar(
+                  titlePadding: EdgeInsets.zero,
+                  centerTitle: false,
+                  expandedTitleScale: 1.0,
+                  collapseMode: CollapseMode.pin,
                   background: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -95,23 +114,14 @@ class ProfileScreen extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      state.maybeWhen(
-                                        authenticated: (_, displayName, __) => Text(
-                                          displayName ?? 'User',
-                                          style: theme.textTheme.headlineSmall?.copyWith(
-                                            color: isDark ? Colors.white : Colors.black,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                      Text(
+                                        displayName,
+                                        style: theme.textTheme.headlineSmall?.copyWith(
+                                          color: isDark ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        orElse: () => Text(
-                                          'User',
-                                          style: theme.textTheme.headlineSmall?.copyWith(
-                                            color: isDark ? Colors.white : Colors.black,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 4),
                                       state.maybeWhen(
@@ -216,13 +226,6 @@ class ProfileScreen extends StatelessWidget {
                               onTap: () => _showThemeDialog(context, prefsState.themeMode),
                               showDivider: true,
                             ),
-                          ),
-                          _buildTile(
-                            context,
-                            icon: Icons.notifications_outlined,
-                            title: 'Notifications',
-                            onTap: () => context.push('/notifications'),
-                            showDivider: true,
                           ),
                           _buildTile(
                             context,
