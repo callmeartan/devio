@@ -1886,72 +1886,74 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             if (textModels.isNotEmpty && _selectedImageBytes == null) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: theme.colorScheme.primary.withOpacity(0.2),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.text_fields,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Text Models',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.text_fields,
-                        size: 16,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Text Models',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildModelRadioGroup(textModels),
-              if (visionModels.isNotEmpty) const SizedBox(height: 20),
+              if (visionModels.isNotEmpty) const SizedBox(height: 16),
             ],
             if (visionModels.isNotEmpty && (_selectedImageBytes != null || textModels.isEmpty)) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: theme.colorScheme.secondary.withOpacity(0.2),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.image,
+                            size: 14,
+                            color: theme.colorScheme.secondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Vision Models',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.secondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.image,
-                        size: 16,
-                        color: theme.colorScheme.secondary,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Vision Models',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.secondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildModelRadioGroup(visionModels),
             ],
             // Note about model availability
@@ -1960,30 +1962,20 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDark 
-                      ? theme.colorScheme.surface.withOpacity(0.5)
-                      : theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                  color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withOpacity(0.2),
-                    width: 1,
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.5),
                   ),
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.info_outline,
-                        size: 14,
-                        color: theme.colorScheme.primary,
-                      ),
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Only showing models that are currently available. Some models may be temporarily unavailable due to high demand.',
@@ -1998,9 +1990,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               ),
             ),
           ],
-        ).animate().fadeIn(
-          duration: const Duration(milliseconds: 300),
-          delay: const Duration(milliseconds: 100),
         ),
       ),
     );
@@ -2012,9 +2001,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: models.asMap().entries.map((entry) {
-        final index = entry.key;
-        final model = entry.value;
+      children: models.map((model) {
         final isRecommended = model == 'gemini-1.0-pro' || model == 'gemini-1.0-pro-vision';
         final isSelected = model == _selectedModel;
         
@@ -2035,15 +2022,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 });
               },
               borderRadius: BorderRadius.circular(12),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+              child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isSelected 
                       ? theme.colorScheme.primary.withOpacity(0.1)
-                      : isDark
-                          ? theme.colorScheme.surface.withOpacity(0.5)
-                          : theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                      : theme.colorScheme.surfaceVariant.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected
@@ -2054,8 +2038,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 ),
                 child: Row(
                   children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                    Container(
                       width: 20,
                       height: 20,
                       decoration: BoxDecoration(
@@ -2068,8 +2051,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         ),
                       ),
                       child: Center(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
+                        child: Container(
                           width: 12,
                           height: 12,
                           decoration: BoxDecoration(
@@ -2143,15 +2125,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               ),
             ),
           ),
-        ).animate(
-          delay: Duration(milliseconds: 50 * index),
-        ).fadeIn(
-          duration: const Duration(milliseconds: 200),
-        ).slideX(
-          begin: 0.1,
-          end: 0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
         );
       }).toList(),
     );
@@ -2663,5 +2636,4 @@ class _DotWidget extends StatelessWidget {
       delay: delay,
       curve: Curves.easeInOut,
     );
-  }
-}
+  } }
