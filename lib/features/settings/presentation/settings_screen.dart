@@ -137,18 +137,18 @@ class SettingsScreen extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                       child: Column(
-                        children: [
-                          authState.maybeWhen(
-                            authenticated: (uid, displayName, email) => _buildSection(
+                children: [
+                  authState.maybeWhen(
+                    authenticated: (uid, displayName, email) => _buildSection(
                               context,
-                              title: 'Account',
+                      title: 'Account',
                               icon: Icons.person_outline,
-                              children: [
+                      children: [
                                 _buildTile(
                                   context,
                                   icon: Icons.logout_outlined,
                                   title: 'Log Out',
-                                  onTap: () => _showLogoutDialog(context),
+                          onTap: () => _showLogoutDialog(context),
                                   isDestructive: true,
                                   showDivider: true,
                                 ),
@@ -157,71 +157,71 @@ class SettingsScreen extends StatelessWidget {
                                   icon: Icons.delete_forever_outlined,
                                   title: 'Delete Account',
                                   subtitle: 'This action cannot be undone',
-                                  onTap: () => _showDeleteAccountDialog(context),
+                          onTap: () => _showDeleteAccountDialog(context),
                                   isDestructive: true,
-                                ),
-                              ],
-                            ),
-                            orElse: () => const SizedBox.shrink(),
-                          ),
+                        ),
+                      ],
+                    ),
+                    orElse: () => const SizedBox.shrink(),
+                  ),
                           
                           const SizedBox(height: 16),
-                          
-                          _buildSection(
+                  
+                  _buildSection(
                             context,
-                            title: 'Appearance',
+                    title: 'Appearance',
                             icon: Icons.palette_outlined,
-                            children: [
+                    children: [
                               _buildTile(
                                 context,
                                 icon: _getThemeModeIcon(state.themeMode),
                                 title: 'Theme',
                                 subtitle: _getThemeModeName(state.themeMode),
-                                onTap: () => _showThemeDialog(context, state.themeMode),
-                              ),
-                            ],
-                          ),
+                        onTap: () => _showThemeDialog(context, state.themeMode),
+                      ),
+                    ],
+                  ),
                           
                           const SizedBox(height: 16),
-                          
-                          _buildSection(
+                  
+                  _buildSection(
                             context,
-                            title: 'Notifications',
+                    title: 'Notifications',
                             icon: Icons.notifications_outlined,
-                            children: [
+                    children: [
                               _buildSwitchTile(
                                 context,
                                 icon: Icons.notifications_outlined,
                                 title: 'Enable Notifications',
                                 subtitle: 'Receive app notifications',
-                                value: state.isNotificationsEnabled,
-                                onChanged: (value) => context
-                                    .read<PreferencesCubit>()
-                                    .toggleNotifications(value),
+                        value: state.isNotificationsEnabled,
+                        onChanged: (value) => context
+                            .read<PreferencesCubit>()
+                            .toggleNotifications(value),
                                 showDivider: state.isNotificationsEnabled,
-                              ),
-                              if (state.isNotificationsEnabled) ...[
+                      ),
+                      if (state.isNotificationsEnabled) ...[
                                 _buildSwitchTile(
                                   context,
                                   icon: Icons.notifications_active_outlined,
                                   title: 'Push Notifications',
                                   subtitle: 'Receive push notifications',
-                                  value: state.isPushNotificationsEnabled,
-                                  onChanged: (value) => context
-                                      .read<PreferencesCubit>()
-                                      .togglePushNotifications(value),
-                                ),
-                              ],
-                            ],
-                          ),
+                          value: state.isPushNotificationsEnabled,
+                          onChanged: (value) => context
+                              .read<PreferencesCubit>()
+                              .togglePushNotifications(value),
+                        ),
+                      ],
+                    ],
+                  ),
                           
                           const SizedBox(height: 16),
-                          
-                          _buildSection(
+                  
+                  _buildSection(
                             context,
-                            title: 'About',
+                    title: 'About',
                             icon: Icons.info_outline,
-                            children: [
+                    children: [
                               _buildTile(
                                 context,
                                 icon: Icons.info_outline,
@@ -233,11 +233,11 @@ class SettingsScreen extends StatelessWidget {
                                 context,
                                 icon: Icons.update_outlined,
                                 title: 'Check for Updates',
-                                onTap: () {
-                                  // Implement update check
-                                },
-                              ),
-                            ],
+                        onTap: () {
+                          // Implement update check
+                        },
+                      ),
+                    ],
                           ),
                         ],
                       ),
@@ -490,11 +490,11 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
                   color: isDark ? Colors.white : theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+              fontWeight: FontWeight.bold,
+            ),
               ),
             ],
           ),

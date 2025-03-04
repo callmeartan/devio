@@ -346,8 +346,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       _scrollToBottom();
     });
 
-    // Show model selection initially only if no model is selected
-    _showModelSelection = _selectedModel == null;
+    // Don't show model selection initially
+    _showModelSelection = false;
   }
 
   @override
@@ -388,36 +388,40 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       if (mounted) {
         setState(() {
           _isLoadingModels = false;
-          _availableModels = models;
+          
+          // Filter out models that are known to be unavailable
+          // This is a fallback in case the API returns models that are actually unavailable
           final provider = context.read<LlmCubit>().currentProvider;
+          if (provider == LlmProvider.gemini) {
+            // For Gemini, we'll use a more conservative list of models that are likely to be available
+            // This helps prevent the 429 quota errors
+            _availableModels = _filterReliableGeminiModels(models);
+          } else {
+            _availableModels = models;
+          }
           
           // Filter models based on current context
-          final filteredModels = models.where((model) {
-            if (provider == LlmProvider.local) {
-              return true;
-            }
-            if (_selectedImageBytes != null) {
-              return model.contains('vision');
-            }
-            return !model.contains('vision');
-          }).toList();
+          final filteredModels = _getFilteredModels();
 
           // Ensure we have at least one model available
           if (filteredModels.isEmpty) {
-            _availableModels = provider == LlmProvider.gemini 
-                ? [_selectedImageBytes != null ? 'gemini-pro-vision' : 'gemini-pro']
-                : ['local-model'];
+            if (provider == LlmProvider.gemini) {
+              // Default to the most reliable model based on context
+              _availableModels = [_selectedImageBytes != null ? 'gemini-1.0-pro-vision' : 'gemini-1.0-pro'];
+            } else {
+              _availableModels = ['local-model'];
+            }
           }
 
-          // Update selected model based on filtered list
-          if (_selectedModel == null || !filteredModels.contains(_selectedModel)) {
+          // Always select a default model if none is selected
+          if (_selectedModel == null) {
             _selectedModel = provider == LlmProvider.gemini 
-                ? (_selectedImageBytes != null ? 'gemini-pro-vision' : 'gemini-pro')
+                ? (_selectedImageBytes != null ? 'gemini-1.0-pro-vision' : 'gemini-1.0-pro')
                 : filteredModels.firstOrNull;
           }
           // If switching to Gemini, ensure we have a Gemini model selected
           else if (provider == LlmProvider.gemini && !_selectedModel!.startsWith('gemini-')) {
-            _selectedModel = _selectedImageBytes != null ? 'gemini-pro-vision' : 'gemini-pro';
+            _selectedModel = _selectedImageBytes != null ? 'gemini-1.0-pro-vision' : 'gemini-1.0-pro';
           }
           
           developer.log('Selected model: $_selectedModel');
@@ -429,10 +433,41 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       if (mounted) {
         setState(() {
           _isLoadingModels = false;
+          // If we encounter an error, set a minimal set of reliable models
+          final provider = context.read<LlmCubit>().currentProvider;
+          if (provider == LlmProvider.gemini) {
+            _availableModels = [_selectedImageBytes != null ? 'gemini-1.0-pro-vision' : 'gemini-1.0-pro'];
+            _selectedModel = _availableModels.first;
+          } else {
+            _availableModels = ['local-model'];
+            _selectedModel = 'local-model';
+          }
         });
         _showErrorSnackBar('Failed to load models: $e');
       }
     }
+  }
+
+  // Helper method to filter Gemini models to only include the most reliable ones
+  List<String> _filterReliableGeminiModels(List<String> allModels) {
+    // These are the models that are most likely to be available and not hit quota limits
+    final reliableModels = [
+      'gemini-1.0-pro',
+      'gemini-1.0-pro-vision',
+    ];
+    
+    // Filter the available models to only include the reliable ones
+    final filteredModels = allModels.where((model) => 
+      reliableModels.contains(model)).toList();
+    
+    // If no reliable models are found, return a default set
+    if (filteredModels.isEmpty) {
+      return _selectedImageBytes != null 
+          ? ['gemini-1.0-pro-vision'] 
+          : ['gemini-1.0-pro'];
+    }
+    
+    return filteredModels;
   }
 
   void _showErrorSnackBar(String message) {
@@ -813,7 +848,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                               ? Colors.white.withOpacity(0.6) 
                                               : Colors.black.withOpacity(0.6),
                                         ),
-                                        textAlign: TextAlign.center,
                                       ),
                                       const SizedBox(height: 16),
                                       ElevatedButton.icon(
@@ -1069,7 +1103,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         );
                       },
                       child: _showModelSelection
-                          ? _buildModelSelectionUI(context)
+                          ? Container(
+                              constraints: const BoxConstraints(maxHeight: 300),
+                              child: SingleChildScrollView(
+                                child: _buildModelSelectionUI(context),
+                              ),
+                            )
                           : const SizedBox.shrink(),
                     ),
                     // Chat Messages with constrained width
@@ -1117,12 +1156,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       _isWaitingForAiResponse = false;
                                       _placeholderMessageId = null;
                                     });
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Error sending AI response: $error'),
-                                        backgroundColor: Colors.grey.shade800,
-                                      ),
-                                    );
+                                    _handleApiError(error);
                                   });
                                 },
                                 error: (message) {
@@ -1136,12 +1170,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     _placeholderMessageId = null;
                                   });
                                   
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Error: $message'),
-                                      backgroundColor: Colors.grey.shade800,
-                                    ),
-                                  );
+                                  _handleApiError(message);
                                 },
                                 orElse: () {},
                               );
@@ -1341,36 +1370,110 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       );
 
       // Generate response based on whether an image or document is selected
-      if (_selectedImageBytes != null) {
-        context.read<LlmCubit>().generateResponseWithImage(
-          prompt: prompt,
-          imageBytes: _selectedImageBytes!,
-          modelName: _selectedModel!,
-        );
-        _clearSelectedImage();
-      } else if (_selectedDocument != null) {
-        context.read<LlmCubit>().generateResponseWithDocument(
-          prompt: prompt,
-          documentPath: _selectedDocument!.path,
-          modelName: _selectedModel!,
-        );
-        _clearSelectedDocument();
-      } else {
-        context.read<LlmCubit>().generateResponse(
-          prompt: prompt,
-          modelName: _selectedModel!,
-        );
+      try {
+        if (_selectedImageBytes != null) {
+          context.read<LlmCubit>().generateResponseWithImage(
+            prompt: prompt,
+            imageBytes: _selectedImageBytes!,
+            modelName: _selectedModel!,
+          );
+          _clearSelectedImage();
+        } else if (_selectedDocument != null) {
+          context.read<LlmCubit>().generateResponseWithDocument(
+            prompt: prompt,
+            documentPath: _selectedDocument!.path,
+            modelName: _selectedModel!,
+          );
+          _clearSelectedDocument();
+        } else {
+          context.read<LlmCubit>().generateResponse(
+            prompt: prompt,
+            modelName: _selectedModel!,
+          );
+        }
+      } catch (e) {
+        _handleApiError(e);
       }
       
       _messageController.clear();
       _scrollToBottom();
     }).catchError((error) {
-      setState(() {
-        _isWaitingForAiResponse = false;
-        _placeholderMessageId = null;
-      });
-      _showErrorSnackBar('Failed to send message: $error');
+      _handleApiError(error);
     });
+  }
+
+  void _handleApiError(dynamic error) {
+    setState(() {
+      _isWaitingForAiResponse = false;
+      if (_placeholderMessageId != null) {
+        context.read<ChatCubit>().removePlaceholderMessage(_placeholderMessageId!);
+        _placeholderMessageId = null;
+      }
+    });
+
+    String errorMessage = 'Failed to generate response';
+    
+    // Check for quota errors
+    if (error.toString().contains('429') || 
+        error.toString().contains('RESOURCE_EXHAUSTED') ||
+        error.toString().contains('quota')) {
+      errorMessage = 'API quota exceeded. Please try again later or switch to a different model.';
+      
+      // Show a more detailed error dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('API Quota Exceeded'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You have reached the usage limit for the Gemini API.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Suggestions:',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              Text('• Try using gemini-1.0-pro model instead'),
+              Text('• Wait a few minutes before trying again'),
+              Text('• Switch to a different provider if available'),
+              const SizedBox(height: 16),
+              Text(
+                'Error details: ${error.toString()}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Dismiss'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                setState(() {
+                  _showModelSelection = true;
+                  // Auto-select the most reliable model
+                  _selectedModel = _selectedImageBytes != null 
+                      ? 'gemini-1.0-pro-vision' 
+                      : 'gemini-1.0-pro';
+                });
+              },
+              child: const Text('Use Reliable Model'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      _showErrorSnackBar('$errorMessage: $error');
+    }
   }
 
   void _sendInitialGreeting() {
@@ -1430,104 +1533,178 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   Widget _buildModelSelectionUI(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(
           bottom: BorderSide(
             color: theme.colorScheme.onSurface.withOpacity(0.1),
-            width: 1,
           ),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.smart_toy_outlined,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Select AI Model',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const Spacer(),
-              // Refresh button
-              IconButton(
-                icon: Icon(
-                  Icons.refresh,
-                  size: 20,
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-                onPressed: _loadAvailableModels,
-                tooltip: 'Refresh models',
-              ),
-              // Close button
-              IconButton(
-                icon: Icon(
-                  Icons.close,
-                  size: 20,
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-                onPressed: () {
-                  setState(() {
-                    _showModelSelection = false;
-                  });
-                },
-                tooltip: 'Close model selection',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Provider selector
-          Row(
-            children: [
-              _buildProviderSelector(context),
-              const Spacer(),
-              // Model selector dropdown
-              if (_isLoadingModels)
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.smart_toy_outlined,
+                    size: 20,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Select AI Model',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Choose the best model for your task',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Refresh button with animation
+                Material(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.refresh,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ).animate(
+                      onPlay: (controller) => _isLoadingModels ? controller.repeat() : null,
+                    ).rotate(
+                      duration: const Duration(seconds: 1),
+                    ),
+                    onPressed: _loadAvailableModels,
+                    tooltip: 'Refresh models',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Close button
+                Material(
+                  color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      size: 20,
+                      color: theme.colorScheme.onSurface.withOpacity(0.8),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showModelSelection = false;
+                      });
+                    },
+                    tooltip: 'Close model selection',
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
-          // Model list
+          // Provider selector with enhanced styling
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _buildProviderSelector(context),
+                const Spacer(),
+                if (_isLoadingModels)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Loading...',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Model list with enhanced styling
           if (_isLoadingModels)
             Center(
               child: Column(
                 children: [
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   Text(
                     'Loading available models...',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
+                  const SizedBox(height: 32),
                 ],
               ),
             )
@@ -1535,25 +1712,45 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             Center(
               child: Column(
                 children: [
-                  const SizedBox(height: 16),
-                  Icon(
-                    Icons.error_outline,
-                    size: 24,
-                    color: theme.colorScheme.error,
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.error.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.error_outline,
+                      size: 24,
+                      color: theme.colorScheme.error,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   Text(
-                    'No models available at the moment',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    'No models available',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: _loadAvailableModels,
-                    icon: Icon(Icons.refresh),
-                    label: Text('Retry'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      'Try refreshing or switching to a different provider',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
+                  const SizedBox(height: 16),
+                  FilledButton.tonalIcon(
+                    onPressed: _loadAvailableModels,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Refresh'),
+                  ),
+                  const SizedBox(height: 32),
                 ],
               ),
             )
@@ -1561,6 +1758,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             _buildModelSelector(context),
         ],
       ),
+    ).animate().fadeIn(
+      duration: const Duration(milliseconds: 200),
+    ).slideY(
+      begin: -0.1,
+      end: 0,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
     );
   }
 
@@ -1665,112 +1869,289 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   Widget _buildModelSelector(BuildContext context) {
     final filteredModels = _getFilteredModels();
+    final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     // Group models by type
     final textModels = filteredModels.where((m) => !m.contains('vision')).toList();
     final visionModels = filteredModels.where((m) => m.contains('vision')).toList();
     
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: double.infinity),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (textModels.isNotEmpty && _selectedImageBytes == null) ...[
-            _ModelGroupHeader(title: 'Text Models'),
-            const SizedBox(height: 4),
-            _buildModelRadioGroup(textModels),
-            const SizedBox(height: 12),
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 400),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (textModels.isNotEmpty && _selectedImageBytes == null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.text_fields,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Text Models',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildModelRadioGroup(textModels),
+              if (visionModels.isNotEmpty) const SizedBox(height: 20),
+            ],
+            if (visionModels.isNotEmpty && (_selectedImageBytes != null || textModels.isEmpty)) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: theme.colorScheme.secondary.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.image,
+                        size: 16,
+                        color: theme.colorScheme.secondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Vision Models',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.secondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildModelRadioGroup(visionModels),
+            ],
+            // Note about model availability
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark 
+                      ? theme.colorScheme.surface.withOpacity(0.5)
+                      : theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Only showing models that are currently available. Some models may be temporarily unavailable due to high demand.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
-          if (visionModels.isNotEmpty && (_selectedImageBytes != null || textModels.isEmpty)) ...[
-            _ModelGroupHeader(title: 'Vision Models'),
-            const SizedBox(height: 4),
-            _buildModelRadioGroup(visionModels),
-          ],
-        ],
+        ).animate().fadeIn(
+          duration: const Duration(milliseconds: 300),
+          delay: const Duration(milliseconds: 100),
+        ),
       ),
     );
   }
 
   Widget _buildModelRadioGroup(List<String> models) {
     final theme = Theme.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: models.map((model) {
-        return RadioListTile<String>(
-          title: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: double.infinity),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    _getModelDisplayName(model),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: model == _selectedModel ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: theme.brightness == Brightness.dark 
-                        ? Colors.green.withOpacity(0.2) 
-                        : Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: theme.brightness == Brightness.dark 
-                          ? Colors.green.withOpacity(0.5) 
-                          : Colors.green.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Text(
-                    'Available',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: theme.brightness == Brightness.dark 
-                          ? Colors.green.shade300 
-                          : Colors.green.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          subtitle: Text(
-            _getModelDescription(model),
-            style: TextStyle(
-              fontSize: 12,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-          ),
-          value: model,
-          groupValue: _selectedModel,
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _selectedModel = value;
-                // Auto-hide the model selection UI after selecting a model
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  setState(() {
-                    _showModelSelection = false;
+      children: models.asMap().entries.map((entry) {
+        final index = entry.key;
+        final model = entry.value;
+        final isRecommended = model == 'gemini-1.0-pro' || model == 'gemini-1.0-pro-vision';
+        final isSelected = model == _selectedModel;
+        
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedModel = model;
+                  // Auto-hide the model selection UI after selecting a model
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    setState(() {
+                      _showModelSelection = false;
+                    });
                   });
                 });
-              });
-            }
-          },
-          activeColor: theme.colorScheme.primary,
-          dense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          visualDensity: VisualDensity.compact,
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? theme.colorScheme.primary.withOpacity(0.1)
+                      : isDark
+                          ? theme.colorScheme.surface.withOpacity(0.5)
+                          : theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? theme.colorScheme.primary.withOpacity(0.5)
+                        : theme.colorScheme.outlineVariant.withOpacity(0.3),
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outline.withOpacity(0.5),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                _getModelDisplayName(model),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: isSelected
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurface,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              if (isRecommended)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primaryContainer.withOpacity(0.4),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.verified,
+                                        size: 12,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Recommended',
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          color: theme.colorScheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _getModelDescription(model),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ).animate(
+          delay: Duration(milliseconds: 50 * index),
+        ).fadeIn(
+          duration: const Duration(milliseconds: 200),
+        ).slideX(
+          begin: 0.1,
+          end: 0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
         );
       }).toList(),
     );
@@ -1813,6 +2194,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       case 'gemini-ultra-vision':
         return 'Gemini Ultra Vision';
       default:
+        // Handle any other model names by formatting them nicely
+        if (model.startsWith('gemini-')) {
+          // Remove the 'gemini-' prefix and replace hyphens with spaces
+          final formattedName = model.substring(7).replaceAll('-', ' ');
+          // Capitalize each word
+          final words = formattedName.split(' ');
+          final capitalizedWords = words.map((word) => 
+            word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1)}' : '');
+          return 'Gemini ${capitalizedWords.join(' ')}';
+        }
         return model;
     }
   }
@@ -1823,6 +2214,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       return 'Highest capability model with advanced reasoning';
     } else if (model.contains('1.5')) {
       return 'Latest generation with improved capabilities';
+    } else if (model.contains('1.0')) {
+      return 'Stable version with good performance and reliability';
     } else if (model.contains('vision')) {
       return 'Specialized for image analysis and understanding';
     } else {
@@ -2271,4 +2664,4 @@ class _DotWidget extends StatelessWidget {
       curve: Curves.easeInOut,
     );
   }
-} 
+}

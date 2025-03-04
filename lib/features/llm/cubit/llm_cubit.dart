@@ -70,7 +70,7 @@ class LlmCubit extends Cubit<LlmState> {
       } else {
         final response = await _geminiService.generateResponse(
           prompt: prompt,
-          modelName: modelName ?? 'gemini-pro',
+          modelName: modelName ?? 'gemini-1.5-pro',
           maxTokens: maxTokens ?? 1000,
           temperature: temperature ?? 0.7,
         );
@@ -126,7 +126,7 @@ class LlmCubit extends Cubit<LlmState> {
         prompt: prompt,
         imageBytes: imageBytes,
         mimeType: mimeType ?? 'image/jpeg',
-        modelName: modelName ?? 'gemini-pro-vision',
+        modelName: modelName ?? 'gemini-1.5-pro-vision',
         maxTokens: maxTokens ?? 1000,
         temperature: temperature ?? 0.7,
       );

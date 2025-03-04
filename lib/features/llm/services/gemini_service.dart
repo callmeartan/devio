@@ -9,7 +9,7 @@ import 'dart:developer' as dev;
 import 'document_service.dart';
 
 class GeminiService {
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1';
   final http.Client _client;
   final DocumentService _documentService;
   static const _timeout = Duration(seconds: 120);
@@ -22,18 +22,15 @@ class GeminiService {
   
   // List of fallback models in order of preference
   static const List<String> _fallbackModels = [
-    'gemini-ultra',      // Try highest capability first
-    'gemini-1.5-pro',    // Then latest pro version
-    'gemini-pro',        // Then stable pro version
-    'gemini-1.0-pro',    // Then older version as last resort
+    'gemini-1.5-pro-latest',  // Latest pro version
+    'gemini-1.5-pro',         // Stable 1.5 version
+    'gemini-pro',             // Stable pro version
   ];
 
   static const List<String> _fallbackVisionModels = [
-    'gemini-ultra-vision',           // Try highest capability first
-    'gemini-1.5-pro-vision-latest',  // Then latest vision version
-    'gemini-1.5-pro-vision',         // Then stable latest version
-    'gemini-pro-vision',             // Then stable pro version
-    'gemini-1.0-pro-vision',         // Then older version as last resort
+    'gemini-1.5-pro-vision-latest',  // Latest vision version
+    'gemini-1.5-pro-vision',         // Stable 1.5 vision version
+    'gemini-pro-vision',             // Stable pro vision version
   ];
 
   GeminiService({
@@ -73,12 +70,37 @@ class GeminiService {
         }),
       ).timeout(_healthCheckTimeout);
 
+      // Check for quota errors (429)
+      if (response.statusCode == 429 || 
+          response.body.contains('RESOURCE_EXHAUSTED') ||
+          response.body.contains('quota')) {
+        dev.log('Quota exceeded for model: $model');
+        
+        // For the most reliable models, we'll still consider them available
+        // even if we hit quota limits, as they might work later
+        if (model == 'gemini-1.0-pro' || model == 'gemini-1.0-pro-vision') {
+          _workingModelsCache[model] = DateTime.now();
+          return true;
+        }
+        
+        return false;
+      }
+
       final isAvailable = response.statusCode != 503;
       if (isAvailable) {
         _workingModelsCache[model] = DateTime.now();
       }
       return isAvailable;
     } catch (e) {
+      // For quota errors in exceptions, still consider reliable models available
+      if (e.toString().contains('429') || 
+          e.toString().contains('RESOURCE_EXHAUSTED') ||
+          e.toString().contains('quota')) {
+        if (model == 'gemini-1.0-pro' || model == 'gemini-1.0-pro-vision') {
+          _workingModelsCache[model] = DateTime.now();
+          return true;
+        }
+      }
       return false;
     }
   }
@@ -183,11 +205,56 @@ class GeminiService {
             continue;
           } else {
             dev.log('Error from Gemini API: ${response.body}');
-            lastError = LlmResponse(
-              text: '',
-              isError: true,
-              errorMessage: 'Failed to generate response: ${response.statusCode} - ${response.body}',
-            );
+            final errorBody = jsonDecode(response.body);
+            final errorMessage = errorBody['error']?['message'] ?? 'Unknown error';
+            
+            // Check if it's a model not found error
+            if (response.statusCode == 404 && errorMessage.contains('not found')) {
+              dev.log('Model not found error: $errorMessage');
+              
+              // Try to fetch available models
+              try {
+                final modelsResponse = await _client.get(
+                  Uri.parse('$_baseUrl/models?key=$_apiKey'),
+                  headers: {'Content-Type': 'application/json'},
+                ).timeout(_healthCheckTimeout);
+                
+                if (modelsResponse.statusCode == 200) {
+                  final modelsJson = jsonDecode(modelsResponse.body);
+                  final availableModels = (modelsJson['models'] as List?)
+                      ?.map((m) => m['name'] as String?)
+                      ?.where((m) => m != null)
+                      ?.map((m) => m!.split('/').last)
+                      ?.toList() ?? [];
+                  
+                  dev.log('Available models: $availableModels');
+                  
+                  lastError = LlmResponse(
+                    text: '',
+                    isError: true,
+                    errorMessage: 'Model "$currentModel" not found. Available models: ${availableModels.join(", ")}',
+                  );
+                } else {
+                  lastError = LlmResponse(
+                    text: '',
+                    isError: true,
+                    errorMessage: 'Model "$currentModel" not found. Failed to retrieve available models.',
+                  );
+                }
+              } catch (e) {
+                lastError = LlmResponse(
+                  text: '',
+                  isError: true,
+                  errorMessage: 'Model "$currentModel" not found. Error retrieving available models: $e',
+                );
+              }
+            } else {
+              lastError = LlmResponse(
+                text: '',
+                isError: true,
+                errorMessage: 'Failed to generate response: ${response.statusCode} - ${response.body}',
+              );
+            }
             break;
           }
         } catch (e) {
@@ -427,21 +494,66 @@ class GeminiService {
   }
 
   Future<List<String>> getAvailableModels() async {
+    // First try to get models directly from the API
+    try {
+      dev.log('Fetching available models from API...');
+      final response = await _client.get(
+        Uri.parse('$_baseUrl/models?key=$_apiKey'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(_healthCheckTimeout);
+      
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final apiModels = (jsonResponse['models'] as List?)
+            ?.map((m) => m['name'] as String?)
+            ?.where((m) => m != null)
+            ?.map((m) => m!.split('/').last)
+            ?.where((m) => m.startsWith('gemini-'))
+            ?.toList() ?? [];
+        
+        if (apiModels.isNotEmpty) {
+          dev.log('Models from API: $apiModels');
+          
+          // Filter to only include the most reliable models to avoid quota issues
+          final reliableModels = _filterReliableModels(apiModels);
+          if (reliableModels.isNotEmpty) {
+            dev.log('Reliable models: $reliableModels');
+            return reliableModels;
+          }
+          
+          return apiModels;
+        }
+      } else if (response.statusCode == 429 || 
+                 response.body.contains('RESOURCE_EXHAUSTED') ||
+                 response.body.contains('quota')) {
+        // Handle quota exceeded error
+        dev.log('API quota exceeded when fetching models');
+        // Return only the most reliable models when quota is exceeded
+        return _getMostReliableModels();
+      }
+    } catch (e) {
+      dev.log('Error fetching models from API: $e');
+      // If error contains quota information, return reliable models
+      if (e.toString().contains('429') || 
+          e.toString().contains('RESOURCE_EXHAUSTED') ||
+          e.toString().contains('quota')) {
+        return _getMostReliableModels();
+      }
+    }
+    
+    // Fallback to hardcoded models if API call fails
     final allModels = [
       // Pro models for text generation
       'gemini-pro',
-      'gemini-1.5-pro',
       'gemini-1.0-pro',
+      'gemini-1.5-pro',
+      'gemini-1.5-pro-latest',
       
       // Vision models for image analysis
       'gemini-pro-vision',
+      'gemini-1.0-pro-vision',
       'gemini-1.5-pro-vision',
       'gemini-1.5-pro-vision-latest',
-      'gemini-1.0-pro-vision',
-      
-      // Specialized models
-      'gemini-ultra',  // Higher capability model
-      'gemini-ultra-vision',  // Higher capability vision model
     ];
     
     // Check cache first for all models
@@ -469,12 +581,33 @@ class GeminiService {
     // If no models are available, return at least the basic ones
     // (they might be temporarily unavailable but we still want to show them)
     if (availableModels.isEmpty) {
-      dev.log('No models available, returning default models');
-      return ['gemini-pro', 'gemini-pro-vision'];
+      dev.log('No models available, returning most reliable models');
+      return _getMostReliableModels();
     }
     
     dev.log('Available models: $availableModels');
     return availableModels;
+  }
+  
+  // Helper method to filter models to only include the most reliable ones
+  List<String> _filterReliableModels(List<String> allModels) {
+    // These are the models that are most likely to be available and not hit quota limits
+    final reliableModelPrefixes = [
+      'gemini-1.0-pro',
+      'gemini-1.0-pro-vision',
+    ];
+    
+    // Filter the available models to only include the reliable ones
+    return allModels.where((model) => 
+      reliableModelPrefixes.any((prefix) => model.startsWith(prefix))).toList();
+  }
+  
+  // Return a minimal set of reliable models when quota is exceeded
+  List<String> _getMostReliableModels() {
+    return [
+      'gemini-1.0-pro',
+      'gemini-1.0-pro-vision',
+    ];
   }
 
   void dispose() {
