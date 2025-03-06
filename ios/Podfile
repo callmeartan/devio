@@ -1,8 +1,14 @@
 # Uncomment this line to define a global platform for your project
 platform :ios, '15.0'
 
+# Use CDN for better reliability
+source 'https://cdn.cocoapods.org/'
+
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+# Increase network timeouts to help with downloads
+ENV['COCOAPODS_NETWORK_TIMEOUT'] = '120'
 
 project 'Runner', {
   'Debug' => :debug,
@@ -27,10 +33,22 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 
 flutter_ios_podfile_setup
 
+# Add specific version constraints for Firebase pods
+def firebase_pods
+  pod 'Firebase/Core', '11.7.0'
+  pod 'Firebase/Auth', '11.7.0'
+  pod 'Firebase/Firestore', '11.7.0'
+  pod 'Firebase/Storage', '11.7.0'
+  pod 'Firebase/Messaging', '11.7.0'
+  pod 'Firebase/Crashlytics', '11.7.0'
+  pod 'Firebase/Analytics', '11.7.0'
+end
+
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
+  firebase_pods
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
     inherit! :search_paths
