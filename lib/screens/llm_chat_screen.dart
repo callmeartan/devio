@@ -14,7 +14,6 @@ import 'dart:developer' as developer;
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'package:path/path.dart' as path;
-import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../widgets/chat_message_widget.dart';
 import '../widgets/loading_animation.dart';
@@ -319,22 +318,34 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   Future<void> _pickDocument() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-        allowMultiple: false,
+      final XFile? pickedFile = await _picker.pickMedia(
+        imageQuality: null,
+        requestFullMetadata: true,
       );
 
-      if (result != null && result.files.isNotEmpty) {
-        final file = File(result.files.first.path!);
+      if (pickedFile != null) {
+        final file = File(pickedFile.path);
+        final extension = path.extension(file.path).toLowerCase();
+
+        if (extension != '.pdf') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please select a PDF file')),
+            );
+          }
+          return;
+        }
+
         setState(() {
           _selectedDocument = file;
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking document: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking document: $e')),
+        );
+      }
     }
   }
 

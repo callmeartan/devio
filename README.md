@@ -13,7 +13,7 @@ DevIO is a Flutter application that provides AI-powered assistance for app devel
   - And more...
 
 ### 📄 Document Analysis
-- PDF document analysis and text extraction
+- PDF document analysis and text extraction using image_picker
 - Ask questions about uploaded documents
 - Smart text chunking for large documents
 
@@ -109,12 +109,11 @@ flutter run
 ### AI & Document Handling
 - google_generative_ai: ^0.0.1-dev
 - syncfusion_flutter_pdf: ^24.1.46
-- file_picker: ^6.1.1
+- image_picker: ^1.0.7
 
 ### UI & Utilities
 - cached_network_image: ^3.3.1
 - flutter_dotenv: ^5.1.0
-- image_picker: ^1.0.7
 - font_awesome_flutter: ^10.7.0
 - google_fonts: ^4.0.0
 - animate_do: ^3.3.4

@@ -96,9 +96,7 @@ class ChatInputField extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(
-                        selectedDocument!.path.toLowerCase().endsWith('.pdf')
-                            ? Icons.picture_as_pdf
-                            : Icons.description,
+                        Icons.picture_as_pdf,
                         color: theme.colorScheme.onSurface,
                       ),
                       const SizedBox(width: 8),
@@ -122,36 +120,34 @@ class ChatInputField extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: messageController,
-                      decoration: InputDecoration(
-                        hintText: selectedImageBytes != null
-                            ? 'Ask about this image...'
-                            : selectedDocument != null
-                                ? 'Ask about this document...'
-                                : 'Ask me anything...',
-                        hintStyle: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest
-                            .withOpacity(0.5),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface,
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextField(
+                              controller: messageController,
+                              decoration: InputDecoration(
+                                hintText: 'Type your message...',
+                                border: InputBorder.none,
+                                hintStyle: TextStyle(
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.5),
+                                ),
+                              ),
+                              minLines: 1,
+                              maxLines: 5,
+                              textCapitalization: TextCapitalization.sentences,
+                              style: theme.textTheme.bodyLarge,
+                              enabled: !isWaitingForAiResponse,
+                            ),
+                          ),
+                        ],
                       ),
-                      maxLines: null,
-                      textInputAction: TextInputAction.newline,
-                      onSubmitted: (_) => onSendMessage(),
-                      enabled: !isWaitingForAiResponse,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -173,14 +169,14 @@ class ChatInputField extends StatelessWidget {
                         ),
                         IconButton(
                           icon: Icon(
-                            Icons.attach_file,
+                            Icons.picture_as_pdf,
                             color: selectedDocument != null
                                 ? theme.colorScheme.primary
                                 : theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                           onPressed:
                               isWaitingForAiResponse ? null : onPickDocument,
-                          tooltip: 'Add document',
+                          tooltip: 'Add PDF document',
                         ),
                       ],
                     ),
@@ -189,28 +185,13 @@ class ChatInputField extends StatelessWidget {
                   Material(
                     color: theme.colorScheme.primary,
                     borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: (selectedModel == null || isWaitingForAiResponse)
-                          ? null
-                          : onSendMessage,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        child: isWaitingForAiResponse
-                            ? SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      theme.colorScheme.onPrimary),
-                                ),
-                              )
-                            : Icon(
-                                Icons.send_rounded,
-                                color: theme.colorScheme.onPrimary,
-                              ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.send,
+                        color: theme.colorScheme.onPrimary,
                       ),
+                      onPressed: isWaitingForAiResponse ? null : onSendMessage,
+                      tooltip: 'Send message',
                     ),
                   ),
                 ],
