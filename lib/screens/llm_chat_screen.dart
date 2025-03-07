@@ -985,220 +985,212 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     ),
                   ),
                 ),
-                body: Column(
+                body: Stack(
                   children: [
-                    // Use AnimatedSwitcher for smooth appearance/disappearance
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      transitionBuilder:
-                          (Widget child, Animation<double> animation) {
-                        return SizeTransition(
-                          sizeFactor: animation,
-                          child: FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: _showModelSelection
-                          ? Container(
-                              constraints: const BoxConstraints(maxHeight: 300),
-                              child: SingleChildScrollView(
-                                child: ModelSelectionUI(
-                                  availableModels: _availableModels,
-                                  selectedModel: _selectedModel,
-                                  isLoadingModels: _isLoadingModels,
-                                  onRefresh: _loadAvailableModels,
-                                  onClose: () {
-                                    setState(() {
-                                      _showModelSelection = false;
-                                    });
-                                  },
-                                  onModelSelected: (model) {
-                                    setState(() {
-                                      _selectedModel = model;
-                                      // Auto-hide the model selection UI after selecting a model
-                                      Future.delayed(
-                                          const Duration(milliseconds: 300),
-                                          () {
-                                        setState(() {
-                                          _showModelSelection = false;
-                                        });
-                                      });
-                                    });
-                                  },
-                                  selectedImageBytes: _selectedImageBytes,
-                                ),
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                    // Chat Messages with constrained width
-                    Expanded(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 768),
-                          child: BlocConsumer<LlmCubit, LlmState>(
-                            listener: (context, llmState) {
-                              llmState.maybeWhen(
-                                success: (response) {
-                                  final authState =
-                                      context.read<AuthCubit>().state;
-                                  final userId = authState.maybeWhen(
-                                    authenticated: (uid, _, __) => uid,
-                                    orElse: () => throw Exception(
-                                        'User must be authenticated to send messages'),
-                                  );
+                    Column(
+                      children: [
+                        // Chat Messages with constrained width
+                        Expanded(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 768),
+                              child: BlocConsumer<LlmCubit, LlmState>(
+                                listener: (context, llmState) {
+                                  llmState.maybeWhen(
+                                    success: (response) {
+                                      final authState =
+                                          context.read<AuthCubit>().state;
+                                      final userId = authState.maybeWhen(
+                                        authenticated: (uid, _, __) => uid,
+                                        orElse: () => throw Exception(
+                                            'User must be authenticated to send messages'),
+                                      );
 
-                                  // Remove the placeholder message if it exists
-                                  if (_placeholderMessageId != null) {
-                                    context
-                                        .read<ChatCubit>()
-                                        .removePlaceholderMessage(
-                                            _placeholderMessageId!);
-                                  }
-
-                                  context
-                                      .read<ChatCubit>()
-                                      .sendMessage(
-                                        senderId: userId,
-                                        content: response.text,
-                                        isAI: true,
-                                        senderName: _kAiUserName,
-                                        totalDuration: response.totalDuration,
-                                        loadDuration: response.loadDuration,
-                                        promptEvalCount:
-                                            response.promptEvalCount,
-                                        promptEvalDuration:
-                                            response.promptEvalDuration,
-                                        promptEvalRate: response.promptEvalRate,
-                                        evalCount: response.evalCount,
-                                        evalDuration: response.evalDuration,
-                                        evalRate: response.evalRate,
-                                      )
-                                      .then((_) {
-                                    _scrollToBottom();
-                                    // Reset waiting flag
-                                    setState(() {
-                                      _isWaitingForAiResponse = false;
-                                      _placeholderMessageId = null;
-                                    });
-                                  }).catchError((error) {
-                                    setState(() {
-                                      _isWaitingForAiResponse = false;
-                                      _placeholderMessageId = null;
-                                    });
-                                    _handleApiError(error);
-                                  });
-                                },
-                                error: (message) {
-                                  // Remove the placeholder message if it exists
-                                  if (_placeholderMessageId != null) {
-                                    context
-                                        .read<ChatCubit>()
-                                        .removePlaceholderMessage(
-                                            _placeholderMessageId!);
-                                  }
-
-                                  setState(() {
-                                    _isWaitingForAiResponse = false;
-                                    _placeholderMessageId = null;
-                                  });
-
-                                  _handleApiError(message);
-                                },
-                                orElse: () {},
-                              );
-                            },
-                            builder: (context, llmState) {
-                              return BlocBuilder<ChatCubit, ChatState>(
-                                builder: (context, chatState) {
-                                  if (chatState.isLoading &&
-                                      chatState.messages.isEmpty) {
-                                    return const Center(
-                                        child: CircularProgressIndicator());
-                                  }
-
-                                  if (chatState.error != null) {
-                                    return Center(
-                                      child: SelectableText.rich(
-                                        TextSpan(
-                                          children: [
-                                            TextSpan(
-                                              text: 'Error: ',
-                                              style: TextStyle(
-                                                color: Colors.grey.shade800,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            TextSpan(
-                                              text: chatState.error.toString(),
-                                              style: TextStyle(
-                                                color: Colors.grey.shade800,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }
-
-                                  if (chatState.messages.isEmpty) {
-                                    return LoadingAnimation(
-                                      onTap: () => _sendInitialGreeting(),
-                                      showRefreshIndicator: true,
-                                    );
-                                  }
-
-                                  return ListView.builder(
-                                    controller: _chatScrollController,
-                                    padding: const EdgeInsets.all(16),
-                                    itemCount: chatState.messages.length,
-                                    itemBuilder: (context, index) {
-                                      final message = chatState.messages[index];
-                                      final messageId = message.id;
-
-                                      // Check if this is a placeholder message
-                                      if (messageId == _placeholderMessageId) {
-                                        return const TypingIndicator();
+                                      // Remove the placeholder message if it exists
+                                      if (_placeholderMessageId != null) {
+                                        context
+                                            .read<ChatCubit>()
+                                            .removePlaceholderMessage(
+                                                _placeholderMessageId!);
                                       }
 
-                                      return ChatMessageWidget(
-                                        message: message,
-                                        showMetrics: _showPerformanceMetrics,
-                                        onMetricsToggle: () {
-                                          setState(() {
-                                            _showPerformanceMetrics =
-                                                !_showPerformanceMetrics;
-                                          });
+                                      context
+                                          .read<ChatCubit>()
+                                          .sendMessage(
+                                            senderId: userId,
+                                            content: response.text,
+                                            isAI: true,
+                                            senderName: _kAiUserName,
+                                            totalDuration:
+                                                response.totalDuration,
+                                            loadDuration: response.loadDuration,
+                                            promptEvalCount:
+                                                response.promptEvalCount,
+                                            promptEvalDuration:
+                                                response.promptEvalDuration,
+                                            promptEvalRate:
+                                                response.promptEvalRate,
+                                            evalCount: response.evalCount,
+                                            evalDuration: response.evalDuration,
+                                            evalRate: response.evalRate,
+                                          )
+                                          .then((_) {
+                                        _scrollToBottom();
+                                        // Reset waiting flag
+                                        setState(() {
+                                          _isWaitingForAiResponse = false;
+                                          _placeholderMessageId = null;
+                                        });
+                                      }).catchError((error) {
+                                        setState(() {
+                                          _isWaitingForAiResponse = false;
+                                          _placeholderMessageId = null;
+                                        });
+                                        _handleApiError(error);
+                                      });
+                                    },
+                                    error: (message) {
+                                      // Remove the placeholder message if it exists
+                                      if (_placeholderMessageId != null) {
+                                        context
+                                            .read<ChatCubit>()
+                                            .removePlaceholderMessage(
+                                                _placeholderMessageId!);
+                                      }
+
+                                      setState(() {
+                                        _isWaitingForAiResponse = false;
+                                        _placeholderMessageId = null;
+                                      });
+
+                                      _handleApiError(message);
+                                    },
+                                    orElse: () {},
+                                  );
+                                },
+                                builder: (context, llmState) {
+                                  return BlocBuilder<ChatCubit, ChatState>(
+                                    builder: (context, chatState) {
+                                      if (chatState.isLoading &&
+                                          chatState.messages.isEmpty) {
+                                        return const Center(
+                                            child: CircularProgressIndicator());
+                                      }
+
+                                      if (chatState.error != null) {
+                                        return Center(
+                                          child: SelectableText.rich(
+                                            TextSpan(
+                                              children: [
+                                                TextSpan(
+                                                  text: 'Error: ',
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade800,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                TextSpan(
+                                                  text: chatState.error
+                                                      .toString(),
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade800,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      if (chatState.messages.isEmpty) {
+                                        return LoadingAnimation(
+                                          onTap: () => _sendInitialGreeting(),
+                                          showRefreshIndicator: true,
+                                        );
+                                      }
+
+                                      return ListView.builder(
+                                        controller: _chatScrollController,
+                                        padding: const EdgeInsets.all(16),
+                                        itemCount: chatState.messages.length,
+                                        itemBuilder: (context, index) {
+                                          final message =
+                                              chatState.messages[index];
+                                          final messageId = message.id;
+
+                                          // Check if this is a placeholder message
+                                          if (messageId ==
+                                              _placeholderMessageId) {
+                                            return const TypingIndicator();
+                                          }
+
+                                          return ChatMessageWidget(
+                                            message: message,
+                                            showMetrics:
+                                                _showPerformanceMetrics,
+                                            onMetricsToggle: () {
+                                              setState(() {
+                                                _showPerformanceMetrics =
+                                                    !_showPerformanceMetrics;
+                                              });
+                                            },
+                                          );
                                         },
                                       );
                                     },
                                   );
                                 },
-                              );
-                            },
+                              ),
+                            ),
                           ),
                         ),
+                        Divider(
+                          height: 1,
+                          color: theme.colorScheme.onSurface.withOpacity(0.1),
+                        ),
+                        // Bottom input field
+                        ChatInputField(
+                          messageController: _messageController,
+                          selectedImageBytes: _selectedImageBytes,
+                          selectedDocument: _selectedDocument,
+                          isWaitingForAiResponse: _isWaitingForAiResponse,
+                          selectedModel: _selectedModel,
+                          onSendMessage: _sendMessage,
+                          onPickImage: _pickImage,
+                          onPickDocument: _pickDocument,
+                          onClearSelectedImage: _clearSelectedImage,
+                          onClearSelectedDocument: _clearSelectedDocument,
+                        ),
+                      ],
+                    ),
+                    // Model selection UI as an overlay
+                    if (_showModelSelection)
+                      Positioned.fill(
+                        child: ModelSelectionUI(
+                          availableModels: _availableModels,
+                          selectedModel: _selectedModel,
+                          isLoadingModels: _isLoadingModels,
+                          onRefresh: _loadAvailableModels,
+                          onClose: () {
+                            setState(() {
+                              _showModelSelection = false;
+                            });
+                          },
+                          onModelSelected: (model) {
+                            setState(() {
+                              _selectedModel = model;
+                              // Auto-hide the model selection UI after selecting a model
+                              Future.delayed(const Duration(milliseconds: 300),
+                                  () {
+                                setState(() {
+                                  _showModelSelection = false;
+                                });
+                              });
+                            });
+                          },
+                          selectedImageBytes: _selectedImageBytes,
+                        ),
                       ),
-                    ),
-                    Divider(
-                      height: 1,
-                      color: theme.colorScheme.onSurface.withOpacity(0.1),
-                    ),
-                    // Bottom input field
-                    ChatInputField(
-                      messageController: _messageController,
-                      selectedImageBytes: _selectedImageBytes,
-                      selectedDocument: _selectedDocument,
-                      isWaitingForAiResponse: _isWaitingForAiResponse,
-                      selectedModel: _selectedModel,
-                      onSendMessage: _sendMessage,
-                      onPickImage: _pickImage,
-                      onPickDocument: _pickDocument,
-                      onClearSelectedImage: _clearSelectedImage,
-                      onClearSelectedDocument: _clearSelectedDocument,
-                    ),
                   ],
                 ),
               );
