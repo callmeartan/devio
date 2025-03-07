@@ -13,5 +13,5 @@ class LlmState with _$LlmState {
     required String fromModel,
     required String toModel,
     required int attempt,
-  }) = ModelSwitching;
-} 
+  }) = _ModelSwitching;
+}
