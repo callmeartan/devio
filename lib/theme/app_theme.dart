@@ -9,7 +9,7 @@ class AppTheme {
   static const _darkSurfaceColor = Color(0xFF1A1A1A); // Dark gray
   static const _textColor = Color(0xFF000000); // Black text
   static const _darkTextColor = Color(0xFFFFFFFF); // White text
-  
+
   static final lightTheme = ThemeData(
     useMaterial3: true,
     fontFamily: 'JosefinSans',
@@ -17,12 +17,10 @@ class AppTheme {
       primary: _primaryColor,
       secondary: _primaryColor,
       surface: _surfaceColor,
-      background: _backgroundColor,
       error: const Color(0xFF000000),
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: _textColor,
-      onBackground: _textColor,
       primaryContainer: _surfaceColor,
       onPrimaryContainer: _textColor,
     ),
@@ -127,10 +125,8 @@ class AppTheme {
     colorScheme: ColorScheme.dark(
       primary: Colors.white,
       secondary: Colors.white,
-      background: _darkBackgroundColor,
       surface: _darkSurfaceColor,
       error: const Color(0xFFFFFFFF),
-      onBackground: _darkTextColor,
       onSurface: _darkTextColor,
       onPrimary: Colors.black,
       onSecondary: Colors.black,

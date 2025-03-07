@@ -18,6 +18,11 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../widgets/chat_message_widget.dart';
 import '../widgets/loading_animation.dart';
+import '../widgets/model_selection_ui.dart';
+import '../widgets/chat_input_field.dart';
+import '../widgets/performance_metrics.dart';
+import '../widgets/compact_model_indicator.dart';
+import '../widgets/typing_indicator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -55,231 +60,6 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
-class PerformanceMetrics extends StatelessWidget {
-  final LlmResponse response;
-  final bool isExpanded;
-  final VoidCallback onToggle;
-
-  const PerformanceMetrics({
-    super.key,
-    required this.response,
-    required this.isExpanded,
-    required this.onToggle,
-  });
-
-  Widget _buildMetricRow(
-    BuildContext context,
-    String label,
-    String value,
-    String? unit,
-    {bool isHighlight = false}
-  ) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
-            ),
-          ),
-          Row(
-            children: [
-              Text(
-                value,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isHighlight 
-                      ? theme.colorScheme.primary 
-                      : theme.colorScheme.onSurface,
-                  fontWeight: isHighlight ? FontWeight.w600 : FontWeight.normal,
-                  fontFamily: 'monospace',
-                ),
-              ),
-              if (unit != null)
-                Text(
-                  ' $unit',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDuration(double? seconds) {
-    if (seconds == null || seconds == 0) return '-';
-    if (seconds < 0.001) {
-      return '${(seconds * 1000000).toStringAsFixed(1)}μs';
-    } else if (seconds < 1) {
-      return '${(seconds * 1000).toStringAsFixed(1)}ms';
-    } else {
-      return '${seconds.toStringAsFixed(1)}s';
-    }
-  }
-
-  String _formatRate(double? rate) {
-    if (rate == null || rate == 0) return '-';
-    if (rate >= 1000) {
-      return '${(rate / 1000).toStringAsFixed(1)}k';
-    }
-    return rate.toStringAsFixed(1);
-  }
-
-  String _formatTokens(int? tokens) {
-    if (tokens == null || tokens == 0) return '-';
-    if (tokens >= 1000) {
-      return '${(tokens / 1000).toStringAsFixed(1)}k';
-    }
-    return tokens.toString();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // Check if we have any valid metrics
-    final hasMetrics = response.totalDuration != null && 
-                      response.totalDuration! > 0;
-
-    if (!hasMetrics) return const SizedBox.shrink();
-
-    return Column(
-      children: [
-        // Metrics Toggle Button
-        Padding(
-          padding: const EdgeInsets.only(
-            left: 0,
-            right: 0,
-            top: 4,
-          ),
-          child: Material(
-            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: onToggle,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.speed_rounded,
-                      size: 14,
-                      color: theme.colorScheme.primary.withOpacity(0.8),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Performance Metrics',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary.withOpacity(0.8),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      isExpanded 
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 16,
-                      color: theme.colorScheme.primary.withOpacity(0.8),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        // Metrics Content
-        if (isExpanded)
-          Container(
-            margin: const EdgeInsets.only(
-              left: 0,
-              right: 0,
-              top: 4,
-            ),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.05),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Main metrics
-                _buildMetricRow(
-                  context,
-                  'Total Time',
-                  _formatDuration(response.totalDuration),
-                  null,
-                  isHighlight: true,
-                ),
-                
-                // Prompt metrics
-                if (response.promptEvalCount != null && response.promptEvalCount! > 0) ...[
-                  const Divider(height: 12),
-                  _buildMetricRow(
-                    context,
-                    'Prompt',
-                    _formatTokens(response.promptEvalCount),
-                    'tokens',
-                  ),
-                  _buildMetricRow(
-                    context,
-                    'Processing',
-                    _formatDuration(response.promptEvalDuration),
-                    null,
-                  ),
-                  _buildMetricRow(
-                    context,
-                    'Speed',
-                    _formatRate(response.promptEvalRate),
-                    't/s',
-                  ),
-                ],
-                
-                // Generation metrics
-                if (response.evalCount != null && response.evalCount! > 0) ...[
-                  const Divider(height: 12),
-                  _buildMetricRow(
-                    context,
-                    'Response',
-                    _formatTokens(response.evalCount),
-                    'tokens',
-                  ),
-                  _buildMetricRow(
-                    context,
-                    'Generation',
-                    _formatDuration(response.evalDuration),
-                    null,
-                  ),
-                  _buildMetricRow(
-                    context,
-                    'Speed',
-                    _formatRate(response.evalRate),
-                    't/s',
-                  ),
-                ],
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
 class LlmChatScreen extends StatefulWidget {
   const LlmChatScreen({super.key});
 
@@ -296,9 +76,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   final FocusNode _messageFocusNode = FocusNode();
   final FocusNode _searchFocusNode = FocusNode();
   bool _showPerformanceMetrics = false;
-  bool _isDrawerOpen = false;
-  bool _isSettingsOpen = false;
-  bool _isPromptLibraryOpen = false;
+  final bool _isDrawerOpen = false;
+  final bool _isSettingsOpen = false;
+  final bool _isPromptLibraryOpen = false;
   String? _selectedPromptId;
   bool _isWaitingForAiResponse = false;
   String? _placeholderMessageId;
@@ -318,7 +98,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     context.read<LlmCubit>().setProvider(LlmProvider.gemini);
     _loadAvailableModels();
     _chatScrollController.addListener(_scrollListener);
-    
+
     // Check auth state but only sign in if unauthenticated
     final authState = context.read<AuthCubit>().state;
     authState.maybeWhen(
@@ -364,10 +144,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   void _scrollListener() {
     if (!_chatScrollController.hasClients) return;
-    
+
     final showButton = _chatScrollController.position.pixels <
         _chatScrollController.position.maxScrollExtent - 300;
-    
+
     if (_showScrollToBottom != showButton) {
       setState(() {
         _showScrollToBottom = showButton;
@@ -380,15 +160,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       setState(() {
         _isLoadingModels = true;
       });
-      
+
       developer.log('Loading available models...');
       final models = await context.read<LlmCubit>().getAvailableModels();
       developer.log('Models loaded: $models');
-      
+
       if (mounted) {
         setState(() {
           _isLoadingModels = false;
-          
+
           // Filter out models that are known to be unavailable
           // This is a fallback in case the API returns models that are actually unavailable
           final provider = context.read<LlmCubit>().currentProvider;
@@ -399,7 +179,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           } else {
             _availableModels = models;
           }
-          
+
           // Filter models based on current context
           final filteredModels = _getFilteredModels();
 
@@ -407,7 +187,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           if (filteredModels.isEmpty) {
             if (provider == LlmProvider.gemini) {
               // Default to the most reliable model based on context
-              _availableModels = [_selectedImageBytes != null ? 'gemini-1.0-pro-vision' : 'gemini-1.0-pro'];
+              _availableModels = [
+                _selectedImageBytes != null
+                    ? 'gemini-1.0-pro-vision'
+                    : 'gemini-1.0-pro'
+              ];
             } else {
               _availableModels = ['local-model'];
             }
@@ -415,15 +199,20 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
           // Always select a default model if none is selected
           if (_selectedModel == null) {
-            _selectedModel = provider == LlmProvider.gemini 
-                ? (_selectedImageBytes != null ? 'gemini-1.0-pro-vision' : 'gemini-1.0-pro')
+            _selectedModel = provider == LlmProvider.gemini
+                ? (_selectedImageBytes != null
+                    ? 'gemini-1.0-pro-vision'
+                    : 'gemini-1.0-pro')
                 : filteredModels.firstOrNull;
           }
           // If switching to Gemini, ensure we have a Gemini model selected
-          else if (provider == LlmProvider.gemini && !_selectedModel!.startsWith('gemini-')) {
-            _selectedModel = _selectedImageBytes != null ? 'gemini-1.0-pro-vision' : 'gemini-1.0-pro';
+          else if (provider == LlmProvider.gemini &&
+              !_selectedModel!.startsWith('gemini-')) {
+            _selectedModel = _selectedImageBytes != null
+                ? 'gemini-1.0-pro-vision'
+                : 'gemini-1.0-pro';
           }
-          
+
           developer.log('Selected model: $_selectedModel');
           developer.log('Available models: $_availableModels');
         });
@@ -436,7 +225,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           // If we encounter an error, set a minimal set of reliable models
           final provider = context.read<LlmCubit>().currentProvider;
           if (provider == LlmProvider.gemini) {
-            _availableModels = [_selectedImageBytes != null ? 'gemini-1.0-pro-vision' : 'gemini-1.0-pro'];
+            _availableModels = [
+              _selectedImageBytes != null
+                  ? 'gemini-1.0-pro-vision'
+                  : 'gemini-1.0-pro'
+            ];
             _selectedModel = _availableModels.first;
           } else {
             _availableModels = ['local-model'];
@@ -455,18 +248,18 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       'gemini-1.0-pro',
       'gemini-1.0-pro-vision',
     ];
-    
+
     // Filter the available models to only include the reliable ones
-    final filteredModels = allModels.where((model) => 
-      reliableModels.contains(model)).toList();
-    
+    final filteredModels =
+        allModels.where((model) => reliableModels.contains(model)).toList();
+
     // If no reliable models are found, return a default set
     if (filteredModels.isEmpty) {
-      return _selectedImageBytes != null 
-          ? ['gemini-1.0-pro-vision'] 
+      return _selectedImageBytes != null
+          ? ['gemini-1.0-pro-vision']
           : ['gemini-1.0-pro'];
     }
-    
+
     return filteredModels;
   }
 
@@ -555,7 +348,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return BlocListener<ChatCubit, ChatState>(
       listener: (context, state) {
         // Auto-scroll to bottom when new messages arrive if we're already near the bottom
@@ -576,9 +369,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             ),
             authenticated: (uid, _, __) {
               return Scaffold(
-                backgroundColor: theme.colorScheme.background,
+                backgroundColor: theme.colorScheme.surface,
                 drawer: Drawer(
-                  backgroundColor: isDark ? const Color(0xFF202123) : theme.colorScheme.surface,
+                  backgroundColor: isDark
+                      ? const Color(0xFF202123)
+                      : theme.colorScheme.surface,
                   child: Column(
                     children: [
                       SafeArea(
@@ -591,32 +386,40 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                   // Search widget (now with Expanded to take available width)
                                   Expanded(
                                     child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
+                                      duration:
+                                          const Duration(milliseconds: 200),
                                       height: 40,
                                       decoration: BoxDecoration(
-                                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                                        color: isDark
+                                            ? Colors.grey.shade800
+                                            : Colors.grey.shade100,
                                         borderRadius: BorderRadius.circular(8),
                                         boxShadow: [
                                           BoxShadow(
                                             color: _searchFocusNode.hasFocus
-                                                ? theme.colorScheme.primary.withOpacity(0.1)
-                                                : Colors.black.withOpacity(0.05),
+                                                ? theme.colorScheme.primary
+                                                    .withOpacity(0.1)
+                                                : Colors.black
+                                                    .withOpacity(0.05),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
                                         ],
                                         border: Border.all(
                                           color: _searchFocusNode.hasFocus
-                                              ? theme.colorScheme.primary.withOpacity(0.3)
+                                              ? theme.colorScheme.primary
+                                                  .withOpacity(0.3)
                                               : Colors.transparent,
                                           width: 1.5,
                                         ),
                                       ),
                                       child: BlocBuilder<ChatCubit, ChatState>(
-                                        buildWhen: (previous, current) => 
-                                          previous.searchQuery != current.searchQuery,
+                                        buildWhen: (previous, current) =>
+                                            previous.searchQuery !=
+                                            current.searchQuery,
                                         builder: (context, state) {
-                                          final isSearchActive = state.searchQuery.isNotEmpty;
+                                          final isSearchActive =
+                                              state.searchQuery.isNotEmpty;
                                           return Focus(
                                             onFocusChange: (hasFocus) {
                                               // Trigger rebuild to update container styling
@@ -627,67 +430,106 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                               focusNode: _searchFocusNode,
                                               decoration: InputDecoration(
                                                 hintText: 'Search',
-                                                hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                                                  color: isDark 
-                                                      ? Colors.white.withOpacity(0.5) 
-                                                      : Colors.black.withOpacity(0.5),
+                                                hintStyle: theme
+                                                    .textTheme.bodyMedium
+                                                    ?.copyWith(
+                                                  color: isDark
+                                                      ? Colors.white
+                                                          .withOpacity(0.5)
+                                                      : Colors.black
+                                                          .withOpacity(0.5),
                                                 ),
                                                 border: InputBorder.none,
-                                                contentPadding: const EdgeInsets.symmetric(
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
                                                   vertical: 10,
                                                   horizontal: 8,
                                                 ),
                                                 prefixIcon: AnimatedContainer(
-                                                  duration: const Duration(milliseconds: 200),
-                                                  padding: const EdgeInsets.all(8),
+                                                  duration: const Duration(
+                                                      milliseconds: 200),
+                                                  padding:
+                                                      const EdgeInsets.all(8),
                                                   child: Icon(
                                                     Icons.search,
                                                     size: 18,
-                                                    color: isSearchActive || _searchFocusNode.hasFocus
-                                                        ? theme.colorScheme.primary
-                                                        : (isDark 
-                                                            ? Colors.white.withOpacity(0.5) 
-                                                            : Colors.black.withOpacity(0.5)),
+                                                    color: isSearchActive ||
+                                                            _searchFocusNode
+                                                                .hasFocus
+                                                        ? theme
+                                                            .colorScheme.primary
+                                                        : (isDark
+                                                            ? Colors.white
+                                                                .withOpacity(
+                                                                    0.5)
+                                                            : Colors.black
+                                                                .withOpacity(
+                                                                    0.5)),
                                                   ),
                                                 ),
                                                 suffixIcon: isSearchActive
-                                                  ? Container(
-                                                      margin: const EdgeInsets.all(6),
-                                                      decoration: BoxDecoration(
-                                                        color: isDark 
-                                                            ? Colors.grey.shade600 
-                                                            : Colors.grey.shade200,
-                                                        borderRadius: BorderRadius.circular(50),
-                                                      ),
-                                                      child: IconButton(
-                                                        icon: Icon(
-                                                          Icons.clear,
-                                                          size: 14,
-                                                          color: isDark 
-                                                              ? Colors.white.withOpacity(0.9) 
-                                                              : Colors.black.withOpacity(0.6),
+                                                    ? Container(
+                                                        margin: const EdgeInsets
+                                                            .all(6),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: isDark
+                                                              ? Colors
+                                                                  .grey.shade600
+                                                              : Colors.grey
+                                                                  .shade200,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(50),
                                                         ),
-                                                        onPressed: () {
-                                                          _searchController.clear();
-                                                          context.read<ChatCubit>().searchChats('');
-                                                          // Keep focus on the field after clearing
-                                                          _searchFocusNode.requestFocus();
-                                                        },
-                                                        padding: EdgeInsets.zero,
-                                                        constraints: const BoxConstraints(),
-                                                      ),
-                                                    )
-                                                  : null,
+                                                        child: IconButton(
+                                                          icon: Icon(
+                                                            Icons.clear,
+                                                            size: 14,
+                                                            color: isDark
+                                                                ? Colors.white
+                                                                    .withOpacity(
+                                                                        0.9)
+                                                                : Colors.black
+                                                                    .withOpacity(
+                                                                        0.6),
+                                                          ),
+                                                          onPressed: () {
+                                                            _searchController
+                                                                .clear();
+                                                            context
+                                                                .read<
+                                                                    ChatCubit>()
+                                                                .searchChats(
+                                                                    '');
+                                                            // Keep focus on the field after clearing
+                                                            _searchFocusNode
+                                                                .requestFocus();
+                                                          },
+                                                          padding:
+                                                              EdgeInsets.zero,
+                                                          constraints:
+                                                              const BoxConstraints(),
+                                                        ),
+                                                      )
+                                                    : null,
                                               ),
-                                              style: theme.textTheme.bodyMedium?.copyWith(
-                                                color: isDark ? Colors.white : Colors.black,
+                                              style: theme.textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : Colors.black,
                                                 fontWeight: FontWeight.w500,
                                               ),
                                               onChanged: (value) {
-                                                context.read<ChatCubit>().searchChats(value);
+                                                context
+                                                    .read<ChatCubit>()
+                                                    .searchChats(value);
                                               },
-                                              textInputAction: TextInputAction.search,
-                                              cursorColor: theme.colorScheme.primary,
+                                              textInputAction:
+                                                  TextInputAction.search,
+                                              cursorColor:
+                                                  theme.colorScheme.primary,
                                               cursorWidth: 1.5,
                                             ),
                                           );
@@ -695,26 +537,30 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       ),
                                     ),
                                   ),
-                                  
+
                                   // New Chat button
                                   const SizedBox(width: 8),
                                   Container(
                                     height: 40,
                                     width: 40,
                                     decoration: BoxDecoration(
-                                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                                      color: isDark
+                                          ? Colors.grey.shade800
+                                          : Colors.grey.shade100,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: IconButton(
                                       icon: Icon(
                                         Icons.add,
                                         size: 20,
-                                        color: isDark 
-                                            ? Colors.white.withOpacity(0.8) 
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.8)
                                             : Colors.black.withOpacity(0.7),
                                       ),
                                       onPressed: () {
-                                        context.read<ChatCubit>().startNewChat();
+                                        context
+                                            .read<ChatCubit>()
+                                            .startNewChat();
                                         Navigator.pop(context);
                                       },
                                       tooltip: 'New Chat',
@@ -725,24 +571,29 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                               ),
                             ),
                             BlocBuilder<ChatCubit, ChatState>(
-                              buildWhen: (previous, current) => 
-                                previous.searchQuery != current.searchQuery,
+                              buildWhen: (previous, current) =>
+                                  previous.searchQuery != current.searchQuery,
                               builder: (context, state) {
                                 final chatCubit = context.read<ChatCubit>();
-                                final filteredChats = chatCubit.getFilteredChatHistories();
-                                final isSearchActive = state.searchQuery.isNotEmpty;
-                                
-                                if (!isSearchActive) return const SizedBox.shrink();
-                                
+                                final filteredChats =
+                                    chatCubit.getFilteredChatHistories();
+                                final isSearchActive =
+                                    state.searchQuery.isNotEmpty;
+
+                                if (!isSearchActive)
+                                  return const SizedBox.shrink();
+
                                 return Padding(
-                                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 0, 16, 8),
                                   child: Row(
                                     children: [
                                       Text(
                                         '${filteredChats.length} result${filteredChats.length != 1 ? 's' : ''}',
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: isDark 
-                                              ? Colors.white.withOpacity(0.7) 
+                                        style:
+                                            theme.textTheme.bodySmall?.copyWith(
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.7)
                                               : Colors.black.withOpacity(0.6),
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -766,8 +617,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             Text(
                               'Chats',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: isDark 
-                                    ? Colors.white.withOpacity(0.5) 
+                                color: isDark
+                                    ? Colors.white.withOpacity(0.5)
                                     : Colors.black.withOpacity(0.5),
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 0.5,
@@ -782,7 +633,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         child: BlocBuilder<ChatCubit, ChatState>(
                           builder: (context, state) {
                             if (state.isLoading) {
-                              return const Center(child: CircularProgressIndicator());
+                              return const Center(
+                                  child: CircularProgressIndicator());
                             }
 
                             if (state.error != null) {
@@ -798,7 +650,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       'Error loading chats',
-                                      style: TextStyle(color: Colors.grey.shade800),
+                                      style: TextStyle(
+                                          color: Colors.grey.shade800),
                                     ),
                                   ],
                                 ),
@@ -806,7 +659,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             }
 
                             final chatCubit = context.read<ChatCubit>();
-                            final filteredChats = chatCubit.getFilteredChatHistories();
+                            final filteredChats =
+                                chatCubit.getFilteredChatHistories();
 
                             if (filteredChats.isEmpty) {
                               if (state.searchQuery.isNotEmpty) {
@@ -817,25 +671,26 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(16),
                                         decoration: BoxDecoration(
-                                          color: isDark 
-                                              ? Colors.white.withOpacity(0.05) 
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.05)
                                               : Colors.black.withOpacity(0.05),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Icon(
                                           Icons.search_off_rounded,
                                           size: 32,
-                                          color: isDark 
-                                              ? Colors.white.withOpacity(0.7) 
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.7)
                                               : Colors.black.withOpacity(0.7),
                                         ),
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
                                         'No chats found',
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          color: isDark 
-                                              ? Colors.white.withOpacity(0.9) 
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.9)
                                               : Colors.black.withOpacity(0.9),
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -843,9 +698,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       const SizedBox(height: 8),
                                       Text(
                                         'Try a different search term',
-                                        style: theme.textTheme.bodyMedium?.copyWith(
-                                          color: isDark 
-                                              ? Colors.white.withOpacity(0.6) 
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.6)
                                               : Colors.black.withOpacity(0.6),
                                         ),
                                       ),
@@ -853,7 +709,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       ElevatedButton.icon(
                                         onPressed: () {
                                           _searchController.clear();
-                                          context.read<ChatCubit>().searchChats('');
+                                          context
+                                              .read<ChatCubit>()
+                                              .searchChats('');
                                         },
                                         icon: Icon(
                                           Icons.clear,
@@ -861,14 +719,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                         ),
                                         label: const Text('Clear search'),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: theme.colorScheme.primary,
+                                          backgroundColor:
+                                              theme.colorScheme.primary,
                                           foregroundColor: Colors.white,
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 16,
                                             vertical: 8,
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                         ),
                                       ),
@@ -876,7 +736,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                   ),
                                 );
                               }
-                              
+
                               return Center(
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
@@ -884,25 +744,26 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
-                                        color: isDark 
-                                            ? Colors.white.withOpacity(0.05) 
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.05)
                                             : Colors.black.withOpacity(0.05),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Icon(
                                         Icons.chat_bubble_outline,
                                         size: 32,
-                                        color: isDark 
-                                            ? Colors.white.withOpacity(0.7) 
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.7)
                                             : Colors.black.withOpacity(0.7),
                                       ),
                                     ),
                                     const SizedBox(height: 16),
                                     Text(
                                       'No chat history',
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        color: isDark 
-                                            ? Colors.white.withOpacity(0.9) 
+                                      style:
+                                          theme.textTheme.titleMedium?.copyWith(
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.9)
                                             : Colors.black.withOpacity(0.9),
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -910,9 +771,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       'Start a new chat to begin',
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: isDark 
-                                            ? Colors.white.withOpacity(0.6) 
+                                      style:
+                                          theme.textTheme.bodyMedium?.copyWith(
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.6)
                                             : Colors.black.withOpacity(0.6),
                                       ),
                                       textAlign: TextAlign.center,
@@ -920,7 +782,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     const SizedBox(height: 16),
                                     ElevatedButton.icon(
                                       onPressed: () {
-                                        context.read<ChatCubit>().startNewChat();
+                                        context
+                                            .read<ChatCubit>()
+                                            .startNewChat();
                                         Navigator.pop(context);
                                       },
                                       icon: Icon(
@@ -929,7 +793,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       ),
                                       label: const Text('New Chat'),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: theme.colorScheme.primary,
+                                        backgroundColor:
+                                            theme.colorScheme.primary,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16,
@@ -943,8 +808,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             }
 
                             // Separate pinned and unpinned chats
-                            final pinnedChats = filteredChats.where((chat) => chat['isPinned'] == true).toList();
-                            final unpinnedChats = filteredChats.where((chat) => chat['isPinned'] != true).toList();
+                            final pinnedChats = filteredChats
+                                .where((chat) => chat['isPinned'] == true)
+                                .toList();
+                            final unpinnedChats = filteredChats
+                                .where((chat) => chat['isPinned'] != true)
+                                .toList();
 
                             return ListView(
                               controller: _chatScrollController,
@@ -952,37 +821,49 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                               children: [
                                 if (pinnedChats.isNotEmpty) ...[
                                   Padding(
-                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                                    padding:
+                                        const EdgeInsets.fromLTRB(16, 0, 16, 4),
                                     child: Text(
                                       'Pinned',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.5)
+                                            : Colors.black.withOpacity(0.5),
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ),
-                                  ...pinnedChats.map((chat) => _buildChatItem(chat, state.currentChatId, isDark, context)).toList(),
+                                  ...pinnedChats.map((chat) => _buildChatItem(
+                                      chat,
+                                      state.currentChatId,
+                                      isDark,
+                                      context)),
                                   const Padding(
                                     padding: EdgeInsets.symmetric(vertical: 8),
                                     child: Divider(height: 1),
                                   ),
                                 ],
-                                
                                 if (unpinnedChats.isNotEmpty) ...[
                                   if (pinnedChats.isNotEmpty)
                                     Padding(
-                                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 0, 16, 4),
                                       child: Text(
                                         'Other',
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                                        style:
+                                            theme.textTheme.bodySmall?.copyWith(
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.5)
+                                              : Colors.black.withOpacity(0.5),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ),
                                   ...unpinnedChats.map(
-                                    (chat) => _buildChatItem(chat, state.currentChatId, isDark, context),
-                                  ).toList(),
+                                    (chat) => _buildChatItem(chat,
+                                        state.currentChatId, isDark, context),
+                                  ),
                                 ],
                               ],
                             );
@@ -991,27 +872,33 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                       ),
 
                       const Divider(height: 1),
-                      
+
                       // User Profile
                       Padding(
                         padding: const EdgeInsets.all(8),
                         child: simple.SimpleDrawerMenuItem(
                           icon: CircleAvatar(
                             radius: 14,
-                            backgroundColor: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                            backgroundColor: isDark
+                                ? Colors.white.withOpacity(0.1)
+                                : Colors.black.withOpacity(0.1),
                             child: authState.maybeWhen(
                               authenticated: (_, __, photoUrl) {
-                                if (photoUrl != null && photoUrl.startsWith('http')) {
+                                if (photoUrl != null &&
+                                    photoUrl.startsWith('http')) {
                                   return ClipOval(
                                     child: Image.network(
                                       photoUrl,
                                       width: 28,
                                       height: 28,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => Icon(
+                                      errorBuilder:
+                                          (context, error, stackTrace) => Icon(
                                         Icons.person,
                                         size: 16,
-                                        color: isDark ? Colors.white : Colors.black,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black,
                                       ),
                                     ),
                                   );
@@ -1030,7 +917,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             ),
                           ),
                           title: authState.maybeWhen(
-                            authenticated: (_, displayName, __) => displayName ?? 'User',
+                            authenticated: (_, displayName, __) =>
+                                displayName ?? 'User',
                             orElse: () => 'User',
                           ),
                           onTap: () {
@@ -1077,7 +965,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   ),
                   actions: [
                     // Show a compact model indicator instead of the full selection UI
-                    _buildCompactModelIndicator(context),
+                    CompactModelIndicator(
+                      selectedModel: _selectedModel,
+                      showModelSelection: _showModelSelection,
+                      onTap: () {
+                        setState(() {
+                          _showModelSelection = !_showModelSelection;
+                        });
+                      },
+                      getModelDisplayName: _getModelDisplayName,
+                    ),
                     const SizedBox(width: 8),
                   ],
                   bottom: PreferredSize(
@@ -1093,7 +990,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     // Use AnimatedSwitcher for smooth appearance/disappearance
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
-                      transitionBuilder: (Widget child, Animation<double> animation) {
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
                         return SizeTransition(
                           sizeFactor: animation,
                           child: FadeTransition(
@@ -1106,7 +1004,31 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           ? Container(
                               constraints: const BoxConstraints(maxHeight: 300),
                               child: SingleChildScrollView(
-                                child: _buildModelSelectionUI(context),
+                                child: ModelSelectionUI(
+                                  availableModels: _availableModels,
+                                  selectedModel: _selectedModel,
+                                  isLoadingModels: _isLoadingModels,
+                                  onRefresh: _loadAvailableModels,
+                                  onClose: () {
+                                    setState(() {
+                                      _showModelSelection = false;
+                                    });
+                                  },
+                                  onModelSelected: (model) {
+                                    setState(() {
+                                      _selectedModel = model;
+                                      // Auto-hide the model selection UI after selecting a model
+                                      Future.delayed(
+                                          const Duration(milliseconds: 300),
+                                          () {
+                                        setState(() {
+                                          _showModelSelection = false;
+                                        });
+                                      });
+                                    });
+                                  },
+                                  selectedImageBytes: _selectedImageBytes,
+                                ),
                               ),
                             )
                           : const SizedBox.shrink(),
@@ -1120,31 +1042,41 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             listener: (context, llmState) {
                               llmState.maybeWhen(
                                 success: (response) {
-                                  final authState = context.read<AuthCubit>().state;
+                                  final authState =
+                                      context.read<AuthCubit>().state;
                                   final userId = authState.maybeWhen(
                                     authenticated: (uid, _, __) => uid,
-                                    orElse: () => throw Exception('User must be authenticated to send messages'),
+                                    orElse: () => throw Exception(
+                                        'User must be authenticated to send messages'),
                                   );
 
                                   // Remove the placeholder message if it exists
                                   if (_placeholderMessageId != null) {
-                                    context.read<ChatCubit>().removePlaceholderMessage(_placeholderMessageId!);
+                                    context
+                                        .read<ChatCubit>()
+                                        .removePlaceholderMessage(
+                                            _placeholderMessageId!);
                                   }
 
-                                  context.read<ChatCubit>().sendMessage(
-                                    senderId: userId,
-                                    content: response.text,
-                                    isAI: true,
-                                    senderName: _kAiUserName,
-                                    totalDuration: response.totalDuration,
-                                    loadDuration: response.loadDuration,
-                                    promptEvalCount: response.promptEvalCount,
-                                    promptEvalDuration: response.promptEvalDuration,
-                                    promptEvalRate: response.promptEvalRate,
-                                    evalCount: response.evalCount,
-                                    evalDuration: response.evalDuration,
-                                    evalRate: response.evalRate,
-                                  ).then((_) {
+                                  context
+                                      .read<ChatCubit>()
+                                      .sendMessage(
+                                        senderId: userId,
+                                        content: response.text,
+                                        isAI: true,
+                                        senderName: _kAiUserName,
+                                        totalDuration: response.totalDuration,
+                                        loadDuration: response.loadDuration,
+                                        promptEvalCount:
+                                            response.promptEvalCount,
+                                        promptEvalDuration:
+                                            response.promptEvalDuration,
+                                        promptEvalRate: response.promptEvalRate,
+                                        evalCount: response.evalCount,
+                                        evalDuration: response.evalDuration,
+                                        evalRate: response.evalRate,
+                                      )
+                                      .then((_) {
                                     _scrollToBottom();
                                     // Reset waiting flag
                                     setState(() {
@@ -1162,14 +1094,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 error: (message) {
                                   // Remove the placeholder message if it exists
                                   if (_placeholderMessageId != null) {
-                                    context.read<ChatCubit>().removePlaceholderMessage(_placeholderMessageId!);
+                                    context
+                                        .read<ChatCubit>()
+                                        .removePlaceholderMessage(
+                                            _placeholderMessageId!);
                                   }
-                                  
+
                                   setState(() {
                                     _isWaitingForAiResponse = false;
                                     _placeholderMessageId = null;
                                   });
-                                  
+
                                   _handleApiError(message);
                                 },
                                 orElse: () {},
@@ -1178,8 +1113,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             builder: (context, llmState) {
                               return BlocBuilder<ChatCubit, ChatState>(
                                 builder: (context, chatState) {
-                                  if (chatState.isLoading && chatState.messages.isEmpty) {
-                                    return const Center(child: CircularProgressIndicator());
+                                  if (chatState.isLoading &&
+                                      chatState.messages.isEmpty) {
+                                    return const Center(
+                                        child: CircularProgressIndicator());
                                   }
 
                                   if (chatState.error != null) {
@@ -1220,18 +1157,19 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     itemBuilder: (context, index) {
                                       final message = chatState.messages[index];
                                       final messageId = message.id;
-                                      
+
                                       // Check if this is a placeholder message
                                       if (messageId == _placeholderMessageId) {
-                                        return _buildTypingIndicator(context);
+                                        return const TypingIndicator();
                                       }
-                                      
+
                                       return ChatMessageWidget(
                                         message: message,
                                         showMetrics: _showPerformanceMetrics,
                                         onMetricsToggle: () {
                                           setState(() {
-                                            _showPerformanceMetrics = !_showPerformanceMetrics;
+                                            _showPerformanceMetrics =
+                                                !_showPerformanceMetrics;
                                           });
                                         },
                                       );
@@ -1248,8 +1186,19 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                       height: 1,
                       color: theme.colorScheme.onSurface.withOpacity(0.1),
                     ),
-                    // Input field with constrained width
-                    _buildInputField(),
+                    // Bottom input field
+                    ChatInputField(
+                      messageController: _messageController,
+                      selectedImageBytes: _selectedImageBytes,
+                      selectedDocument: _selectedDocument,
+                      isWaitingForAiResponse: _isWaitingForAiResponse,
+                      selectedModel: _selectedModel,
+                      onSendMessage: _sendMessage,
+                      onPickImage: _pickImage,
+                      onPickDocument: _pickDocument,
+                      onClearSelectedImage: _clearSelectedImage,
+                      onClearSelectedDocument: _clearSelectedDocument,
+                    ),
                   ],
                 ),
               );
@@ -1289,7 +1238,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () => context.go('/auth', extra: {'mode': 'login'}),
+                    onPressed: () =>
+                        context.go('/auth', extra: {'mode': 'login'}),
                     child: const Text('Go to Login'),
                   ),
                 ],
@@ -1317,12 +1267,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     // Check if we're trying to send an image with a non-vision model
     if (_selectedImageBytes != null && !_selectedModel!.contains('vision')) {
-      _showErrorSnackBar('Please select a vision-capable model to analyze images');
+      _showErrorSnackBar(
+          'Please select a vision-capable model to analyze images');
       return;
     }
 
     // Check if we're using the correct provider for image analysis
-    if (_selectedImageBytes != null && context.read<LlmCubit>().currentProvider != LlmProvider.gemini) {
+    if (_selectedImageBytes != null &&
+        context.read<LlmCubit>().currentProvider != LlmProvider.gemini) {
       _showErrorSnackBar('Image analysis is only available with Gemini');
       return;
     }
@@ -1335,7 +1287,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     final authState = context.read<AuthCubit>().state;
     final userId = authState.maybeWhen(
       authenticated: (uid, displayName, _) => uid,
-      orElse: () => throw Exception('User must be authenticated to send messages'),
+      orElse: () =>
+          throw Exception('User must be authenticated to send messages'),
     );
 
     final userName = authState.maybeWhen(
@@ -1349,52 +1302,56 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     });
 
     // First send the user's message
-    context.read<ChatCubit>().sendMessage(
-      senderId: userId,
-      content: prompt,
-      isAI: false,
-      senderName: userName,
-    ).then((_) {
+    context
+        .read<ChatCubit>()
+        .sendMessage(
+          senderId: userId,
+          content: prompt,
+          isAI: false,
+          senderName: userName,
+        )
+        .then((_) {
       // Add a placeholder message for the AI response
-      final placeholderId = 'placeholder-${DateTime.now().millisecondsSinceEpoch}';
+      final placeholderId =
+          'placeholder-${DateTime.now().millisecondsSinceEpoch}';
       setState(() {
         _placeholderMessageId = placeholderId;
       });
-      
+
       // Add the placeholder message to the chat
       context.read<ChatCubit>().addPlaceholderMessage(
-        id: placeholderId,
-        senderId: 'ai',
-        isAI: true,
-        senderName: _kAiUserName,
-      );
+            id: placeholderId,
+            senderId: 'ai',
+            isAI: true,
+            senderName: _kAiUserName,
+          );
 
       // Generate response based on whether an image or document is selected
       try {
         if (_selectedImageBytes != null) {
           context.read<LlmCubit>().generateResponseWithImage(
-            prompt: prompt,
-            imageBytes: _selectedImageBytes!,
-            modelName: _selectedModel!,
-          );
+                prompt: prompt,
+                imageBytes: _selectedImageBytes!,
+                modelName: _selectedModel!,
+              );
           _clearSelectedImage();
         } else if (_selectedDocument != null) {
           context.read<LlmCubit>().generateResponseWithDocument(
-            prompt: prompt,
-            documentPath: _selectedDocument!.path,
-            modelName: _selectedModel!,
-          );
+                prompt: prompt,
+                documentPath: _selectedDocument!.path,
+                modelName: _selectedModel!,
+              );
           _clearSelectedDocument();
         } else {
           context.read<LlmCubit>().generateResponse(
-            prompt: prompt,
-            modelName: _selectedModel!,
-          );
+                prompt: prompt,
+                modelName: _selectedModel!,
+              );
         }
       } catch (e) {
         _handleApiError(e);
       }
-      
+
       _messageController.clear();
       _scrollToBottom();
     }).catchError((error) {
@@ -1406,19 +1363,22 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     setState(() {
       _isWaitingForAiResponse = false;
       if (_placeholderMessageId != null) {
-        context.read<ChatCubit>().removePlaceholderMessage(_placeholderMessageId!);
+        context
+            .read<ChatCubit>()
+            .removePlaceholderMessage(_placeholderMessageId!);
         _placeholderMessageId = null;
       }
     });
 
     String errorMessage = 'Failed to generate response';
-    
+
     // Check for quota errors
-    if (error.toString().contains('429') || 
+    if (error.toString().contains('429') ||
         error.toString().contains('RESOURCE_EXHAUSTED') ||
         error.toString().contains('quota')) {
-      errorMessage = 'API quota exceeded. Please try again later or switch to a different model.';
-      
+      errorMessage =
+          'API quota exceeded. Please try again later or switch to a different model.';
+
       // Show a more detailed error dialog
       showDialog(
         context: context,
@@ -1445,8 +1405,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               Text(
                 'Error details: ${error.toString()}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                      color: Theme.of(context).colorScheme.error,
+                    ),
               ),
             ],
           ),
@@ -1461,8 +1421,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 setState(() {
                   _showModelSelection = true;
                   // Auto-select the most reliable model
-                  _selectedModel = _selectedImageBytes != null 
-                      ? 'gemini-1.0-pro-vision' 
+                  _selectedModel = _selectedImageBytes != null
+                      ? 'gemini-1.0-pro-vision'
                       : 'gemini-1.0-pro';
                 });
               },
@@ -1477,7 +1437,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   void _sendInitialGreeting() {
-    final greeting = 'Hello! I\'m Devio your AI development assistant. I can help you with:\n\n'
+    final greeting =
+        'Hello! I\'m Devio your AI development assistant. I can help you with:\n\n'
         '• Flutter/Dart development\n'
         '• Code review and optimization\n'
         '• Architecture decisions\n'
@@ -1489,19 +1450,21 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     final authState = context.read<AuthCubit>().state;
     final userId = authState.maybeWhen(
       authenticated: (uid, _, __) => uid,
-      orElse: () => throw Exception('User must be authenticated to send messages'),
+      orElse: () =>
+          throw Exception('User must be authenticated to send messages'),
     );
 
     // Send initial greeting with the authenticated user's ID
     context.read<ChatCubit>().sendMessage(
-      senderId: userId,  // Using authenticated user's ID
-      content: greeting,
-      isAI: true,  // Mark as AI message
-      senderName: _kAiUserName,  // Still use AI name for display
-    );
+          senderId: userId, // Using authenticated user's ID
+          content: greeting,
+          isAI: true, // Mark as AI message
+          senderName: _kAiUserName, // Still use AI name for display
+        );
   }
 
-  Widget _buildChatItem(Map<String, dynamic> chat, String? currentChatId, bool isDark, BuildContext context) {
+  Widget _buildChatItem(Map<String, dynamic> chat, String? currentChatId,
+      bool isDark, BuildContext context) {
     final isSelected = chat['id'] == currentChatId;
     final isPinned = chat['isPinned'] as bool? ?? false;
     final chatId = chat['id'] as String;
@@ -1513,7 +1476,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         size: 20,
         color: isSelected
             ? theme.colorScheme.primary
-            : (isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7)),
+            : (isDark
+                ? Colors.white.withOpacity(0.7)
+                : Colors.black.withOpacity(0.7)),
       ),
       title: chat['title'] as String,
       onTap: () {
@@ -1527,622 +1492,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       onPin: (id) => context.read<ChatCubit>().pinChat(id),
       onUnpin: (id) => context.read<ChatCubit>().unpinChat(id),
       onDelete: (id) => context.read<ChatCubit>().deleteChat(id),
-      onRename: (id, newTitle) => context.read<ChatCubit>().renameChat(id, newTitle),
+      onRename: (id, newTitle) =>
+          context.read<ChatCubit>().renameChat(id, newTitle),
     );
-  }
-
-  Widget _buildModelSelectionUI(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(top: 16, bottom: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.onSurface.withOpacity(0.1),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.smart_toy_outlined,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Select AI Model',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Choose the best model for your task',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Refresh button with animation
-                Material(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.refresh,
-                      size: 20,
-                      color: theme.colorScheme.primary,
-                    ).animate(
-                      onPlay: (controller) => _isLoadingModels ? controller.repeat() : null,
-                    ).rotate(
-                      duration: const Duration(seconds: 1),
-                    ),
-                    onPressed: _loadAvailableModels,
-                    tooltip: 'Refresh models',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Close button
-                Material(
-                  color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      size: 20,
-                      color: theme.colorScheme.onSurface.withOpacity(0.8),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _showModelSelection = false;
-                      });
-                    },
-                    tooltip: 'Close model selection',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Provider selector with enhanced styling
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _buildProviderSelector(context),
-                const Spacer(),
-                if (_isLoadingModels)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Loading...',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Model list with enhanced styling
-          if (_isLoadingModels)
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 32),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Loading available models...',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            )
-          else if (_availableModels.isEmpty)
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 32),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.error.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.error_outline,
-                      size: 24,
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No models available',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Text(
-                      'Try refreshing or switching to a different provider',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.tonalIcon(
-                    onPressed: _loadAvailableModels,
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Refresh'),
-                  ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            )
-          else
-            _buildModelSelector(context),
-        ],
-      ),
-    ).animate().fadeIn(
-      duration: const Duration(milliseconds: 200),
-    ).slideY(
-      begin: -0.1,
-      end: 0,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
-  Widget _buildProviderSelector(BuildContext context) {
-    final llmCubit = context.read<LlmCubit>();
-    final theme = Theme.of(context);
-
-    return PopupMenuButton<LlmProvider>(
-      initialValue: llmCubit.currentProvider,
-      onSelected: (LlmProvider provider) {
-        llmCubit.setProvider(provider);
-        _loadAvailableModels();
-      },
-      tooltip: 'Select AI provider',
-      color: theme.colorScheme.surface,
-      surfaceTintColor: Colors.transparent,
-      elevation: 4,
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<LlmProvider>>[
-        PopupMenuItem<LlmProvider>(
-          value: LlmProvider.local,
-          child: Row(
-            children: [
-              Icon(
-                Icons.computer,
-                color: llmCubit.currentProvider == LlmProvider.local
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Local Model',
-                style: TextStyle(
-                  color: llmCubit.currentProvider == LlmProvider.local
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem<LlmProvider>(
-          value: LlmProvider.gemini,
-          child: Row(
-            children: [
-              Icon(
-                Icons.cloud,
-                color: llmCubit.currentProvider == LlmProvider.gemini
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Gemini',
-                style: TextStyle(
-                  color: llmCubit.currentProvider == LlmProvider.gemini
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              llmCubit.currentProvider == LlmProvider.local
-                  ? Icons.computer
-                  : Icons.cloud,
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              llmCubit.currentProvider == LlmProvider.local
-                  ? 'Local'
-                  : 'Gemini',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 16,
-              color: theme.colorScheme.onSurface,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModelSelector(BuildContext context) {
-    final filteredModels = _getFilteredModels();
-    final theme = Theme.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // Group models by type
-    final textModels = filteredModels.where((m) => !m.contains('vision')).toList();
-    final visionModels = filteredModels.where((m) => m.contains('vision')).toList();
-    
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 400),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (textModels.isNotEmpty && _selectedImageBytes == null) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.text_fields,
-                            size: 14,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Text Models',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildModelRadioGroup(textModels),
-              if (visionModels.isNotEmpty) const SizedBox(height: 16),
-            ],
-            if (visionModels.isNotEmpty && (_selectedImageBytes != null || textModels.isEmpty)) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.secondary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.image,
-                            size: 14,
-                            color: theme.colorScheme.secondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Vision Models',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.secondary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildModelRadioGroup(visionModels),
-            ],
-            // Note about model availability
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withOpacity(0.5),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Only showing models that are currently available. Some models may be temporarily unavailable due to high demand.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModelRadioGroup(List<String> models) {
-    final theme = Theme.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: models.map((model) {
-        final isRecommended = model == 'gemini-1.0-pro' || model == 'gemini-1.0-pro-vision';
-        final isSelected = model == _selectedModel;
-        
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _selectedModel = model;
-                  // Auto-hide the model selection UI after selecting a model
-                  Future.delayed(const Duration(milliseconds: 300), () {
-                    setState(() {
-                      _showModelSelection = false;
-                    });
-                  });
-                });
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSelected 
-                      ? theme.colorScheme.primary.withOpacity(0.1)
-                      : theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected
-                        ? theme.colorScheme.primary.withOpacity(0.5)
-                        : theme.colorScheme.outlineVariant.withOpacity(0.3),
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.outline.withOpacity(0.5),
-                          width: isSelected ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                _getModelDisplayName(model),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: isSelected
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurface,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              if (isRecommended)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primaryContainer.withOpacity(0.4),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.verified,
-                                        size: 12,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Recommended',
-                                        style: theme.textTheme.labelSmall?.copyWith(
-                                          color: theme.colorScheme.primary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _getModelDescription(model),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              height: 1.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  List<String> _getFilteredModels() {
-    final provider = context.read<LlmCubit>().currentProvider;
-    
-    // Filter models based on current context
-    return _availableModels.where((model) {
-      if (provider == LlmProvider.local) {
-        return true;
-      }
-      if (_selectedImageBytes != null) {
-        return model.contains('vision');
-      }
-      return !model.contains('vision');
-    }).toList();
   }
 
   String _getModelDisplayName(String model) {
@@ -2173,294 +1525,28 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           final formattedName = model.substring(7).replaceAll('-', ' ');
           // Capitalize each word
           final words = formattedName.split(' ');
-          final capitalizedWords = words.map((word) => 
-            word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1)}' : '');
+          final capitalizedWords = words.map((word) => word.isNotEmpty
+              ? '${word[0].toUpperCase()}${word.substring(1)}'
+              : '');
           return 'Gemini ${capitalizedWords.join(' ')}';
         }
         return model;
     }
   }
 
-  String _getModelDescription(String model) {
-    // Provide brief descriptions of model capabilities
-    if (model.contains('ultra')) {
-      return 'Highest capability model with advanced reasoning';
-    } else if (model.contains('1.5')) {
-      return 'Latest generation with improved capabilities';
-    } else if (model.contains('1.0')) {
-      return 'Stable version with good performance and reliability';
-    } else if (model.contains('vision')) {
-      return 'Specialized for image analysis and understanding';
-    } else {
-      return 'General purpose AI model for text generation';
-    }
-  }
+  List<String> _getFilteredModels() {
+    final provider = context.read<LlmCubit>().currentProvider;
 
-  Widget _buildInputField() {
-    final theme = Theme.of(context);
-    
-    return Container(
-      color: theme.colorScheme.surface,
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 12,
-        bottom: 12 + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 768),
-          child: Column(
-            children: [
-              if (_selectedImageBytes != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  height: 100,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.2)),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.memory(
-                          _selectedImageBytes!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                        ),
-                      ),
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: Material(
-                          color: theme.colorScheme.surface.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(12),
-                          child: IconButton(
-                            icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
-                            onPressed: _clearSelectedImage,
-                            tooltip: 'Remove image',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (_selectedDocument != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.2)),
-                    borderRadius: BorderRadius.circular(12),
-                    color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _selectedDocument!.path.toLowerCase().endsWith('.pdf')
-                            ? Icons.picture_as_pdf
-                            : Icons.description,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          path.basename(_selectedDocument!.path),
-                          style: theme.textTheme.bodyMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
-                        onPressed: _clearSelectedDocument,
-                        tooltip: 'Remove document',
-                      ),
-                    ],
-                  ),
-                ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: _selectedImageBytes != null
-                            ? 'Ask about this image...'
-                            : _selectedDocument != null
-                                ? 'Ask about this document...'
-                                : 'Ask me anything...',
-                        hintStyle: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                      ),
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                      ),
-                      maxLines: null,
-                      textInputAction: TextInputAction.newline,
-                      onSubmitted: (_) => _sendMessage(),
-                      enabled: !_isWaitingForAiResponse,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Material(
-                    color: theme.colorScheme.surfaceVariant,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.image_outlined,
-                            color: _selectedImageBytes != null
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurface.withOpacity(0.5),
-                          ),
-                          onPressed: _isWaitingForAiResponse ? null : _pickImage,
-                          tooltip: 'Add image',
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.attach_file,
-                            color: _selectedDocument != null
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurface.withOpacity(0.5),
-                          ),
-                          onPressed: _isWaitingForAiResponse ? null : _pickDocument,
-                          tooltip: 'Add document',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Material(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(20),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: (_selectedModel == null || _isWaitingForAiResponse)
-                          ? null
-                          : _sendMessage,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        child: _isWaitingForAiResponse
-                            ? SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onPrimary),
-                                ),
-                              )
-                            : Icon(
-                                Icons.send_rounded,
-                                color: theme.colorScheme.onPrimary,
-                              ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCompactModelIndicator(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _showModelSelection = !_showModelSelection;
-        });
-      },
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.smart_toy_outlined,
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              _selectedModel != null ? _getModelDisplayName(_selectedModel!) : 'Select Model',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              _showModelSelection ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-              size: 16,
-              color: theme.colorScheme.onSurface,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTypingIndicator(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: theme.colorScheme.surfaceVariant,
-            child: Icon(
-              Icons.smart_toy_outlined,
-              size: 18,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _DotWidget(),
-                const SizedBox(width: 4),
-                _DotWidget(delay: const Duration(milliseconds: 200)),
-                const SizedBox(width: 4),
-                _DotWidget(delay: const Duration(milliseconds: 400)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    // Filter models based on current context
+    return _availableModels.where((model) {
+      if (provider == LlmProvider.local) {
+        return true;
+      }
+      if (_selectedImageBytes != null) {
+        return model.contains('vision');
+      }
+      return !model.contains('vision');
+    }).toList();
   }
 }
 
@@ -2474,7 +1560,7 @@ class _ModelGroupHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
@@ -2510,7 +1596,7 @@ class _ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -2525,19 +1611,19 @@ class _ChatBubble extends StatelessWidget {
           vertical: 12,
         ),
         decoration: BoxDecoration(
-          color: message.isUser 
-              ? theme.colorScheme.primary 
+          color: message.isUser
+              ? theme.colorScheme.primary
               : theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: message.isUser 
-              ? null 
+          border: message.isUser
+              ? null
               : Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
         ),
         child: Text(
           message.text,
           style: GoogleFonts.spaceGrotesk(
-            color: message.isUser 
-                ? theme.colorScheme.onPrimary 
+            color: message.isUser
+                ? theme.colorScheme.onPrimary
                 : theme.colorScheme.onSurface,
             fontSize: 16,
           ),
@@ -2546,94 +1632,3 @@ class _ChatBubble extends StatelessWidget {
     );
   }
 }
-
-class _MessageInput extends StatelessWidget {
-  final TextEditingController controller;
-  final VoidCallback onSubmit;
-
-  const _MessageInput({
-    required this.controller,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: theme.colorScheme.outline.withOpacity(0.1),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: 'Type your message...',
-                hintStyle: GoogleFonts.spaceGrotesk(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-              ),
-              style: GoogleFonts.spaceGrotesk(color: theme.colorScheme.onSurface),
-              onSubmitted: (_) => onSubmit(),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: onSubmit,
-            icon: const Icon(Icons.send),
-            style: IconButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              padding: const EdgeInsets.all(12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DotWidget extends StatelessWidget {
-  final Duration delay;
-
-  const _DotWidget({this.delay = Duration.zero});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.onSurfaceVariant,
-        shape: BoxShape.circle,
-      ),
-    ).animate(
-      onPlay: (controller) => controller.repeat(),
-    ).scale(
-      begin: const Offset(0.5, 0.5),
-      end: const Offset(1.0, 1.0),
-      duration: const Duration(milliseconds: 600),
-      delay: delay,
-      curve: Curves.easeInOut,
-    );
-  } }

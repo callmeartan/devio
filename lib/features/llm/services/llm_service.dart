@@ -12,13 +12,13 @@ class LlmService {
   LlmService({
     String? baseUrl,
     http.Client? client,
-  }) : baseUrl = baseUrl ?? _getDefaultBaseUrl(),
-       _client = client ?? http.Client();
+  })  : baseUrl = baseUrl ?? _getDefaultBaseUrl(),
+        _client = client ?? http.Client();
 
   static String _getDefaultBaseUrl() {
     // When running on iOS simulator or device, we need to use the host machine's IP
     if (Platform.isIOS) {
-      return 'http://192.168.1.105:8080';  // Your computer's IP address
+      return 'http://localhost:8080'; // Use localhost for iOS too
     }
     return 'http://localhost:8080';
   }
@@ -26,9 +26,12 @@ class LlmService {
   Future<List<String>> getAvailableModels() async {
     try {
       dev.log('Fetching available models from: $baseUrl/models');
-      final response = await _client.get(
-        Uri.parse('$baseUrl/models'),
-      ).timeout(const Duration(seconds: 5)); // Use shorter timeout for model check
+      final response = await _client
+          .get(
+            Uri.parse('$baseUrl/models'),
+          )
+          .timeout(const Duration(
+              seconds: 5)); // Use shorter timeout for model check
 
       dev.log('Models response status code: ${response.statusCode}');
       if (response.statusCode == 200) {
@@ -67,18 +70,17 @@ class LlmService {
     try {
       dev.log('Generating response...');
       dev.log('Base URL: $baseUrl');
-      
+
       // Ensure model name has the correct format
-      final formattedModelName = modelName?.contains(':') == true 
-          ? modelName 
-          : '${modelName}:latest';
-      
+      final formattedModelName =
+          modelName?.contains(':') == true ? modelName : '$modelName:latest';
+
       dev.log('Request parameters:');
       dev.log('- Prompt: $prompt');
       dev.log('- Model (formatted): $formattedModelName');
       dev.log('- Max tokens: $maxTokens');
       dev.log('- Temperature: $temperature');
-      
+
       final requestBody = {
         'prompt': prompt,
         'model_name': formattedModelName,
@@ -86,26 +88,30 @@ class LlmService {
         'temperature': temperature,
       };
       dev.log('Request body: $requestBody');
-      
-      final response = await _client.post(
-        Uri.parse('$baseUrl/generate'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(requestBody),
-      ).timeout(_timeout);
+
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/generate'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode(requestBody),
+          )
+          .timeout(_timeout);
 
       dev.log('Response status code: ${response.statusCode}');
       dev.log('Response headers: ${response.headers}');
       dev.log('Raw response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final jsonResponse =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         dev.log('Parsed JSON response: $jsonResponse');
 
         // Clean up the response text
-        String cleanText = (jsonResponse['response'] as String? ?? jsonResponse['text'] as String)
+        String cleanText = (jsonResponse['response'] as String? ??
+                jsonResponse['text'] as String)
             .replaceAll('â', "'")
             .replaceAll('â', "'")
             .replaceAll('â', '"')
@@ -115,41 +121,47 @@ class LlmService {
 
         // Extract metrics from Ollama format
         final Map<String, dynamic> metrics = {};
-        
+
         if (jsonResponse.containsKey('total_duration')) {
-          metrics['total_duration'] = _convertNanosecondsToSeconds(jsonResponse['total_duration']);
+          metrics['total_duration'] =
+              _convertNanosecondsToSeconds(jsonResponse['total_duration']);
         }
-        
+
         if (jsonResponse.containsKey('load_duration')) {
-          metrics['load_duration'] = _convertNanosecondsToSeconds(jsonResponse['load_duration']);
+          metrics['load_duration'] =
+              _convertNanosecondsToSeconds(jsonResponse['load_duration']);
         }
-        
+
         if (jsonResponse.containsKey('prompt_eval_count')) {
           metrics['prompt_eval_count'] = jsonResponse['prompt_eval_count'];
         }
-        
+
         if (jsonResponse.containsKey('prompt_eval_duration')) {
-          metrics['prompt_eval_duration'] = _convertNanosecondsToSeconds(jsonResponse['prompt_eval_duration']);
+          metrics['prompt_eval_duration'] = _convertNanosecondsToSeconds(
+              jsonResponse['prompt_eval_duration']);
         }
-        
+
         if (jsonResponse.containsKey('eval_count')) {
           metrics['eval_count'] = jsonResponse['eval_count'];
         }
-        
+
         if (jsonResponse.containsKey('eval_duration')) {
-          metrics['eval_duration'] = _convertNanosecondsToSeconds(jsonResponse['eval_duration']);
+          metrics['eval_duration'] =
+              _convertNanosecondsToSeconds(jsonResponse['eval_duration']);
         }
-        
+
         // Calculate rates if we have both count and duration
-        if (metrics.containsKey('prompt_eval_count') && metrics.containsKey('prompt_eval_duration')) {
+        if (metrics.containsKey('prompt_eval_count') &&
+            metrics.containsKey('prompt_eval_duration')) {
           final count = metrics['prompt_eval_count'] as int;
           final duration = metrics['prompt_eval_duration'] as double;
           if (duration > 0) {
             metrics['prompt_eval_rate'] = count / duration;
           }
         }
-        
-        if (metrics.containsKey('eval_count') && metrics.containsKey('eval_duration')) {
+
+        if (metrics.containsKey('eval_count') &&
+            metrics.containsKey('eval_duration')) {
           final count = metrics['eval_count'] as int;
           final duration = metrics['eval_duration'] as double;
           if (duration > 0) {
@@ -158,14 +170,14 @@ class LlmService {
         }
 
         dev.log('Extracted metrics: $metrics');
-        
+
         // Create response object
         final cleanedResponse = <String, dynamic>{
           'text': cleanText,
           'model_name': modelName,
           ...metrics,
         };
-        
+
         dev.log('Final response object: $cleanedResponse');
         return LlmResponse.fromJson(cleanedResponse);
       } else {
@@ -173,7 +185,8 @@ class LlmService {
         return LlmResponse(
           text: '',
           isError: true,
-          errorMessage: 'Failed to generate response: ${response.statusCode} - ${response.body}',
+          errorMessage:
+              'Failed to generate response: ${response.statusCode} - ${response.body}',
         );
       }
     } catch (e) {
@@ -198,4 +211,4 @@ class LlmService {
   void dispose() {
     _client.close();
   }
-} 
+}

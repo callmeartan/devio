@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 class ChatInput extends StatefulWidget {
   final Function(String) onSubmit;
@@ -55,7 +54,7 @@ class _ChatInputState extends State<ChatInput> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
         border: Border.all(
-          color: isDark 
+          color: isDark
               ? Colors.white.withOpacity(0.2)
               : Colors.black.withOpacity(0.2),
         ),
@@ -86,7 +85,7 @@ class _ChatInputState extends State<ChatInput> {
               decoration: InputDecoration(
                 hintText: 'Message...',
                 hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                  color: isDark 
+                  color: isDark
                       ? Colors.white.withOpacity(0.5)
                       : Colors.black.withOpacity(0.5),
                 ),
@@ -119,7 +118,7 @@ class _ChatInputState extends State<ChatInput> {
                       Icons.send_rounded,
                       color: _isComposing
                           ? (isDark ? Colors.white : Colors.black)
-                          : (isDark 
+                          : (isDark
                               ? Colors.white.withOpacity(0.3)
                               : Colors.black.withOpacity(0.3)),
                     ),
@@ -129,4 +128,4 @@ class _ChatInputState extends State<ChatInput> {
       ),
     );
   }
-} 
+}

@@ -14,16 +14,16 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : theme.colorScheme.background,
+      backgroundColor: isDark ? Colors.black : theme.colorScheme.surface,
       body: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
           final displayName = state.maybeWhen(
             authenticated: (_, name, __) => name ?? 'User',
             orElse: () => 'User',
           );
-          
+
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -32,14 +32,15 @@ class ProfileScreen extends StatelessWidget {
                 expandedHeight: 240.0,
                 floating: false,
                 pinned: true,
-                backgroundColor: isDark ? Colors.black : theme.colorScheme.background,
+                backgroundColor:
+                    isDark ? Colors.black : theme.colorScheme.surface,
                 elevation: 0,
                 leading: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isDark 
-                          ? Colors.grey.withOpacity(0.3) 
+                      color: isDark
+                          ? Colors.grey.withOpacity(0.3)
                           : Colors.white.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -53,12 +54,14 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 title: AnimatedOpacity(
-                  opacity: MediaQuery.of(context).viewPadding.top > 0 ? 1.0 : 0.0,
+                  opacity:
+                      MediaQuery.of(context).viewPadding.top > 0 ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 200),
                   child: Text(
                     displayName,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      color: isDark ? Colors.white : theme.colorScheme.onBackground,
+                      color:
+                          isDark ? Colors.white : theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -72,7 +75,7 @@ class ProfileScreen extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: isDark 
+                        colors: isDark
                             ? [
                                 Colors.grey.shade800,
                                 Colors.grey.shade900,
@@ -112,12 +115,16 @@ class ProfileScreen extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         displayName,
-                                        style: theme.textTheme.headlineSmall?.copyWith(
-                                          color: isDark ? Colors.white : Colors.black,
+                                        style: theme.textTheme.headlineSmall
+                                            ?.copyWith(
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black,
                                           fontWeight: FontWeight.bold,
                                         ),
                                         maxLines: 1,
@@ -127,9 +134,10 @@ class ProfileScreen extends StatelessWidget {
                                       state.maybeWhen(
                                         authenticated: (_, __, email) => Text(
                                           email ?? '',
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            color: isDark 
-                                                ? Colors.white.withOpacity(0.7) 
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                            color: isDark
+                                                ? Colors.white.withOpacity(0.7)
                                                 : Colors.black.withOpacity(0.7),
                                           ),
                                           maxLines: 1,
@@ -146,21 +154,24 @@ class ProfileScreen extends StatelessWidget {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: isDark 
-                                        ? Colors.grey.shade800 
-                                        : theme.colorScheme.primary.withOpacity(0.2),
+                                    color: isDark
+                                        ? Colors.grey.shade800
+                                        : theme.colorScheme.primary
+                                            .withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: isDark 
-                                          ? Colors.grey.shade700 
-                                          : theme.colorScheme.primary.withOpacity(0.3),
+                                      color: isDark
+                                          ? Colors.grey.shade700
+                                          : theme.colorScheme.primary
+                                              .withOpacity(0.3),
                                     ),
                                   ),
                                   child: Text(
                                     'Developer',
-                                    style: theme.textTheme.labelMedium?.copyWith(
-                                      color: isDark 
-                                          ? Colors.white 
+                                    style:
+                                        theme.textTheme.labelMedium?.copyWith(
+                                      color: isDark
+                                          ? Colors.white
                                           : theme.colorScheme.primary,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -175,7 +186,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               // Profile Content
               SliverToBoxAdapter(
                 child: Padding(
@@ -204,9 +215,9 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Preferences Section
                       _buildSection(
                         context,
@@ -222,8 +233,10 @@ class ProfileScreen extends StatelessWidget {
                                       ? Icons.light_mode
                                       : Icons.brightness_auto,
                               title: 'Theme',
-                              subtitle: _getThemeModeDescription(prefsState.themeMode),
-                              onTap: () => _showThemeDialog(context, prefsState.themeMode),
+                              subtitle: _getThemeModeDescription(
+                                  prefsState.themeMode),
+                              onTap: () => _showThemeDialog(
+                                  context, prefsState.themeMode),
                               showDivider: true,
                             ),
                           ),
@@ -243,9 +256,9 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // App Section
                       _buildSection(
                         context,
@@ -288,7 +301,9 @@ class ProfileScreen extends StatelessWidget {
   String _getThemeModeDescription(ThemeMode mode) {
     switch (mode) {
       case ThemeMode.system:
-        final isPlatformDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+        final isPlatformDark =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+                Brightness.dark;
         return 'System (${isPlatformDark ? 'Dark' : 'Light'})';
       case ThemeMode.light:
         return 'Light mode';
@@ -311,7 +326,7 @@ class ProfileScreen extends StatelessWidget {
   void _showThemeDialog(BuildContext context, ThemeMode currentMode) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -358,7 +373,9 @@ class ProfileScreen extends StatelessWidget {
             child: Text(
               'Cancel',
               style: TextStyle(
-                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                color: isDark
+                    ? Colors.white.withOpacity(0.7)
+                    : Colors.black.withOpacity(0.7),
               ),
             ),
           ),
@@ -378,7 +395,7 @@ class ProfileScreen extends StatelessWidget {
   }) {
     final isSelected = mode == currentMode;
     final theme = Theme.of(context);
-    
+
     return InkWell(
       onTap: () {
         context.read<PreferencesCubit>().setThemeMode(mode);
@@ -388,14 +405,18 @@ class ProfileScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05))
+          color: isSelected
+              ? (isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
                 ? theme.colorScheme.primary
-                : isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                : isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.1),
             width: 1,
           ),
         ),
@@ -405,7 +426,9 @@ class ProfileScreen extends StatelessWidget {
               icon,
               color: isSelected
                   ? theme.colorScheme.primary
-                  : isDark ? Colors.white : Colors.black,
+                  : isDark
+                      ? Colors.white
+                      : Colors.black,
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -416,13 +439,16 @@ class ProfileScreen extends StatelessWidget {
                     title,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: isDark ? Colors.white : Colors.black,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                      color: isDark
+                          ? Colors.white.withOpacity(0.7)
+                          : Colors.black.withOpacity(0.7),
                     ),
                   ),
                 ],
@@ -442,7 +468,7 @@ class ProfileScreen extends StatelessWidget {
   void _showLogoutDialog(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -456,7 +482,9 @@ class ProfileScreen extends StatelessWidget {
             child: Text(
               'Cancel',
               style: TextStyle(
-                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                color: isDark
+                    ? Colors.white.withOpacity(0.7)
+                    : Colors.black.withOpacity(0.7),
               ),
             ),
           ),
@@ -479,21 +507,24 @@ class ProfileScreen extends StatelessWidget {
   void _showClearChatHistoryDialog(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF202123) : Colors.white,
         surfaceTintColor: Colors.transparent,
         title: const Text('Clear Chat History'),
-        content: const Text('Are you sure you want to clear all chat history? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to clear all chat history? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
               style: TextStyle(
-                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                color: isDark
+                    ? Colors.white.withOpacity(0.7)
+                    : Colors.black.withOpacity(0.7),
               ),
             ),
           ),
@@ -516,7 +547,7 @@ class ProfileScreen extends StatelessWidget {
   void _showAboutDialog(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -653,7 +684,7 @@ class ProfileScreen extends StatelessWidget {
   void _showPrivacyPolicyDialog(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -774,7 +805,7 @@ class ProfileScreen extends StatelessWidget {
   void _showTermsOfServiceDialog(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -930,7 +961,7 @@ class ProfileScreen extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -959,8 +990,8 @@ class ProfileScreen extends StatelessWidget {
             color: isDark ? Colors.grey.shade900 : theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark 
-                  ? Colors.grey.shade800 
+              color: isDark
+                  ? Colors.grey.shade800
                   : theme.colorScheme.outline.withOpacity(0.1),
             ),
           ),
@@ -983,7 +1014,7 @@ class ProfileScreen extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Column(
       children: [
         ListTile(
@@ -991,8 +1022,8 @@ class ProfileScreen extends StatelessWidget {
             icon,
             color: isDestructive
                 ? theme.colorScheme.error
-                : isDark 
-                    ? Colors.white.withOpacity(0.8) 
+                : isDark
+                    ? Colors.white.withOpacity(0.8)
                     : theme.colorScheme.onSurface.withOpacity(0.8),
           ),
           title: Text(
@@ -1000,8 +1031,8 @@ class ProfileScreen extends StatelessWidget {
             style: theme.textTheme.bodyLarge?.copyWith(
               color: isDestructive
                   ? theme.colorScheme.error
-                  : isDark 
-                      ? Colors.white 
+                  : isDark
+                      ? Colors.white
                       : theme.colorScheme.onSurface,
             ),
           ),
@@ -1009,16 +1040,16 @@ class ProfileScreen extends StatelessWidget {
               ? Text(
                   subtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark 
-                        ? Colors.white.withOpacity(0.6) 
+                    color: isDark
+                        ? Colors.white.withOpacity(0.6)
                         : theme.colorScheme.onSurface.withOpacity(0.6),
                   ),
                 )
               : null,
           trailing: Icon(
             Icons.chevron_right,
-            color: isDark 
-                ? Colors.white.withOpacity(0.3) 
+            color: isDark
+                ? Colors.white.withOpacity(0.3)
                 : theme.colorScheme.onSurface.withOpacity(0.3),
           ),
           onTap: onTap,
@@ -1027,8 +1058,8 @@ class ProfileScreen extends StatelessWidget {
           Divider(
             height: 1,
             indent: 56,
-            color: isDark 
-                ? Colors.grey.shade800 
+            color: isDark
+                ? Colors.grey.shade800
                 : theme.colorScheme.outline.withOpacity(0.1),
           ),
       ],
@@ -1039,36 +1070,38 @@ class ProfileScreen extends StatelessWidget {
 // Wave pattern painter for the background
 class WavePatternPainter extends CustomPainter {
   final Color color;
-  
+
   WavePatternPainter({required this.color});
-  
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.5;
-      
+
     final path = Path();
-    
+
     // Create wave pattern
     for (int i = 0; i < 10; i++) {
       final y = size.height * 0.1 + (i * size.height * 0.08);
       path.moveTo(0, y);
-      
+
       for (int j = 0; j < 10; j++) {
         final x1 = size.width * (j * 0.1 + 0.05);
         final x2 = size.width * (j * 0.1 + 0.1);
         path.quadraticBezierTo(
-          x1, y + (i % 2 == 0 ? 10 : -10),
-          x2, y,
+          x1,
+          y + (i % 2 == 0 ? 10 : -10),
+          x2,
+          y,
         );
       }
     }
-    
+
     canvas.drawPath(path, paint);
   }
-  
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-} 
+}

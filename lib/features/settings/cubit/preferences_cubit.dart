@@ -17,13 +17,16 @@ class PreferencesCubit extends Cubit<PreferencesState> {
   Future<void> _loadPreferences() async {
     try {
       emit(state.copyWith(isLoading: true));
-      
+
       final themeIndex = _prefs.getInt(_themeKey);
-      final themeMode = themeIndex != null ? ThemeMode.values[themeIndex] : ThemeMode.system;
-      
+      final themeMode =
+          themeIndex != null ? ThemeMode.values[themeIndex] : ThemeMode.system;
+
       final isNotificationsEnabled = _prefs.getBool(_notificationsKey) ?? true;
-      final isPushNotificationsEnabled = _prefs.getBool(_pushNotificationsKey) ?? true;
-      final isEmailNotificationsEnabled = _prefs.getBool(_emailNotificationsKey) ?? true;
+      final isPushNotificationsEnabled =
+          _prefs.getBool(_pushNotificationsKey) ?? true;
+      final isEmailNotificationsEnabled =
+          _prefs.getBool(_emailNotificationsKey) ?? true;
 
       emit(state.copyWith(
         themeMode: themeMode,
@@ -57,17 +60,19 @@ class PreferencesCubit extends Cubit<PreferencesState> {
   Future<void> toggleNotifications(bool enabled) async {
     try {
       await _prefs.setBool(_notificationsKey, enabled);
-      
+
       // If notifications are disabled, also disable push and email notifications
       if (!enabled) {
         await _prefs.setBool(_pushNotificationsKey, false);
         await _prefs.setBool(_emailNotificationsKey, false);
       }
-      
+
       emit(state.copyWith(
         isNotificationsEnabled: enabled,
-        isPushNotificationsEnabled: enabled ? state.isPushNotificationsEnabled : false,
-        isEmailNotificationsEnabled: enabled ? state.isEmailNotificationsEnabled : false,
+        isPushNotificationsEnabled:
+            enabled ? state.isPushNotificationsEnabled : false,
+        isEmailNotificationsEnabled:
+            enabled ? state.isEmailNotificationsEnabled : false,
         error: null,
       ));
     } catch (e) {
@@ -108,9 +113,4 @@ class PreferencesCubit extends Cubit<PreferencesState> {
   void clearError() {
     emit(state.copyWith(error: null));
   }
-
-  @override
-  Future<void> close() {
-    return super.close();
-  }
-} 
+}

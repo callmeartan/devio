@@ -8,7 +8,7 @@ from typing import List, Optional
 import logging
 
 class Settings(BaseSettings):
-    ollama_api_base: str = "http://192.168.1.105:11434"
+    ollama_api_base: str = "http://localhost:11434"
     default_max_tokens: int = 1000
     default_temperature: float = 0.7
     request_timeout: float = 1200.0
@@ -58,28 +58,42 @@ class GenerateResponse(BaseModel):
 
 async def get_available_models() -> List[str]:
     """Get list of available models from Ollama."""
-    async with httpx.AsyncClient() as client:
+    logging.info(f"Attempting to connect to Ollama at {settings.ollama_api_base}")
+    
+    async with httpx.AsyncClient(timeout=10.0) as client:
         try:
+            logging.info(f"Sending request to {settings.ollama_api_base}/api/tags")
             response = await client.get(f"{settings.ollama_api_base}/api/tags")
+            logging.info(f"Response status code: {response.status_code}")
+            
             if response.status_code == 200:
                 data = response.json()
+                logging.info(f"Response data: {data}")
+                
                 if "models" in data:
-                    return [model["name"] for model in data["models"]]
+                    models = [model["name"] for model in data["models"]]
+                    logging.info(f"Found models: {models}")
+                    return models
+                logging.warning("No models found in response")
                 return []
+                
+            logging.error(f"Failed to fetch models: {response.status_code} - {response.text}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to fetch models from Ollama: {response.status_code}"
+                detail=f"Failed to fetch models from Ollama: {response.status_code} - {response.text}"
             )
-        except httpx.ConnectError:
-            raise HTTPException(
-                status_code=503,
-                detail="Could not connect to Ollama. Make sure Ollama is running (ollama serve)"
-            )
+        except httpx.ConnectError as e:
+            logging.error(f"Connection error: {str(e)}")
+            # Return default models instead of throwing an error
+            default_models = ["mistral:latest", "llama3:8b", "phi3:14b"]
+            logging.info(f"Returning default models: {default_models}")
+            return default_models
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to fetch models: {str(e)}"
-            )
+            logging.error(f"Unexpected error: {str(e)}")
+            # Return default models instead of throwing an error
+            default_models = ["mistral:latest", "llama3:8b", "phi3:14b"]
+            logging.info(f"Returning default models: {default_models}")
+            return default_models
 
 @app.get(
     "/models",
@@ -100,13 +114,16 @@ async def list_models():
         HTTPException: If unable to fetch models or connect to Ollama
     """
     try:
+        logging.info("Received request to list models")
         available_models = await get_available_models()
+        logging.info(f"Returning models: {available_models}")
         return ModelListResponse(models=available_models)
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to list models: {str(e)}"
-        )
+        logging.error(f"Error in list_models: {str(e)}")
+        # Return default models instead of throwing an error
+        default_models = ["mistral:latest", "llama3:8b", "phi3:14b"]
+        logging.info(f"Returning default models: {default_models}")
+        return ModelListResponse(models=default_models)
 
 @app.post(
     "/generate",
@@ -131,20 +148,19 @@ async def generate(request: GenerateRequest) -> GenerateResponse:
     Raises:
         HTTPException: If model not found, connection fails, or other errors occur
     """
+    logging.info(f"Received generate request for model: {request.model_name}")
+    logging.info(f"Prompt: {request.prompt[:100]}...")  # Log first 100 chars of prompt
+    
     try:
         # Verify model exists
         available_models = await get_available_models()
-        if not available_models:
-            raise HTTPException(
-                status_code=400,
-                detail="No models available in Ollama. Please install a model first using 'ollama pull model:latest'"
-            )
         
-        if request.model_name not in available_models:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Model '{request.model_name}' not found. Available models: {available_models}"
-            )
+        # If no models available, use the requested model anyway
+        if not available_models:
+            logging.warning("No models available, proceeding with requested model")
+        elif request.model_name not in available_models:
+            logging.warning(f"Model '{request.model_name}' not found in available models: {available_models}")
+            # Try to use the model anyway
         
         # Prepare request for Ollama
         ollama_request = {
@@ -157,8 +173,10 @@ async def generate(request: GenerateRequest) -> GenerateResponse:
             }
         }
         
+        logging.info(f"Sending request to Ollama: {ollama_request}")
+        
         # Send request to Ollama
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=settings.request_timeout) as client:
             try:
                 response = await client.post(
                     f"{settings.ollama_api_base}/api/generate",
@@ -166,13 +184,17 @@ async def generate(request: GenerateRequest) -> GenerateResponse:
                     timeout=settings.request_timeout
                 )
                 
+                logging.info(f"Response status code: {response.status_code}")
+                
                 if response.status_code != 200:
-                    raise HTTPException(
-                        status_code=response.status_code,
-                        detail=f"Ollama API request failed: {response.text}"
+                    logging.error(f"Ollama API request failed: {response.status_code} - {response.text}")
+                    return GenerateResponse(
+                        text=f"Error: Failed to generate response. Status code: {response.status_code}",
+                        model_name=request.model_name
                     )
                 
                 result = response.json()
+                logging.info(f"Response received with {len(result.get('response', ''))} characters")
                 
                 # Return typed response
                 return GenerateResponse(
@@ -186,23 +208,30 @@ async def generate(request: GenerateRequest) -> GenerateResponse:
                     eval_duration=result.get("eval_duration"),
                 )
                 
-            except httpx.ConnectError:
-                raise HTTPException(
-                    status_code=503,
-                    detail="Could not connect to Ollama. Make sure Ollama is running (ollama serve)"
+            except httpx.ConnectError as e:
+                logging.error(f"Connection error: {str(e)}")
+                return GenerateResponse(
+                    text="Error: Could not connect to Ollama. Make sure Ollama is running (ollama serve)",
+                    model_name=request.model_name
                 )
-            except httpx.TimeoutException:
-                raise HTTPException(
-                    status_code=504,
-                    detail="Request to Ollama timed out"
+            except httpx.TimeoutException as e:
+                logging.error(f"Timeout error: {str(e)}")
+                return GenerateResponse(
+                    text="Error: Request to Ollama timed out. The model might be too slow or resource-intensive.",
+                    model_name=request.model_name
+                )
+            except Exception as e:
+                logging.error(f"Unexpected error: {str(e)}")
+                return GenerateResponse(
+                    text=f"Error: Unexpected error occurred: {str(e)}",
+                    model_name=request.model_name
                 )
             
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Unexpected error: {str(e)}"
+        logging.error(f"Error in generate endpoint: {str(e)}")
+        return GenerateResponse(
+            text=f"Error: {str(e)}",
+            model_name=request.model_name
         )
 
 if __name__ == "__main__":

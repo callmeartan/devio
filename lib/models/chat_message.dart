@@ -1,6 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uuid/uuid.dart';
-import 'dart:developer' as developer;
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 part 'chat_message.freezed.dart';
@@ -16,7 +15,9 @@ class ChatMessage with _$ChatMessage {
     required String chatId,
     required String senderId,
     required String content,
-    @JsonKey(fromJson: ChatMessage._timestampFromJson, toJson: ChatMessage._timestampToJson)
+    @JsonKey(
+        fromJson: ChatMessage._timestampFromJson,
+        toJson: ChatMessage._timestampToJson)
     required DateTime timestamp,
     @Default(false) bool isAI,
     String? senderName,
@@ -32,7 +33,8 @@ class ChatMessage with _$ChatMessage {
     @Default(false) bool isPlaceholder,
   }) = _ChatMessage;
 
-  factory ChatMessage.fromJson(Map<String, dynamic> json) => _$ChatMessageFromJson(json);
+  factory ChatMessage.fromJson(Map<String, dynamic> json) =>
+      _$ChatMessageFromJson(json);
 
   factory ChatMessage.create({
     String? chatId,
@@ -76,13 +78,14 @@ class ChatMessage with _$ChatMessage {
     required String content,
     required String userId,
     String? userName,
-  }) => ChatMessage.create(
-    chatId: chatId,
-    senderId: userId,
-    content: content,
-    isAI: false,
-    senderName: userName,
-  );
+  }) =>
+      ChatMessage.create(
+        chatId: chatId,
+        senderId: userId,
+        content: content,
+        isAI: false,
+        senderName: userName,
+      );
 
   factory ChatMessage.ai({
     String? chatId,
@@ -96,21 +99,22 @@ class ChatMessage with _$ChatMessage {
     int? evalCount,
     double? evalDuration,
     double? evalRate,
-  }) => ChatMessage.create(
-    chatId: chatId,
-    senderId: userId,
-    content: content,
-    isAI: true,
-    senderName: 'AI Assistant',
-    totalDuration: totalDuration,
-    loadDuration: loadDuration,
-    promptEvalCount: promptEvalCount,
-    promptEvalDuration: promptEvalDuration,
-    promptEvalRate: promptEvalRate,
-    evalCount: evalCount,
-    evalDuration: evalDuration,
-    evalRate: evalRate,
-  );
+  }) =>
+      ChatMessage.create(
+        chatId: chatId,
+        senderId: userId,
+        content: content,
+        isAI: true,
+        senderName: 'AI Assistant',
+        totalDuration: totalDuration,
+        loadDuration: loadDuration,
+        promptEvalCount: promptEvalCount,
+        promptEvalDuration: promptEvalDuration,
+        promptEvalRate: promptEvalRate,
+        evalCount: evalCount,
+        evalDuration: evalDuration,
+        evalRate: evalRate,
+      );
 
   static DateTime _timestampFromJson(dynamic json) {
     if (json is Timestamp) {
@@ -125,4 +129,4 @@ class ChatMessage with _$ChatMessage {
   static Timestamp _timestampToJson(DateTime time) {
     return Timestamp.fromDate(time);
   }
-} 
+}

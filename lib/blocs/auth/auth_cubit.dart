@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'dart:developer' as developer;
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:devio/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -16,14 +17,18 @@ class AuthCubit extends Cubit<AuthState> {
   final GoogleSignIn _googleSignIn;
   final FirebaseFirestore _firestore;
 
-  AuthCubit({FirebaseAuth? auth, GoogleSignIn? googleSignIn, FirebaseFirestore? firestore})
+  AuthCubit(
+      {FirebaseAuth? auth,
+      GoogleSignIn? googleSignIn,
+      FirebaseFirestore? firestore})
       : _auth = auth ?? FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn(
-          scopes: ['email', 'profile'],
-          clientId: defaultTargetPlatform == TargetPlatform.iOS 
-              ? DefaultFirebaseOptions.currentPlatform.iosClientId
-              : null,
-        ),
+        _googleSignIn = googleSignIn ??
+            GoogleSignIn(
+              scopes: ['email', 'profile'],
+              clientId: defaultTargetPlatform == TargetPlatform.iOS
+                  ? DefaultFirebaseOptions.currentPlatform.iosClientId
+                  : null,
+            ),
         _firestore = firestore ?? FirebaseFirestore.instance,
         super(const AuthState.initial()) {
     // Listen to auth state changes
@@ -45,14 +50,16 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       developer.log('Attempting anonymous sign in through AuthCubit...');
       final userCredential = await _auth.signInAnonymously();
-      developer.log('Anonymous sign in successful: ${userCredential.user?.uid}');
+      developer
+          .log('Anonymous sign in successful: ${userCredential.user?.uid}');
       emit(AuthState.authenticated(
         uid: userCredential.user?.uid ?? '',
         displayName: userCredential.user?.displayName,
         email: userCredential.user?.email,
       ));
     } on FirebaseAuthException catch (e) {
-      developer.log('Firebase Auth Error in AuthCubit: ${e.code} - ${e.message}');
+      developer
+          .log('Firebase Auth Error in AuthCubit: ${e.code} - ${e.message}');
       emit(AuthState.error(e.message ?? 'Anonymous sign in failed'));
     }
   }
@@ -104,7 +111,7 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       developer.log('Starting Google Sign In process...');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+
       if (googleUser == null) {
         developer.log('Google Sign In was cancelled by user');
         emit(const AuthState.error('Sign in cancelled'));
@@ -112,8 +119,9 @@ class AuthCubit extends Cubit<AuthState> {
       }
 
       developer.log('Getting Google Auth tokens...');
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
         developer.log('Failed to get Google Auth tokens');
         emit(const AuthState.error('Failed to get authentication tokens'));
@@ -129,13 +137,13 @@ class AuthCubit extends Cubit<AuthState> {
       developer.log('Signing in to Firebase...');
       final userCredential = await _auth.signInWithCredential(credential);
       final user = userCredential.user;
-      
+
       if (user != null) {
         developer.log('Successfully signed in with Google: ${user.email}');
         if (user.displayName?.isEmpty ?? true) {
           await user.updateDisplayName(googleUser.displayName);
         }
-        
+
         emit(AuthState.authenticated(
           uid: user.uid,
           displayName: user.displayName,
@@ -170,15 +178,18 @@ class AuthCubit extends Cubit<AuthState> {
 
       final userCredential = await _auth.signInWithCredential(oauthCredential);
       final user = userCredential.user;
-      
+
       if (user != null) {
         // Store name from Apple Sign In if it's the first time (when name is provided)
-        if (appleCredential.givenName != null || appleCredential.familyName != null) {
-          final displayName = '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'.trim();
-          
+        if (appleCredential.givenName != null ||
+            appleCredential.familyName != null) {
+          final displayName =
+              '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'
+                  .trim();
+
           // Store in Firebase Auth
           await user.updateDisplayName(displayName);
-          
+
           // Store in Firestore for future reference
           await _firestore.collection('users').doc(user.uid).set({
             'displayName': displayName,
@@ -188,7 +199,8 @@ class AuthCubit extends Cubit<AuthState> {
           }, SetOptions(merge: true));
         } else {
           // Try to get the stored name from Firestore if not provided by Apple
-          final userDoc = await _firestore.collection('users').doc(user.uid).get();
+          final userDoc =
+              await _firestore.collection('users').doc(user.uid).get();
           if (userDoc.exists && userDoc.data()?['displayName'] != null) {
             final storedDisplayName = userDoc.data()?['displayName'] as String;
             if (user.displayName == null || user.displayName!.isEmpty) {
@@ -196,7 +208,7 @@ class AuthCubit extends Cubit<AuthState> {
             }
           }
         }
-        
+
         emit(AuthState.authenticated(
           uid: user.uid,
           displayName: user.displayName,
@@ -260,7 +272,7 @@ class AuthCubit extends Cubit<AuthState> {
         final userId = user.uid;
         // Get the provider data before deleting
         final providers = user.providerData.map((e) => e.providerId).toList();
-        
+
         // First, delete all user data from Firestore
         try {
           await _deleteAllUserData(userId);
@@ -278,46 +290,48 @@ class AuthCubit extends Cubit<AuthState> {
             // Handle different providers
             if (providers.contains('apple.com')) {
               // Reauthenticate with Apple
-              final appleCredential = await SignInWithApple.getAppleIDCredential(
+              final appleCredential =
+                  await SignInWithApple.getAppleIDCredential(
                 scopes: [
                   AppleIDAuthorizationScopes.email,
                   AppleIDAuthorizationScopes.fullName,
                 ],
               );
-              
+
               final oauthCredential = OAuthProvider('apple.com').credential(
                 idToken: appleCredential.identityToken,
                 accessToken: appleCredential.authorizationCode,
               );
-              
+
               await user.reauthenticateWithCredential(oauthCredential);
             } else if (providers.contains('google.com')) {
               // Reauthenticate with Google
               final googleUser = await _googleSignIn.signIn();
-              if (googleUser == null) throw Exception('Google sign in was cancelled');
-              
+              if (googleUser == null)
+                throw Exception('Google sign in was cancelled');
+
               final googleAuth = await googleUser.authentication;
               final credential = GoogleAuthProvider.credential(
                 accessToken: googleAuth.accessToken,
                 idToken: googleAuth.idToken,
               );
-              
+
               await user.reauthenticateWithCredential(credential);
             }
-            
+
             // Try deleting all data again after reauthentication
             await _deleteAllUserData(userId);
             // Try deleting account again after reauthentication
             await user.delete();
           } else {
-            throw e;
+            rethrow;
           }
         }
-        
+
         // Sign out and clean up after successful deletion
         await _googleSignIn.signOut();
         await _auth.signOut();
-        
+
         // Emit unauthenticated state for proper redirection
         emit(const AuthState.unauthenticated());
       } else {
@@ -333,10 +347,10 @@ class AuthCubit extends Cubit<AuthState> {
   // Helper method to delete all user data
   Future<void> _deleteAllUserData(String userId) async {
     final batch = _firestore.batch();
-    
+
     // Delete user document
     batch.delete(_firestore.collection('users').doc(userId));
-    
+
     // Delete user's chats
     final userChats = await _firestore
         .collection('chats')
@@ -345,7 +359,7 @@ class AuthCubit extends Cubit<AuthState> {
     for (var doc in userChats.docs) {
       batch.delete(doc.reference);
     }
-    
+
     // Delete user's chat metadata
     final userChatMetadata = await _firestore
         .collection('chat_metadata')
@@ -354,8 +368,8 @@ class AuthCubit extends Cubit<AuthState> {
     for (var doc in userChatMetadata.docs) {
       batch.delete(doc.reference);
     }
-    
+
     // Commit all deletions
     await batch.commit();
   }
-} 
+}

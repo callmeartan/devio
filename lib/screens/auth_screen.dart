@@ -85,7 +85,7 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       final authCubit = context.read<AuthCubit>();
       await authCubit.signInWithGoogle();
-      
+
       // Only navigate if the state is authenticated
       if (!mounted) return;
       final state = authCubit.state;
@@ -108,7 +108,7 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       final authCubit = context.read<AuthCubit>();
       await authCubit.signInWithApple();
-      
+
       // Only navigate if the state is authenticated
       if (!mounted) return;
       final state = authCubit.state;
@@ -134,10 +134,11 @@ class _AuthScreenState extends State<AuthScreen> {
         clientSecret: const String.fromEnvironment('GITHUB_CLIENT_SECRET'),
         redirectUrl: const String.fromEnvironment('GITHUB_REDIRECT_URL'),
       );
-      
+
       final result = await gitHubSignIn.signIn(context);
       if (result.status == GitHubSignInResultStatus.ok) {
-        final githubAuthCredential = GithubAuthProvider.credential(result.token!);
+        final githubAuthCredential =
+            GithubAuthProvider.credential(result.token!);
         await FirebaseAuth.instance.signInWithCredential(githubAuthCredential);
         if (!mounted) return;
         context.go('/llm');
@@ -181,7 +182,7 @@ class _AuthScreenState extends State<AuthScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: OutlinedButton.icon(
         onPressed: isLoading ? null : onPressed,
-        icon: isLoading 
+        icon: isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
@@ -202,7 +203,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       body: Stack(
         children: [
@@ -213,8 +214,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  theme.colorScheme.background,
-                  theme.colorScheme.background.withOpacity(0.8),
+                  theme.colorScheme.surface,
+                  theme.colorScheme.surface.withOpacity(0.8),
                   theme.colorScheme.primary.withOpacity(0.2),
                 ],
               ),
@@ -281,7 +282,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ? 'Sign in to continue your development journey'
                                 : 'Create an account to start building amazing apps',
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onBackground.withOpacity(0.7),
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.7),
                             ),
                           ),
                           const SizedBox(height: 48),
@@ -335,7 +337,9 @@ class _AuthScreenState extends State<AuthScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : Text(widget.isLogin ? 'Login' : 'Create Account'),
+                                : Text(widget.isLogin
+                                    ? 'Login'
+                                    : 'Create Account'),
                           ),
                           const SizedBox(height: 24),
                           const Row(
@@ -374,7 +378,9 @@ class _AuthScreenState extends State<AuthScreen> {
                           TextButton(
                             onPressed: () => context.go(
                               '/auth',
-                              extra: {'mode': widget.isLogin ? 'signup' : 'login'},
+                              extra: {
+                                'mode': widget.isLogin ? 'signup' : 'login'
+                              },
                             ),
                             child: Text(
                               widget.isLogin
@@ -394,4 +400,4 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
-} 
+}

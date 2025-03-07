@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:devio/constants/assets.dart';
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,12 +15,13 @@ class IntroScreen extends StatefulWidget {
 class _IntroScreenState extends State<IntroScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  
+
   final List<IntroPage> _pages = [
     IntroPage(
       image: 'assets/images/intro_1.png',
       title: 'AI-Powered Development',
-      subtitle: 'Write better code faster with intelligent suggestions and real-time assistance',
+      subtitle:
+          'Write better code faster with intelligent suggestions and real-time assistance',
       gradient: [
         Colors.black,
         Colors.black87,
@@ -32,7 +32,8 @@ class _IntroScreenState extends State<IntroScreen> {
     IntroPage(
       image: 'assets/images/intro_2.png',
       title: 'Smart Code Analysis',
-      subtitle: 'Get instant feedback on code quality, performance, and security',
+      subtitle:
+          'Get instant feedback on code quality, performance, and security',
       gradient: [
         Colors.black87,
         Colors.black54,
@@ -43,7 +44,8 @@ class _IntroScreenState extends State<IntroScreen> {
     IntroPage(
       image: 'assets/images/intro_3.png',
       title: 'Seamless Integration',
-      subtitle: 'Works with your existing workflow and favorite development tools',
+      subtitle:
+          'Works with your existing workflow and favorite development tools',
       gradient: [
         Colors.black54,
         Colors.black38,
@@ -82,7 +84,7 @@ class _IntroScreenState extends State<IntroScreen> {
               ),
             ),
           ),
-          
+
           // Floating particles
           ...List.generate(
             20,
@@ -90,7 +92,7 @@ class _IntroScreenState extends State<IntroScreen> {
               color: _pages[_currentPage].gradient[0],
             ),
           ),
-          
+
           Column(
             children: [
               Expanded(
@@ -107,7 +109,7 @@ class _IntroScreenState extends State<IntroScreen> {
                   },
                 ),
               ),
-              
+
               // Navigation dots and buttons
               SafeArea(
                 child: Padding(
@@ -133,7 +135,7 @@ class _IntroScreenState extends State<IntroScreen> {
                           ),
                         ),
                       ),
-                      
+
                       // Next/Get Started button
                       _IntroButton(
                         onPressed: () {
@@ -203,17 +205,20 @@ class _IntroPageView extends StatelessWidget {
             page.illustration,
             size: 180,
             color: Colors.white.withOpacity(0.9),
-          ).animate(
-            target: isActive ? 1 : 0,
-          ).fade(
-            duration: 600.ms,
-          ).scale(
-            begin: const Offset(0.8, 0.8),
-            end: const Offset(1, 1),
-          ),
-          
+          )
+              .animate(
+                target: isActive ? 1 : 0,
+              )
+              .fade(
+                duration: 600.ms,
+              )
+              .scale(
+                begin: const Offset(0.8, 0.8),
+                end: const Offset(1, 1),
+              ),
+
           const SizedBox(height: 48),
-          
+
           // Title
           Text(
             page.title,
@@ -224,18 +229,21 @@ class _IntroPageView extends StatelessWidget {
               height: 1.2,
             ),
             textAlign: TextAlign.center,
-          ).animate(
-            target: isActive ? 1 : 0,
-          ).fadeIn(
-            delay: 200.ms,
-            duration: 600.ms,
-          ).moveY(
-            begin: 20,
-            end: 0,
-          ),
-          
+          )
+              .animate(
+                target: isActive ? 1 : 0,
+              )
+              .fadeIn(
+                delay: 200.ms,
+                duration: 600.ms,
+              )
+              .moveY(
+                begin: 20,
+                end: 0,
+              ),
+
           const SizedBox(height: 16),
-          
+
           // Subtitle
           Text(
             page.subtitle,
@@ -245,15 +253,18 @@ class _IntroPageView extends StatelessWidget {
               height: 1.4,
             ),
             textAlign: TextAlign.center,
-          ).animate(
-            target: isActive ? 1 : 0,
-          ).fadeIn(
-            delay: 400.ms,
-            duration: 600.ms,
-          ).moveY(
-            begin: 20,
-            end: 0,
-          ),
+          )
+              .animate(
+                target: isActive ? 1 : 0,
+              )
+              .fadeIn(
+                delay: 400.ms,
+                duration: 600.ms,
+              )
+              .moveY(
+                begin: 20,
+                end: 0,
+              ),
         ],
       ),
     );
@@ -330,7 +341,7 @@ class _IntroParticle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    
+
     return Positioned(
       left: random.nextDouble() * size.width,
       top: random.nextDouble() * size.height,
@@ -341,24 +352,29 @@ class _IntroParticle extends StatelessWidget {
           shape: BoxShape.circle,
           color: Colors.white.withOpacity(0.2),
         ),
-      ).animate(
-        onPlay: (controller) => controller.repeat(),
-      ).scaleXY(
-        duration: Duration(seconds: 2 + random.nextInt(2)),
-        begin: 0.5,
-        end: 1.5,
-      ).fadeIn(
-        duration: Duration(seconds: 2),
-      ).fadeOut(
-        delay: Duration(seconds: 1),
-        duration: Duration(seconds: 2),
-      ).move(
-        begin: const Offset(0, 0),
-        end: Offset(
-          random.nextDouble() * 100 - 50,
-          random.nextDouble() * 100 - 50,
-        ),
-      ),
+      )
+          .animate(
+            onPlay: (controller) => controller.repeat(),
+          )
+          .scaleXY(
+            duration: Duration(seconds: 2 + random.nextInt(2)),
+            begin: 0.5,
+            end: 1.5,
+          )
+          .fadeIn(
+            duration: Duration(seconds: 2),
+          )
+          .fadeOut(
+            delay: Duration(seconds: 1),
+            duration: Duration(seconds: 2),
+          )
+          .move(
+            begin: const Offset(0, 0),
+            end: Offset(
+              random.nextDouble() * 100 - 50,
+              random.nextDouble() * 100 - 50,
+            ),
+          ),
     );
   }
-} 
+}

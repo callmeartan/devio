@@ -39,7 +39,7 @@ class ChatRepository {
     try {
       _checkAuth();
       developer.log('Getting messages for chat: $chatId');
-      
+
       return _firestore
           .collection(_collectionPath)
           .where('chatId', isEqualTo: chatId)
@@ -47,18 +47,17 @@ class ChatRepository {
           .limit(50) // Reduce limit for faster initial load
           .snapshots()
           .map((snapshot) {
-            final messages = snapshot.docs
-                .map((doc) => ChatMessage.fromJson(doc.data()))
-                .toList();
-            return messages;
-          })
-          .handleError((error) {
-            developer.log('Error in getChatMessagesForId: $error');
-            throw error;
-          });
+        final messages = snapshot.docs
+            .map((doc) => ChatMessage.fromJson(doc.data()))
+            .toList();
+        return messages;
+      }).handleError((error) {
+        developer.log('Error in getChatMessagesForId: $error');
+        throw error;
+      });
     } catch (e) {
       developer.log('Error setting up chat stream: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -66,15 +65,13 @@ class ChatRepository {
     try {
       _checkAuth();
       developer.log('Getting chat histories');
-      
+
       // Get all metadata in a single query
-      final metadataSnapshot = await _firestore
-          .collection(_chatMetadataPath)
-          .get();
-      
+      final metadataSnapshot =
+          await _firestore.collection(_chatMetadataPath).get();
+
       final metadataMap = Map.fromEntries(
-        metadataSnapshot.docs.map((doc) => MapEntry(doc.id, doc.data()))
-      );
+          metadataSnapshot.docs.map((doc) => MapEntry(doc.id, doc.data())));
 
       // Get latest messages for each chat
       final QuerySnapshot snapshot = await _firestore
@@ -90,9 +87,10 @@ class ChatRepository {
         try {
           final data = doc.data() as Map<String, dynamic>;
           final message = ChatMessage.fromJson(data);
-          
+
           if (!chatHistories.containsKey(message.chatId) ||
-              message.timestamp.isAfter(chatHistories[message.chatId]!.timestamp)) {
+              message.timestamp
+                  .isAfter(chatHistories[message.chatId]!.timestamp)) {
             chatHistories[message.chatId] = message;
           }
         } catch (e) {
@@ -114,7 +112,8 @@ class ChatRepository {
       // Sort by pinned status first, then by timestamp
       result.sort((a, b) {
         if (a['isPinned'] == b['isPinned']) {
-          return (b['timestamp'] as DateTime).compareTo(a['timestamp'] as DateTime);
+          return (b['timestamp'] as DateTime)
+              .compareTo(a['timestamp'] as DateTime);
         }
         return (b['isPinned'] as bool) ? 1 : -1;
       });
@@ -137,16 +136,14 @@ class ChatRepository {
   Future<void> sendMessage(ChatMessage message) async {
     try {
       _checkAuth();
-      developer.log('Sending message: ${message.id} for chat: ${message.chatId}');
+      developer
+          .log('Sending message: ${message.id} for chat: ${message.chatId}');
       final data = message.toJson();
-      
+
       // Convert timestamp to Firestore Timestamp
       data['timestamp'] = Timestamp.fromDate(message.timestamp);
-      
-      await _firestore
-          .collection(_collectionPath)
-          .doc(message.id)
-          .set(data);
+
+      await _firestore.collection(_collectionPath).doc(message.id).set(data);
       developer.log('Message sent successfully');
     } catch (e) {
       developer.log('Error sending message: $e');
@@ -168,28 +165,29 @@ class ChatRepository {
       _checkAuth();
       final userId = _auth.currentUser!.uid;
       developer.log('Starting chat clear process for user: $userId');
-      
+
       // Get all messages for the current user
       final allMessages = await _firestore
           .collection(_collectionPath)
           .where('senderId', isEqualTo: userId)
           .get();
-      
+
       // Get all chat IDs from the messages
       final chatIds = allMessages.docs
           .map((doc) => (doc.data()['chatId'] as String))
           .toSet()
           .toList();
-      
+
       // Clear chat metadata first
       developer.log('Clearing chat metadata...');
       final metadataBatch = _firestore.batch();
       for (var chatId in chatIds) {
-        metadataBatch.delete(_firestore.collection(_chatMetadataPath).doc(chatId));
+        metadataBatch
+            .delete(_firestore.collection(_chatMetadataPath).doc(chatId));
       }
       await metadataBatch.commit();
       developer.log('Cleared metadata for ${chatIds.length} chats');
-      
+
       // Then clear messages
       developer.log('Clearing chat messages...');
       final messageBatch = _firestore.batch();
@@ -198,7 +196,7 @@ class ChatRepository {
       }
       await messageBatch.commit();
       developer.log('Cleared ${allMessages.docs.length} messages');
-      
+
       developer.log('Chat clear process completed successfully');
     } catch (e) {
       developer.log('Error clearing chat: $e');
@@ -206,7 +204,8 @@ class ChatRepository {
     }
   }
 
-  Future<void> updateChatMetadata(String chatId, Map<String, dynamic> updates) async {
+  Future<void> updateChatMetadata(
+      String chatId, Map<String, dynamic> updates) async {
     try {
       _checkAuth();
       await _firestore
@@ -244,14 +243,14 @@ class ChatRepository {
           .get();
 
       final batch = _firestore.batch();
-      
+
       for (var message in messages.docs) {
         batch.delete(message.reference);
       }
 
       // Delete chat metadata
       batch.delete(_firestore.collection(_chatMetadataPath).doc(chatId));
-      
+
       await batch.commit();
     } catch (e) {
       throw Exception('Failed to delete chat: $e');
@@ -261,22 +260,21 @@ class ChatRepository {
   Future<Map<String, dynamic>> getChatMetadata(String chatId) async {
     try {
       _checkAuth();
-      final doc = await _firestore
-          .collection(_chatMetadataPath)
-          .doc(chatId)
-          .get();
-      
+      final doc =
+          await _firestore.collection(_chatMetadataPath).doc(chatId).get();
+
       return doc.data() ?? {};
     } catch (e) {
       throw Exception('Failed to get chat metadata: $e');
     }
   }
 
-  Future<void> batchUpdateMetadata(Map<String, Map<String, dynamic>> updates) async {
+  Future<void> batchUpdateMetadata(
+      Map<String, Map<String, dynamic>> updates) async {
     try {
       _checkAuth();
       final batch = _firestore.batch();
-      
+
       updates.forEach((chatId, data) {
         batch.set(
           _firestore.collection(_chatMetadataPath).doc(chatId),
@@ -284,10 +282,10 @@ class ChatRepository {
           SetOptions(merge: true),
         );
       });
-      
+
       await batch.commit();
     } catch (e) {
       throw Exception('Failed to batch update metadata: $e');
     }
   }
-} 
+}
