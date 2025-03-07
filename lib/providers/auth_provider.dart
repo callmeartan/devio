@@ -25,20 +25,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> signInWithGitHub(BuildContext context) async {
-    _setLoading(true);
-    try {
-      // You'll need to replace these with your actual GitHub OAuth credentials
-      await _authService.signInWithGitHub(
-        context,
-        'your-client-id',
-        'your-client-secret',
-      );
-    } finally {
-      _setLoading(false);
-    }
-  }
-
   void signInOffline() {
     _authService.signInOffline();
   }
@@ -47,4 +33,4 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = value;
     notifyListeners();
   }
-} 
+}

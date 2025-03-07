@@ -32,7 +32,6 @@ DevIO is a Flutter application that provides AI-powered assistance for app devel
 - Firebase Authentication integration
 - Support for anonymous sign-in
 - Google Sign-in
-- GitHub Sign-in
 - Apple Sign-in (iOS)
 
 ### ⚡ Performance Features
@@ -106,7 +105,6 @@ flutter run
 ### Authentication
 - google_sign_in: ^6.2.1
 - sign_in_with_apple: ^6.1.4
-- github_sign_in: ^0.0.5-dev.4
 
 ### AI & Document Handling
 - google_generative_ai: ^0.0.1-dev

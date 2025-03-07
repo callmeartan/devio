@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:github_sign_in/github_sign_in.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/constants/assets.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
@@ -121,30 +120,6 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted) {
         _showError('Apple sign in failed: ${e.toString()}');
       }
-    } finally {
-      if (mounted) setState(() => _socialLoading = '');
-    }
-  }
-
-  Future<void> _signInWithGithub() async {
-    setState(() => _socialLoading = 'github');
-    try {
-      final GitHubSignIn gitHubSignIn = GitHubSignIn(
-        clientId: const String.fromEnvironment('GITHUB_CLIENT_ID'),
-        clientSecret: const String.fromEnvironment('GITHUB_CLIENT_SECRET'),
-        redirectUrl: const String.fromEnvironment('GITHUB_REDIRECT_URL'),
-      );
-
-      final result = await gitHubSignIn.signIn(context);
-      if (result.status == GitHubSignInResultStatus.ok) {
-        final githubAuthCredential =
-            GithubAuthProvider.credential(result.token!);
-        await FirebaseAuth.instance.signInWithCredential(githubAuthCredential);
-        if (!mounted) return;
-        context.go('/llm');
-      }
-    } catch (e) {
-      _showError('GitHub sign in failed: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _socialLoading = '');
     }
@@ -365,13 +340,6 @@ class _AuthScreenState extends State<AuthScreen> {
                             label: 'Continue with Apple',
                             onPressed: _signInWithApple,
                             isLoading: _socialLoading == 'apple',
-                            color: Colors.black,
-                          ),
-                          _buildSocialButton(
-                            icon: FontAwesomeIcons.github,
-                            label: 'Continue with GitHub',
-                            onPressed: _signInWithGithub,
-                            isLoading: _socialLoading == 'github',
                             color: Colors.black,
                           ),
                           const SizedBox(height: 16),
