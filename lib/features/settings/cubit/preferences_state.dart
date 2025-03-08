@@ -7,7 +7,7 @@ part 'preferences_state.g.dart';
 @freezed
 class PreferencesState with _$PreferencesState {
   const factory PreferencesState({
-    @Default(ThemeMode.system) ThemeMode themeMode,
+    @Default(ThemeMode.dark) ThemeMode themeMode,
     @Default(true) bool isNotificationsEnabled,
     @Default(true) bool isPushNotificationsEnabled,
     @Default(true) bool isEmailNotificationsEnabled,
@@ -17,4 +17,4 @@ class PreferencesState with _$PreferencesState {
 
   factory PreferencesState.fromJson(Map<String, dynamic> json) =>
       _$PreferencesStateFromJson(json);
-} 
+}

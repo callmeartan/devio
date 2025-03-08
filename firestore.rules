@@ -15,6 +15,7 @@ service cloud.firestore {
       return 
         message.id is string &&
         message.senderId is string &&
+        message.chatId is string &&
         message.content is string &&
         message.content.size() <= 10000 && // Limit message size
         message.timestamp is timestamp &&
@@ -49,7 +50,7 @@ service cloud.firestore {
 
     match /chats/{messageId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isOwner(request.resource.data.senderId);
+      allow create: if isAuthenticated() && isValidMessage();
       allow update: if false;
       allow delete: if isAuthenticated() && (
         isOwner(resource.data.senderId) || 

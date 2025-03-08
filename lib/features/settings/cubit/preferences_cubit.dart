@@ -20,7 +20,7 @@ class PreferencesCubit extends Cubit<PreferencesState> {
 
       final themeIndex = _prefs.getInt(_themeKey);
       final themeMode =
-          themeIndex != null ? ThemeMode.values[themeIndex] : ThemeMode.system;
+          themeIndex != null ? ThemeMode.values[themeIndex] : ThemeMode.dark;
 
       final isNotificationsEnabled = _prefs.getBool(_notificationsKey) ?? true;
       final isPushNotificationsEnabled =

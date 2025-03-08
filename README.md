@@ -34,6 +34,11 @@ DevIO is a Flutter application that provides AI-powered assistance for app devel
 - Google Sign-in
 - Apple Sign-in (iOS)
 
+### 🌐 Web Integration
+- WebView support for in-app browsing
+- Seamless integration with web resources
+- Platform-specific WebView implementations
+
 ### ⚡ Performance Features
 - Real-time performance metrics
 - Token usage tracking
@@ -88,38 +93,46 @@ flutter run
 ### Core
 - flutter_bloc: ^9.0.0
 - go_router: ^14.8.0
-- freezed_annotation: ^2.4.1
+- freezed_annotation: ^3.0.0
 - json_annotation: ^4.8.1
-- intl: ^0.19.0
+- intl: ^0.20.2
 - uuid: ^4.2.1
+- provider: ^6.1.1
 
 ### Firebase
-- firebase_core: ^3.11.0
-- firebase_auth: ^5.4.2
-- cloud_firestore: ^5.6.3
-- firebase_storage: ^12.4.2
-- firebase_analytics: ^11.4.2
-- firebase_messaging: ^15.2.2
-- firebase_crashlytics: ^4.3.2
+- firebase_core: ^3.12.1
+- firebase_auth: ^5.5.1
+- cloud_firestore: ^5.6.5
+- firebase_storage: ^12.4.4
+- firebase_analytics: ^11.4.4
+- firebase_messaging: ^15.2.4
+- firebase_crashlytics: ^4.3.4
 
 ### Authentication
 - google_sign_in: ^6.2.1
 - sign_in_with_apple: ^6.1.4
 
 ### AI & Document Handling
-- google_generative_ai: ^0.0.1-dev
-- syncfusion_flutter_pdf: ^24.1.46
+- google_generative_ai: ^0.4.6
+- syncfusion_flutter_pdf: ^28.2.9
 - image_picker: ^1.0.7
+
+### Web Integration
+- webview_flutter: ^4.7.0
+- webview_flutter_wkwebview: ^3.12.0
 
 ### UI & Utilities
 - cached_network_image: ^3.3.1
 - flutter_dotenv: ^5.1.0
 - font_awesome_flutter: ^10.7.0
-- google_fonts: ^4.0.0
-- animate_do: ^3.3.4
+- google_fonts: ^6.2.1
+- animate_do: ^4.2.0
 - flutter_animate: ^4.5.0
+- smooth_page_indicator: ^1.2.1
 - path: ^1.8.3
-- mime: ^1.0.4
+- mime: ^2.0.0
+- shared_preferences: ^2.2.2
+- url_launcher: ^6.2.4
 
 ## 🏗️ Architecture
 
@@ -136,6 +149,9 @@ lib/
 ├── constants/      # App constants and configurations
 ├── cubits/         # Cubit state management
 ├── features/       # Feature modules
+│   ├── llm/        # LLM integration
+│   ├── settings/   # App settings
+│   └── ...         # Other features
 ├── models/         # Data models
 ├── providers/      # Provider implementations
 ├── repositories/   # Data repositories
@@ -153,6 +169,7 @@ lib/
 - LlmCubit: Manages AI model interactions
 - ChatCubit: Handles chat state and operations
 - AuthCubit: Manages authentication state
+- PreferencesCubit: Manages app preferences
 - DocumentService: Handles document processing
 - GeminiService: Manages Gemini API interactions
 
