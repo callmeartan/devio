@@ -4,6 +4,27 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../features/llm/cubit/llm_cubit.dart';
 import 'dart:typed_data';
 
+// Model info class for displaying details about each model
+class ModelInfo {
+  final String description;
+  final String? parameterSize;
+  final String? family;
+  final String? format;
+  final String? quantizationLevel;
+  final bool hasDetails;
+  final bool showModelDetails;
+
+  ModelInfo({
+    required this.description,
+    this.parameterSize,
+    this.family,
+    this.format,
+    this.quantizationLevel,
+    this.hasDetails = false,
+    this.showModelDetails = false,
+  });
+}
+
 class ModelSelectionUI extends StatefulWidget {
   final List<String> availableModels;
   final String? selectedModel;
@@ -116,149 +137,150 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: IntrinsicHeight(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header with title and actions
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header with title and actions
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.smart_toy_outlined,
+                                size: 20,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Select AI Model',
+                                    style:
+                                        theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Choose the best model for your task',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Refresh button with animation
+                            Material(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.refresh,
+                                  size: 20,
+                                  color: theme.colorScheme.primary,
+                                )
+                                    .animate(
+                                      onPlay: (controller) =>
+                                          widget.isLoadingModels
+                                              ? controller.repeat()
+                                              : null,
+                                    )
+                                    .rotate(
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                onPressed: widget.onRefresh,
+                                tooltip: 'Refresh models',
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Close button
+                            Material(
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(8),
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.close,
+                                  size: 20,
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.8),
+                                ),
+                                onPressed: widget.onClose,
+                                tooltip: 'Close model selection',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Provider selector with enhanced styling
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            _buildProviderSelector(context),
+                            const Spacer(),
+                            if (widget.isLoadingModels)
                               Container(
-                                padding: const EdgeInsets.all(8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: theme.colorScheme.primary
                                       .withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                                child: Icon(
-                                  Icons.smart_toy_outlined,
-                                  size: 20,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
-                                      'Select AI Model',
-                                      style:
-                                          theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.colorScheme.onSurface,
+                                    SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                theme.colorScheme.primary),
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
+                                    const SizedBox(width: 8),
                                     Text(
-                                      'Choose the best model for your task',
+                                      'Loading...',
                                       style:
                                           theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onSurface
-                                            .withOpacity(0.6),
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              // Refresh button with animation
-                              Material(
-                                color:
-                                    theme.colorScheme.primary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.refresh,
-                                    size: 20,
-                                    color: theme.colorScheme.primary,
-                                  )
-                                      .animate(
-                                        onPlay: (controller) =>
-                                            widget.isLoadingModels
-                                                ? controller.repeat()
-                                                : null,
-                                      )
-                                      .rotate(
-                                        duration: const Duration(seconds: 1),
-                                      ),
-                                  onPressed: widget.onRefresh,
-                                  tooltip: 'Refresh models',
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Close button
-                              Material(
-                                color: theme.colorScheme.surfaceContainerHighest
-                                    .withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(8),
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.close,
-                                    size: 20,
-                                    color: theme.colorScheme.onSurface
-                                        .withOpacity(0.8),
-                                  ),
-                                  onPressed: widget.onClose,
-                                  tooltip: 'Close model selection',
-                                ),
-                              ),
-                            ],
-                          ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(height: 8),
 
-                        // Provider selector with enhanced styling
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              _buildProviderSelector(context),
-                              const Spacer(),
-                              if (widget.isLoadingModels)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                  theme.colorScheme.primary),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Loading...',
-                                        style:
-                                            theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.primary,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
+                      // Model content area - Wrap in Expanded with SingleChildScrollView to solve overflow
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: _buildModelContent(),
                         ),
-                        const SizedBox(height: 8),
-
-                        // Model content area
-                        _buildModelContent(),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -382,97 +404,261 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     final llmCubit = context.read<LlmCubit>();
     final theme = Theme.of(context);
 
-    return PopupMenuButton<LlmProvider>(
-      initialValue: llmCubit.currentProvider,
-      onSelected: (LlmProvider provider) {
-        llmCubit.setProvider(provider);
-        widget.onRefresh();
-      },
-      tooltip: 'Select AI provider',
-      color: theme.colorScheme.surface,
-      surfaceTintColor: Colors.transparent,
-      elevation: 4,
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<LlmProvider>>[
-        PopupMenuItem<LlmProvider>(
-          value: LlmProvider.local,
-          child: Row(
-            children: [
-              Icon(
-                Icons.computer,
-                color: llmCubit.currentProvider == LlmProvider.local
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
-                size: 20,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        PopupMenuButton<LlmProvider>(
+          initialValue: llmCubit.currentProvider,
+          onSelected: (LlmProvider provider) {
+            llmCubit.setProvider(provider);
+            widget.onRefresh();
+          },
+          tooltip: 'Select AI provider',
+          color: theme.colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 4,
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<LlmProvider>>[
+            PopupMenuItem<LlmProvider>(
+              value: LlmProvider.local,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.computer,
+                    color: llmCubit.currentProvider == LlmProvider.local
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withOpacity(0.7),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Local Model',
+                    style: TextStyle(
+                      color: llmCubit.currentProvider == LlmProvider.local
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Local Model',
-                style: TextStyle(
-                  color: llmCubit.currentProvider == LlmProvider.local
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.7),
+            ),
+            PopupMenuItem<LlmProvider>(
+              value: LlmProvider.gemini,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.cloud,
+                    color: llmCubit.currentProvider == LlmProvider.gemini
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withOpacity(0.7),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Gemini',
+                    style: TextStyle(
+                      color: llmCubit.currentProvider == LlmProvider.gemini
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  llmCubit.currentProvider == LlmProvider.local
+                      ? Icons.computer
+                      : Icons.cloud,
+                  size: 16,
+                  color: theme.colorScheme.primary,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  llmCubit.currentProvider == LlmProvider.local
+                      ? 'Local'
+                      : 'Gemini',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.arrow_drop_down,
+                  size: 16,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ],
+            ),
           ),
         ),
-        PopupMenuItem<LlmProvider>(
-          value: LlmProvider.gemini,
-          child: Row(
-            children: [
-              Icon(
-                Icons.cloud,
-                color: llmCubit.currentProvider == LlmProvider.gemini
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Gemini',
-                style: TextStyle(
-                  color: llmCubit.currentProvider == LlmProvider.gemini
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.7),
+        // Add Ollama IP configuration button only for local provider
+        if (llmCubit.currentProvider == LlmProvider.local)
+          Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: Tooltip(
+              message: llmCubit.customOllamaIp != null &&
+                      llmCubit.customOllamaIp!.isNotEmpty
+                  ? 'Ollama IP: ${llmCubit.customOllamaIp}'
+                  : 'Configure Ollama Connection',
+              child: IconButton(
+                icon: Icon(
+                  Icons.settings,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                onPressed: () => _showOllamaConfigDialog(context),
+                style: IconButton.styleFrom(
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest
+                      .withOpacity(0.5),
+                  padding: const EdgeInsets.all(8),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
       ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
+    );
+  }
+
+  void _showOllamaConfigDialog(BuildContext context) {
+    final llmCubit = context.read<LlmCubit>();
+    final theme = Theme.of(context);
+
+    final ipController =
+        TextEditingController(text: llmCubit.customOllamaIp ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
           children: [
             Icon(
-              llmCubit.currentProvider == LlmProvider.local
-                  ? Icons.computer
-                  : Icons.cloud,
-              size: 16,
+              Icons.laptop,
+              size: 20,
               color: theme.colorScheme.primary,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 8),
             Text(
-              llmCubit.currentProvider == LlmProvider.local
-                  ? 'Local'
-                  : 'Gemini',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
+              'Ollama Connection Settings',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 16,
-              color: theme.colorScheme.onSurface,
             ),
           ],
         ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter Ollama server IP address or URL',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: ipController,
+              decoration: InputDecoration(
+                hintText: 'e.g., 192.168.1.10 or http://example.com:11434',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                prefixIcon: const Icon(Icons.link),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Leave empty to use default (localhost:11434)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.primaryContainer,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.computer,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Connect to Ollama running on another machine in your network',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              final ipAddress = ipController.text.trim().isEmpty
+                  ? null
+                  : ipController.text.trim();
+              await llmCubit.setCustomOllamaIp(ipAddress);
+              widget.onRefresh(); // Refresh model list
+              Navigator.of(context).pop();
+            },
+            icon: const Icon(Icons.save, size: 16),
+            label: const Text('Save & Connect'),
+          ),
+        ],
       ),
     );
   }
@@ -481,6 +667,8 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     final filteredModels = _getFilteredModels();
     final theme = Theme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final llmCubit = context.read<LlmCubit>();
+    final isLocalProvider = llmCubit.currentProvider == LlmProvider.local;
 
     // Group models by type
     final textModels =
@@ -489,8 +677,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
         filteredModels.where((m) => m.contains('vision')).toList();
 
     // Use a Column with SingleChildScrollView instead of ListView for better sizing
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+    return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -572,40 +759,75 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
             const SizedBox(height: 8),
             ...visionModels.map((model) => _buildModelItem(model)),
           ],
-          // Note about model availability
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color:
-                    theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withOpacity(0.5),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: theme.colorScheme.onSurfaceVariant,
+          // Note about model availability - ONLY for cloud providers
+          if (!isLocalProvider) // Hide for local models
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest
+                      .withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.5),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Only showing models that are currently available. Some models may be temporarily unavailable due to high demand.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        height: 1.4,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Only showing models that are currently available. Some models may be temporarily unavailable due to high demand.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
+          // For local models, show a different note if appropriate
+          if (isLocalProvider && filteredModels.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.computer,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Using models from your local Ollama instance',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -616,6 +838,9 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     final isRecommended =
         model == 'gemini-1.0-pro' || model == 'gemini-1.0-pro-vision';
     final isSelected = model == widget.selectedModel;
+
+    // Extract model details to show better information
+    final ModelInfo modelInfo = _getModelInfo(model);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -640,100 +865,300 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                 width: isSelected ? 1.5 : 1,
               ),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.outline.withOpacity(0.5),
-                      width: isSelected ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Container(
-                      width: 12,
-                      height: 12,
+                Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isSelected
-                            ? theme.colorScheme.primary
-                            : Colors.transparent,
+                        border: Border.all(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outline.withOpacity(0.5),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                _getModelDisplayName(model),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: isSelected
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurface,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              if (isRecommended)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primaryContainer
+                                        .withOpacity(0.4),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.verified,
+                                        size: 12,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Recommended',
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                          color: theme.colorScheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            modelInfo.description,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (modelInfo.parameterSize != null)
+                      Tooltip(
+                        message: 'Model size: ${modelInfo.parameterSize}',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceVariant,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            modelInfo.parameterSize ?? '',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+
+                // Add model details section
+                if (modelInfo.showModelDetails) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (modelInfo.family != null)
+                          _buildModelDetailItem(
+                            theme,
+                            'Family',
+                            modelInfo.family!,
+                            Icons.category_outlined,
+                          ),
+                        if (modelInfo.quantizationLevel != null)
+                          _buildModelDetailItem(
+                            theme,
+                            'Quantization',
+                            modelInfo.quantizationLevel!,
+                            Icons.compress_outlined,
+                          ),
+                        if (modelInfo.format != null)
+                          _buildModelDetailItem(
+                            theme,
+                            'Format',
+                            modelInfo.format!,
+                            Icons.data_object_outlined,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Add expand/collapse button for details
+                if (modelInfo.hasDetails)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _toggleModelDetails(model);
+                        });
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 0),
+                        minimumSize: const Size(0, 32),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            modelInfo.showModelDetails
+                                ? 'Hide Details'
+                                : 'Show Details',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          Icon(
+                            modelInfo.showModelDetails
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            _getModelDisplayName(model),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurface,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          if (isRecommended)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primaryContainer
-                                    .withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.verified,
-                                    size: 12,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Recommended',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _getModelDescription(model),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildModelDetailItem(
+      ThemeData theme, String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 12,
+            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$label: ',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Model details tracking
+  final Map<String, bool> _expandedModels = {};
+
+  void _toggleModelDetails(String model) {
+    _expandedModels[model] = !(_expandedModels[model] ?? false);
+  }
+
+  ModelInfo _getModelInfo(String model) {
+    // Parse model details from the model string
+    String? paramSize;
+    String? family;
+    String? format;
+    String? quantization;
+    bool hasDetails = false;
+
+    // Extract parameter size from model name for local models
+    if (model.contains('deepseek') && model.contains('14b')) {
+      paramSize = '14B';
+      family = 'deepseek';
+      format = 'GGUF';
+      quantization = 'Q4_K_M';
+      hasDetails = true;
+    } else if (model.contains('llava') && model.contains('13b')) {
+      paramSize = '13B';
+      family = 'Llava';
+      format = 'GGUF';
+      quantization = 'Q4_0';
+      hasDetails = true;
+    } else if (model.contains('mistral')) {
+      paramSize = '7B';
+      family = 'Mistral';
+      format = 'GGUF';
+      quantization = 'Q4_0';
+      hasDetails = true;
+    } else if (model.contains('llama3') && model.contains('8b')) {
+      paramSize = '8B';
+      family = 'Llama';
+      format = 'GGUF';
+      quantization = 'Q4_K_M';
+      hasDetails = true;
+    } else if (model.contains('phi3') && model.contains('14b')) {
+      paramSize = '14B';
+      family = 'Phi';
+      format = 'GGUF';
+      quantization = 'Q4_K_M';
+      hasDetails = true;
+    } else if (model.contains('gemini-1.5-pro')) {
+      paramSize = '1.7T';
+      family = 'Gemini';
+      hasDetails = false;
+    } else if (model.contains('gemini-1.0-pro')) {
+      paramSize = '1.5T';
+      family = 'Gemini';
+      hasDetails = false;
+    }
+
+    final description = _getModelDescription(model);
+    final showModelDetails = _expandedModels[model] ?? false;
+
+    return ModelInfo(
+      description: description,
+      parameterSize: paramSize,
+      family: family,
+      format: format,
+      quantizationLevel: quantization,
+      hasDetails: hasDetails,
+      showModelDetails: showModelDetails,
     );
   }
 

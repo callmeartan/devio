@@ -3,11 +3,13 @@ import 'dart:developer' as dev;
 import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 import '../models/llm_response.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LlmService {
   final String baseUrl;
   final http.Client _client;
   static const _timeout = Duration(seconds: 120);
+  static const String _customOllamaIpKey = 'custom_ollama_ip';
 
   LlmService({
     String? baseUrl,
@@ -21,6 +23,89 @@ class LlmService {
       return 'http://localhost:8080'; // Use localhost for iOS too
     }
     return 'http://localhost:8080';
+  }
+
+  // Get the saved custom Ollama IP address
+  Future<String?> getCustomOllamaIp() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_customOllamaIpKey);
+  }
+
+  // Save a custom Ollama IP address
+  Future<bool> setCustomOllamaIp(String? ipAddress) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    try {
+      // Save locally
+      if (ipAddress == null || ipAddress.isEmpty) {
+        prefs.remove(_customOllamaIpKey);
+      } else {
+        prefs.setString(_customOllamaIpKey, ipAddress);
+      }
+
+      // Update server config
+      await _updateServerOllamaConfig(ipAddress);
+      return true;
+    } catch (e) {
+      dev.log('Error saving custom Ollama IP: $e');
+      return false;
+    }
+  }
+
+  // Update the server's Ollama configuration
+  Future<void> _updateServerOllamaConfig(String? ipAddress) async {
+    try {
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/config/ollama'),
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'custom_ollama_ip': ipAddress,
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode != 200) {
+        dev.log('Error updating server Ollama config: ${response.body}');
+      } else {
+        dev.log('Server Ollama config updated successfully');
+      }
+    } catch (e) {
+      dev.log('Error connecting to server to update Ollama config: $e');
+      // Don't rethrow - this is a non-critical operation
+    }
+  }
+
+  // Get the Ollama server URL with the custom IP if set
+  Future<String> getOllamaServerUrl() async {
+    try {
+      // Try to get the current config from the server
+      final response = await _client
+          .get(Uri.parse('$baseUrl/config/ollama'))
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        return jsonResponse['ollama_api_base'] as String;
+      }
+    } catch (e) {
+      dev.log('Error getting Ollama config from server: $e');
+    }
+
+    // Fallback to local preferences
+    final customIp = await getCustomOllamaIp();
+    if (customIp == null || customIp.isEmpty) {
+      return 'http://localhost:11434'; // Default Ollama URL
+    }
+
+    // Check if the IP already includes http:// or https://
+    if (customIp.startsWith('http://') || customIp.startsWith('https://')) {
+      return customIp;
+    } else {
+      return 'http://$customIp:11434'; // Add protocol and port
+    }
   }
 
   Future<List<String>> getAvailableModels() async {
