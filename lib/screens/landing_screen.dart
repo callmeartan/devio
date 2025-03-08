@@ -129,21 +129,29 @@ class _LandingScreenState extends State<LandingScreen> {
                       onPressed: () =>
                           context.go('/auth', extra: {'mode': 'login'}),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
+                        foregroundColor: theme.brightness == Brightness.light
+                            ? Colors.black
+                            : Colors.white,
                         backgroundColor: Colors.transparent,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: Colors.white, width: 2.0),
+                        side: BorderSide(
+                            color: theme.brightness == Brightness.light
+                                ? Colors.black
+                                : Colors.white,
+                            width: 2.0),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Sign In',
                         style: TextStyle(
                           fontFamily: 'JosefinSans',
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: theme.brightness == Brightness.light
+                              ? Colors.black
+                              : Colors.white,
                         ),
                       ),
                     ),
