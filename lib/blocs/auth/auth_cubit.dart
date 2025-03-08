@@ -273,6 +273,8 @@ class AuthCubit extends Cubit<AuthState> {
         // Get the provider data before deleting
         final providers = user.providerData.map((e) => e.providerId).toList();
 
+        developer.log('Starting account deletion process for user: $userId');
+
         // First, delete all user data from Firestore
         try {
           await _deleteAllUserData(userId);
@@ -280,52 +282,33 @@ class AuthCubit extends Cubit<AuthState> {
         } catch (e) {
           developer.log('Error deleting Firestore data: $e');
           // Continue with account deletion even if Firestore deletion fails
-        }
+          // But rethrow if this is the only error
+          final firestoreError = e;
 
-        // Then try to delete the auth account
-        try {
-          await user.delete();
-        } catch (e) {
-          if (e is FirebaseAuthException && e.code == 'requires-recent-login') {
-            // Handle different providers
-            if (providers.contains('apple.com')) {
-              // Reauthenticate with Apple
-              final appleCredential =
-                  await SignInWithApple.getAppleIDCredential(
-                scopes: [
-                  AppleIDAuthorizationScopes.email,
-                  AppleIDAuthorizationScopes.fullName,
-                ],
-              );
-
-              final oauthCredential = OAuthProvider('apple.com').credential(
-                idToken: appleCredential.identityToken,
-                accessToken: appleCredential.authorizationCode,
-              );
-
-              await user.reauthenticateWithCredential(oauthCredential);
-            } else if (providers.contains('google.com')) {
-              // Reauthenticate with Google
-              final googleUser = await _googleSignIn.signIn();
-              if (googleUser == null)
-                throw Exception('Google sign in was cancelled');
-
-              final googleAuth = await googleUser.authentication;
-              final credential = GoogleAuthProvider.credential(
-                accessToken: googleAuth.accessToken,
-                idToken: googleAuth.idToken,
-              );
-
-              await user.reauthenticateWithCredential(credential);
-            }
-
-            // Try deleting all data again after reauthentication
-            await _deleteAllUserData(userId);
-            // Try deleting account again after reauthentication
+          // Then try to delete the auth account
+          try {
             await user.delete();
-          } else {
-            rethrow;
+          } catch (authError) {
+            if (authError is FirebaseAuthException &&
+                authError.code == 'requires-recent-login') {
+              // Handle reauthentication
+              await _handleReauthentication(user, providers);
+
+              // Try deleting all data again after reauthentication
+              await _deleteAllUserData(userId);
+
+              // Try deleting account again after reauthentication
+              await user.delete();
+            } else {
+              // If there's an auth error that's not about reauthentication, throw it
+              throw authError;
+            }
           }
+
+          // If we got here, the auth account was deleted successfully
+          // but there was an error with Firestore deletion
+          developer.log(
+              'Auth account deleted but there were Firestore errors: $firestoreError');
         }
 
         // Sign out and clean up after successful deletion
@@ -334,6 +317,7 @@ class AuthCubit extends Cubit<AuthState> {
 
         // Emit unauthenticated state for proper redirection
         emit(const AuthState.unauthenticated());
+        developer.log('Account deletion completed successfully');
       } else {
         emit(const AuthState.error('No user found to delete'));
       }
@@ -344,32 +328,104 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  // Helper method to handle reauthentication
+  Future<void> _handleReauthentication(
+      User user, List<String> providers) async {
+    developer.log('Reauthentication required for account deletion');
+
+    if (providers.contains('apple.com')) {
+      // Reauthenticate with Apple
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      await user.reauthenticateWithCredential(oauthCredential);
+      developer.log('Reauthenticated with Apple successfully');
+    } else if (providers.contains('google.com')) {
+      // Reauthenticate with Google
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        throw Exception('Google sign in was cancelled');
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+      developer.log('Reauthenticated with Google successfully');
+    } else if (providers.contains('password')) {
+      // For email/password, we would need to prompt the user for their password
+      // This would typically be handled in the UI layer
+      throw Exception(
+          'Reauthentication required with password. Please sign in again before deleting your account.');
+    } else {
+      throw Exception(
+          'Reauthentication required but no supported provider found');
+    }
+  }
+
   // Helper method to delete all user data
   Future<void> _deleteAllUserData(String userId) async {
+    // Create a batch for efficient writes
     final batch = _firestore.batch();
 
-    // Delete user document
+    // 1. Delete user document
     batch.delete(_firestore.collection('users').doc(userId));
 
-    // Delete user's chats
+    // 2. Delete user's chats - all messages sent by this user
     final userChats = await _firestore
         .collection('chats')
         .where('senderId', isEqualTo: userId)
         .get();
+
     for (var doc in userChats.docs) {
       batch.delete(doc.reference);
     }
 
-    // Delete user's chat metadata
+    // 3. Delete user's chat metadata
     final userChatMetadata = await _firestore
         .collection('chat_metadata')
         .where('userId', isEqualTo: userId)
         .get();
+
     for (var doc in userChatMetadata.docs) {
       batch.delete(doc.reference);
     }
 
+    // 4. Get all chat IDs where the user participated
+    final chatIds = userChats.docs
+        .map((doc) => doc.data()['chatId'] as String?)
+        .where((id) => id != null)
+        .toSet()
+        .cast<String>();
+
+    // 5. Delete chat metadata for those chats
+    for (var chatId in chatIds) {
+      final chatMetadata =
+          await _firestore.collection('chat_metadata').doc(chatId).get();
+
+      if (chatMetadata.exists) {
+        batch.delete(chatMetadata.reference);
+      }
+    }
+
+    // 6. Check for any other collections that might contain user data
+    // If you add more collections in the future, add deletion logic here
+
     // Commit all deletions
     await batch.commit();
+
+    developer.log('Successfully deleted all user data for user: $userId');
   }
 }
