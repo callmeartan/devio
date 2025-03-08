@@ -795,15 +795,27 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                           size: 18),
                                       label: Text(
                                         'New Chat',
-                                        style: TextStyle(color: Colors.black),
+                                        style: TextStyle(
+                                          color: isDark
+                                              ? Colors.black
+                                              : Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                       style: FilledButton.styleFrom(
-                                        backgroundColor:
-                                            theme.colorScheme.primary,
-                                        foregroundColor: Colors.black,
+                                        backgroundColor: isDark
+                                            ? Colors.white
+                                            : theme.colorScheme.primary,
+                                        foregroundColor: isDark
+                                            ? Colors.black
+                                            : Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 20,
                                           vertical: 12,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(30),
                                         ),
                                       ),
                                     ),
