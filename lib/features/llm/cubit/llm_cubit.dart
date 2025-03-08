@@ -15,20 +15,40 @@ class LlmCubit extends Cubit<LlmState> {
   final LlmService _llmService;
   final GeminiService _geminiService;
   LlmProvider _currentProvider = LlmProvider.gemini;
+  String? _customOllamaIp;
 
   LlmCubit({
     LlmService? llmService,
     GeminiService? geminiService,
   })  : _llmService = llmService ?? LlmService(),
         _geminiService = geminiService ?? GeminiService(),
-        super(const LlmState.initial());
+        super(const LlmState.initial()) {
+    _loadCustomOllamaIp();
+  }
+
+  Future<void> _loadCustomOllamaIp() async {
+    _customOllamaIp = await _llmService.getCustomOllamaIp();
+    dev.log('Loaded custom Ollama IP: $_customOllamaIp');
+  }
 
   LlmProvider get currentProvider => _currentProvider;
+  String? get customOllamaIp => _customOllamaIp;
 
   void setProvider(LlmProvider provider) {
     dev.log('Switching LLM provider to: $provider');
     _currentProvider = provider;
     emit(const LlmState.initial());
+  }
+
+  Future<void> setCustomOllamaIp(String? ipAddress) async {
+    dev.log('Setting custom Ollama IP: $ipAddress');
+    await _llmService.setCustomOllamaIp(ipAddress);
+    _customOllamaIp = ipAddress;
+
+    if (_currentProvider == LlmProvider.local) {
+      // Refresh models if we're currently using local provider
+      emit(const LlmState.initial());
+    }
   }
 
   Future<List<String>> getAvailableModels() async {
@@ -48,7 +68,7 @@ class LlmCubit extends Cubit<LlmState> {
   }) async {
     dev.log('Generating response with provider: $_currentProvider');
     dev.log('Model name: $modelName');
-    
+
     emit(const LlmState.loading());
 
     try {
@@ -62,7 +82,8 @@ class LlmCubit extends Cubit<LlmState> {
 
         if (response.isError) {
           dev.log('Error in response: ${response.errorMessage}');
-          emit(LlmState.error(response.errorMessage ?? 'Unknown error occurred'));
+          emit(LlmState.error(
+              response.errorMessage ?? 'Unknown error occurred'));
         } else {
           dev.log('Response generated successfully');
           emit(LlmState.success(response));
@@ -77,12 +98,14 @@ class LlmCubit extends Cubit<LlmState> {
 
         if (response.isError) {
           dev.log('Error in response: ${response.errorMessage}');
-          if (response.errorMessage?.contains('503') == true || 
+          if (response.errorMessage?.contains('503') == true ||
               response.errorMessage?.contains('overloaded') == true) {
             // Model switching is handled internally by GeminiService
-            emit(LlmState.error('All available models are currently overloaded. Please try again later.'));
+            emit(LlmState.error(
+                'All available models are currently overloaded. Please try again later.'));
           } else {
-            emit(LlmState.error(response.errorMessage ?? 'Unknown error occurred'));
+            emit(LlmState.error(
+                response.errorMessage ?? 'Unknown error occurred'));
           }
         } else {
           if (response.modelName != modelName) {
@@ -92,7 +115,8 @@ class LlmCubit extends Cubit<LlmState> {
               toModel: response.modelName ?? 'unknown',
               attempt: 1,
             ));
-            await Future.delayed(const Duration(seconds: 2)); // Show switching message briefly
+            await Future.delayed(
+                const Duration(seconds: 2)); // Show switching message briefly
           }
           dev.log('Response generated successfully');
           emit(LlmState.success(response));
@@ -113,9 +137,10 @@ class LlmCubit extends Cubit<LlmState> {
     double? temperature,
   }) async {
     dev.log('Generating response with image using provider: $_currentProvider');
-    
+
     if (_currentProvider != LlmProvider.gemini) {
-      emit(const LlmState.error('Image processing is only supported with Gemini'));
+      emit(const LlmState.error(
+          'Image processing is only supported with Gemini'));
       return;
     }
 
@@ -133,12 +158,14 @@ class LlmCubit extends Cubit<LlmState> {
 
       if (response.isError) {
         dev.log('Error in response: ${response.errorMessage}');
-        if (response.errorMessage?.contains('503') == true || 
+        if (response.errorMessage?.contains('503') == true ||
             response.errorMessage?.contains('overloaded') == true) {
           // Model switching is handled internally by GeminiService
-          emit(LlmState.error('All available vision models are currently overloaded. Please try again later.'));
+          emit(LlmState.error(
+              'All available vision models are currently overloaded. Please try again later.'));
         } else {
-          emit(LlmState.error(response.errorMessage ?? 'Unknown error occurred'));
+          emit(LlmState.error(
+              response.errorMessage ?? 'Unknown error occurred'));
         }
       } else {
         if (response.modelName != modelName) {
@@ -148,7 +175,8 @@ class LlmCubit extends Cubit<LlmState> {
             toModel: response.modelName ?? 'unknown',
             attempt: 1,
           ));
-          await Future.delayed(const Duration(seconds: 2)); // Show switching message briefly
+          await Future.delayed(
+              const Duration(seconds: 2)); // Show switching message briefly
         }
         dev.log('Response generated successfully');
         emit(LlmState.success(response));
@@ -166,10 +194,12 @@ class LlmCubit extends Cubit<LlmState> {
     int? maxTokens,
     double? temperature,
   }) async {
-    dev.log('Generating response with document using provider: $_currentProvider');
-    
+    dev.log(
+        'Generating response with document using provider: $_currentProvider');
+
     if (_currentProvider != LlmProvider.gemini) {
-      emit(const LlmState.error('Document analysis is only supported with Gemini'));
+      emit(const LlmState.error(
+          'Document analysis is only supported with Gemini'));
       return;
     }
 
@@ -206,9 +236,10 @@ class LlmCubit extends Cubit<LlmState> {
     double? temperature,
   }) async {
     dev.log('Asking question about document using provider: $_currentProvider');
-    
+
     if (_currentProvider != LlmProvider.gemini) {
-      emit(const LlmState.error('Document analysis is only supported with Gemini'));
+      emit(const LlmState.error(
+          'Document analysis is only supported with Gemini'));
       return;
     }
 
@@ -243,4 +274,4 @@ class LlmCubit extends Cubit<LlmState> {
     _geminiService.dispose();
     return super.close();
   }
-} 
+}
