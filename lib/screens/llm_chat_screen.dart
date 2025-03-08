@@ -655,14 +655,28 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                   children: [
                                     Icon(
                                       Icons.error_outline,
-                                      color: Colors.grey.shade800,
                                       size: 32,
+                                      color: theme.colorScheme.error,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Error loading chats',
+                                      style:
+                                          theme.textTheme.titleMedium?.copyWith(
+                                        color: theme.colorScheme.error,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Error loading chats',
-                                      style: TextStyle(
-                                          color: Colors.grey.shade800),
+                                      'Please try again later',
+                                      style:
+                                          theme.textTheme.bodyMedium?.copyWith(
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.6)
+                                            : Colors.black.withOpacity(0.6),
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
                                   ],
                                 ),
@@ -715,33 +729,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                               ? Colors.white.withOpacity(0.6)
                                               : Colors.black.withOpacity(0.6),
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      ElevatedButton.icon(
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          context
-                                              .read<ChatCubit>()
-                                              .searchChats('');
-                                        },
-                                        icon: Icon(
-                                          Icons.clear,
-                                          size: 16,
-                                        ),
-                                        label: const Text('Clear search'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              theme.colorScheme.primary,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 8,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
                                     ],
                                   ),
@@ -753,63 +741,66 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(16),
+                                      padding: const EdgeInsets.all(20),
                                       decoration: BoxDecoration(
                                         color: isDark
                                             ? Colors.white.withOpacity(0.05)
-                                            : Colors.black.withOpacity(0.05),
+                                            : theme.colorScheme.primary
+                                                .withOpacity(0.1),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Icon(
-                                        Icons.chat_bubble_outline,
-                                        size: 32,
-                                        color: isDark
-                                            ? Colors.white.withOpacity(0.7)
-                                            : Colors.black.withOpacity(0.7),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No chat history',
-                                      style:
-                                          theme.textTheme.titleMedium?.copyWith(
+                                        Icons.chat_bubble_outline_rounded,
+                                        size: 36,
                                         color: isDark
                                             ? Colors.white.withOpacity(0.9)
-                                            : Colors.black.withOpacity(0.9),
-                                        fontWeight: FontWeight.w500,
+                                            : theme.colorScheme.primary,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 24),
                                     Text(
-                                      'Start a new chat to begin',
+                                      'Welcome to DevIO Chat',
                                       style:
-                                          theme.textTheme.bodyMedium?.copyWith(
+                                          theme.textTheme.titleLarge?.copyWith(
                                         color: isDark
-                                            ? Colors.white.withOpacity(0.6)
-                                            : Colors.black.withOpacity(0.6),
+                                            ? Colors.white
+                                            : Colors.black,
+                                        fontWeight: FontWeight.w600,
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
-                                    const SizedBox(height: 16),
-                                    ElevatedButton.icon(
+                                    const SizedBox(height: 12),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 32),
+                                      child: Text(
+                                        'Start your first conversation with our AI assistant',
+                                        style:
+                                            theme.textTheme.bodyLarge?.copyWith(
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.7)
+                                              : Colors.black.withOpacity(0.7),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    FilledButton.icon(
                                       onPressed: () {
                                         context
                                             .read<ChatCubit>()
                                             .startNewChat();
                                         Navigator.pop(context);
                                       },
-                                      icon: Icon(
-                                        Icons.add_circle_outline,
-                                        size: 16,
-                                      ),
+                                      icon: const Icon(Icons.add_circle_outline,
+                                          size: 18),
                                       label: const Text('New Chat'),
-                                      style: ElevatedButton.styleFrom(
+                                      style: FilledButton.styleFrom(
                                         backgroundColor:
                                             theme.colorScheme.primary,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 8,
+                                          horizontal: 20,
+                                          vertical: 12,
                                         ),
                                       ),
                                     ),
