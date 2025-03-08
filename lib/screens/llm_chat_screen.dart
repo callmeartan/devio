@@ -793,11 +793,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       },
                                       icon: const Icon(Icons.add_circle_outline,
                                           size: 18),
-                                      label: const Text('New Chat'),
+                                      label: Text(
+                                        'New Chat',
+                                        style: TextStyle(color: Colors.black),
+                                      ),
                                       style: FilledButton.styleFrom(
                                         backgroundColor:
                                             theme.colorScheme.primary,
-                                        foregroundColor: Colors.white,
+                                        foregroundColor: Colors.black,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 20,
                                           vertical: 12,
