@@ -83,12 +83,23 @@ class _LandingScreenState extends State<LandingScreen> {
 
                   // App subtitle
                   Text(
-                    'AI Development Assistant',
+                    'Mobile Interface for Local LLMs',
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 24,
                       fontWeight: FontWeight.w500,
                       color: theme.colorScheme.primary,
                       letterSpacing: -0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Description
+                  Text(
+                    'Connect to locally hosted LLM servers while keeping your data private and secure',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 16,
+                      color: theme.colorScheme.onSurface.withOpacity(0.8),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -169,8 +180,9 @@ class _LandingScreenState extends State<LandingScreen> {
   Widget _buildCodeSnippets(ThemeData theme) {
     final snippets = [
       'class DevIO {',
-      '  final ai = true;',
-      '  final productivity = 100;',
+      '  final privacy = true;',
+      '  final localLLM = "ollama";',
+      '  final performance = 100;',
       '}',
     ];
 

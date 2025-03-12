@@ -167,7 +167,7 @@ class ProfileScreen extends StatelessWidget {
                                     ),
                                   ),
                                   child: Text(
-                                    'Developer',
+                                    'LLM User',
                                     style:
                                         theme.textTheme.labelMedium?.copyWith(
                                       color: isDark
@@ -499,7 +499,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
               context.read<AuthCubit>().signOut();
-              context.go('/');
+              context.go('/landing');
             },
             child: Text(
               'Log Out',
@@ -539,7 +539,19 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
               context.read<ChatCubit>().clearChat();
-              context.go('/');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Chat history cleared successfully',
+                    style: TextStyle(
+                      color: isDark ? Colors.black : Colors.white,
+                    ),
+                  ),
+                  backgroundColor: isDark
+                      ? Colors.white.withOpacity(0.9)
+                      : theme.colorScheme.primary,
+                ),
+              );
             },
             child: Text(
               'Clear History',
@@ -601,7 +613,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'DevIO is an AI-powered chat application designed to help developers with coding tasks, debugging, and learning new technologies.',
+                'DevIO is a mobile interface for interacting with locally hosted large language models. Connect to Ollama or other LLM servers while keeping your data private and secure.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
@@ -617,23 +629,23 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 8),
               _buildFeatureItem(
                 theme,
-                icon: Icons.chat_outlined,
-                text: 'AI-powered chat assistance',
+                icon: Icons.devices_outlined,
+                text: 'Local LLM server integration',
               ),
               _buildFeatureItem(
                 theme,
                 icon: Icons.image_outlined,
-                text: 'Image analysis capabilities',
+                text: 'Advanced chat capabilities',
               ),
               _buildFeatureItem(
                 theme,
-                icon: Icons.code_outlined,
-                text: 'Code generation and debugging',
+                icon: Icons.lock_outlined,
+                text: 'Privacy-focused design',
               ),
               _buildFeatureItem(
                 theme,
                 icon: Icons.dark_mode_outlined,
-                text: 'Customizable theme options',
+                text: 'Modern mobile interface',
               ),
               const SizedBox(height: 16),
               Text(

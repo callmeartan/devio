@@ -222,7 +222,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   alignment: Alignment.centerLeft,
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back),
-                    onPressed: () => context.go('/'),
+                    onPressed: () => context.go('/landing'),
                   ),
                 ),
                 Expanded(
@@ -248,14 +248,14 @@ class _AuthScreenState extends State<AuthScreen> {
                           Text(
                             widget.isLogin
                                 ? 'Welcome Back!'
-                                : 'Join the Future of Development',
+                                : 'Join the DevIO Community',
                             style: theme.textTheme.headlineMedium,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             widget.isLogin
-                                ? 'Sign in to continue your development journey'
-                                : 'Create an account to start building amazing apps',
+                                ? 'Sign in to continue your local LLM experience'
+                                : 'Create an account to connect with your local LLM servers',
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color:
                                   theme.colorScheme.onSurface.withOpacity(0.7),

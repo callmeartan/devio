@@ -1340,12 +1340,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   void _sendInitialGreeting() {
     final greeting =
-        'Hello! I\'m Devio your AI development assistant. I can help you with:\n\n'
-        '• Flutter/Dart development\n'
-        '• Code review and optimization\n'
-        '• Architecture decisions\n'
-        '• Best practices and patterns\n'
-        '• Debugging and problem-solving\n\n'
+        'Hello! I\'m DevIO, your mobile interface for Local LLMs. I can help you with:\n\n'
+        '• Connecting to local LLM servers\n'
+        '• Processing AI requests privately\n'
+        '• Code analysis and generation\n'
+        '• Text and image processing\n'
+        '• Maintaining data privacy and security\n\n'
         'How can I assist you today?';
 
     // Get the authenticated user's ID

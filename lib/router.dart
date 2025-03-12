@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:devio/screens/landing_screen.dart';
-import 'package:devio/screens/intro_screen.dart';
 import 'package:devio/screens/auth_screen.dart';
 import 'package:devio/screens/llm_chat_screen.dart';
 import 'package:devio/features/profile/presentation/profile_screen.dart';
@@ -12,22 +11,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
 import 'package:devio/features/settings/cubit/preferences_cubit.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+// Create a class to listen for auth state changes
+class AuthStateChangeNotifier extends ChangeNotifier {
+  AuthStateChangeNotifier() {
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      notifyListeners();
+    });
+  }
+}
 
 final appRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/landing',
   debugLogDiagnostics: true,
   redirect: (context, state) async {
-    // Get SharedPreferences instance
-    final prefs = await SharedPreferences.getInstance();
-    final hasSeenIntro = prefs.getBool('has_seen_intro') ?? false;
+    if (context == null) return null;
 
-    // Check authentication state
-    final authState = context?.read<AuthCubit>().state;
-    final isAuthenticated = authState?.maybeWhen(
-          authenticated: (_, __, ___) => true,
-          orElse: () => false,
-        ) ??
-        false;
+    // Check if user is authenticated using Firebase directly
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isAuthenticated = currentUser != null;
 
     // List of routes that require authentication
     final authenticatedRoutes = [
@@ -38,37 +41,26 @@ final appRouter = GoRouter(
       '/edit-profile'
     ];
 
-    // If user is authenticated and trying to access auth or landing routes, redirect to LLM
-    if (isAuthenticated &&
-        (state.matchedLocation == '/auth' ||
-            state.matchedLocation == '/landing')) {
-      return '/llm';
-    }
-
-    // If user is not authenticated and trying to access authenticated routes, redirect to landing
-    if (!isAuthenticated &&
-        authenticatedRoutes.contains(state.matchedLocation)) {
-      return '/landing';
-    }
-
-    // If user hasn't seen intro and trying to access a different route, let them proceed
-    if (!hasSeenIntro && state.matchedLocation != '/') {
+    // If user is authenticated, redirect from initial/auth routes to LLM
+    if (isAuthenticated) {
+      // If currently on landing, auth or empty path, go to LLM
+      if (state.matchedLocation == '/landing' ||
+          state.matchedLocation == '/auth' ||
+          state.matchedLocation == '/') {
+        return '/llm';
+      }
+      // Otherwise, allow access to other routes for authenticated users
       return null;
-    }
-
-    // If user has seen intro, redirect to landing
-    if (hasSeenIntro && state.matchedLocation == '/') {
-      return '/landing';
+    } else {
+      // If user is not authenticated and trying to access authenticated routes, redirect to landing
+      if (authenticatedRoutes.contains(state.matchedLocation)) {
+        return '/landing';
+      }
     }
 
     return null;
   },
   routes: [
-    GoRoute(
-      path: '/',
-      name: 'intro',
-      builder: (context, state) => const IntroScreen(),
-    ),
     GoRoute(
       path: '/landing',
       name: 'landing',
@@ -120,4 +112,6 @@ final appRouter = GoRouter(
       builder: (context, state) => const NotificationsScreen(),
     ),
   ],
+  // Refresh when auth state changes
+  refreshListenable: AuthStateChangeNotifier(),
 );
