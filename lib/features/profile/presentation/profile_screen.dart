@@ -284,6 +284,13 @@ class ProfileScreen extends StatelessWidget {
                             icon: Icons.description_outlined,
                             title: 'Terms of Service',
                             onTap: () => _showTermsOfServiceDialog(context),
+                            showDivider: true,
+                          ),
+                          _buildTile(
+                            context,
+                            icon: Icons.computer_outlined,
+                            title: 'How to Run Ollama?',
+                            onTap: () => _showOllamaGuideDialog(context),
                           ),
                         ],
                       ),
@@ -945,6 +952,346 @@ class ProfileScreen extends StatelessWidget {
               'Close',
               style: TextStyle(
                 color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showOllamaGuideDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        backgroundColor:
+            isDark ? Colors.grey.shade900 : theme.colorScheme.surface,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.grey.shade800
+                    : theme.colorScheme.primary.withOpacity(0.1),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.computer_outlined,
+                    color: isDark ? Colors.white : theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'How to Run Ollama',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color:
+                            isDark ? Colors.white : theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      color: isDark
+                          ? Colors.white.withOpacity(0.8)
+                          : theme.colorScheme.onSurface,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildGuideStep(
+                      context,
+                      number: 1,
+                      title: 'Install Ollama',
+                      description:
+                          'Download and install Ollama from ollama.ai for your operating system.',
+                    ),
+                    _buildGuideStep(
+                      context,
+                      number: 2,
+                      title: 'Run Ollama Server',
+                      description:
+                          'Open a terminal or command prompt and run the following command:',
+                      codeBlock: 'OLLAMA_HOST=0.0.0.0:11434 ollama serve',
+                      note:
+                          'This makes Ollama listen on all network interfaces.',
+                    ),
+                    _buildGuideStep(
+                      context,
+                      number: 3,
+                      title: 'Find Your IP Address',
+                      description:
+                          'Find your computer\'s IP address on your network:',
+                      codeBlock: isDark
+                          ? '# On macOS/Linux:\nifconfig | grep "inet " | grep -v 127.0.0.1\n\n# On Windows:\nipconfig'
+                          : '# On macOS/Linux:\nifconfig | grep "inet " | grep -v 127.0.0.1\n\n# On Windows:\nipconfig',
+                    ),
+                    _buildGuideStep(
+                      context,
+                      number: 4,
+                      title: 'Connect in the App',
+                      description:
+                          'In the app, switch to "Local" provider and enter your IP address with port:',
+                      codeBlock: '192.168.1.x:11434',
+                      note: 'Replace 192.168.1.x with your actual IP address.',
+                    ),
+                    _buildGuideStep(
+                      context,
+                      number: 5,
+                      title: 'Important Notes',
+                      description:
+                          '• Do NOT use 0.0.0.0 as the connection address in the app\n• Make sure your firewall allows connections to port 11434\n• Both devices must be on the same network',
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Troubleshooting section
+                    Text(
+                      'Troubleshooting',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color:
+                            isDark ? Colors.white : theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildTroubleshootingItem(
+                      context,
+                      problem: 'Connection Refused',
+                      solution:
+                          'Check that Ollama is running and your firewall allows connections to port 11434.',
+                    ),
+                    _buildTroubleshootingItem(
+                      context,
+                      problem: 'Cannot Connect from Another Device',
+                      solution:
+                          'Make sure both devices are on the same network and try using your computer\'s actual IP address.',
+                    ),
+                    _buildTroubleshootingItem(
+                      context,
+                      problem: 'No Models Available',
+                      solution:
+                          'Pull a model first using: ollama pull mistral:7b',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Footer with button
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.grey.shade800
+                    : theme.colorScheme.primary.withOpacity(0.05),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Close',
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuideStep(
+    BuildContext context, {
+    required int number,
+    required String title,
+    required String description,
+    String? codeBlock,
+    String? note,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Step number
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                number.toString(),
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.8)
+                        : theme.colorScheme.onSurface.withOpacity(0.8),
+                  ),
+                ),
+                if (codeBlock != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.black : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: SelectableText(
+                      codeBlock,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark
+                            ? Colors.green.shade300
+                            : Colors.green.shade700,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ],
+                if (note != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: isDark
+                            ? Colors.blue.shade300
+                            : Colors.blue.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          note,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark
+                                ? Colors.blue.shade300
+                                : Colors.blue.shade700,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTroubleshootingItem(
+    BuildContext context, {
+    required String problem,
+    required String solution,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 16,
+                color: isDark ? Colors.orange.shade300 : Colors.orange.shade700,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  problem,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 24),
+            child: Text(
+              solution,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? Colors.white.withOpacity(0.7)
+                    : theme.colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
           ),

@@ -18,6 +18,8 @@ class LlmCubit extends Cubit<LlmState> {
   LlmProvider _currentProvider = LlmProvider.gemini;
   String? _customOllamaIp;
 
+  static const String _defaultOllamaIp = 'localhost:11434';
+
   LlmCubit({
     LlmService? llmService,
     GeminiService? geminiService,
@@ -28,23 +30,31 @@ class LlmCubit extends Cubit<LlmState> {
   }
 
   Future<void> _loadCustomOllamaIp() async {
-    // First check if there's a value in the .env file
-    final envOllamaHost = dotenv.env['OLLAMA_HOST'];
+    try {
+      // First check if there's a value in the .env file
+      final envOllamaHost = dotenv.env['OLLAMA_HOST'];
 
-    if (envOllamaHost != null && envOllamaHost.isNotEmpty) {
-      dev.log('Setting Ollama IP from environment: $envOllamaHost');
-      await setCustomOllamaIp(envOllamaHost);
-    } else {
+      if (envOllamaHost != null && envOllamaHost.isNotEmpty) {
+        dev.log('Setting Ollama IP from environment: $envOllamaHost');
+        await setCustomOllamaIp(envOllamaHost);
+        return;
+      }
+
       // Fall back to stored preferences
       _customOllamaIp = await _llmService.getCustomOllamaIp();
-      dev.log('Loaded custom Ollama IP from preferences: $_customOllamaIp');
 
-      // If no custom IP is set, use localhost by default
+      // If no custom IP is set, use default
       if (_customOllamaIp == null || _customOllamaIp!.isEmpty) {
-        _customOllamaIp = 'localhost:11434';
+        _customOllamaIp = _defaultOllamaIp;
         await _llmService.setCustomOllamaIp(_customOllamaIp);
-        dev.log('Set default Ollama IP to localhost:11434');
+        dev.log('Set default Ollama IP to $_defaultOllamaIp');
+      } else {
+        dev.log('Loaded custom Ollama IP from preferences: $_customOllamaIp');
       }
+    } catch (e) {
+      dev.log('Error loading Ollama IP: $e');
+      // Set default IP if there's an error
+      _customOllamaIp = _defaultOllamaIp;
     }
   }
 
@@ -58,36 +68,57 @@ class LlmCubit extends Cubit<LlmState> {
     // If switching to local provider, make sure we have a custom Ollama IP
     if (provider == LlmProvider.local &&
         (_customOllamaIp == null || _customOllamaIp!.isEmpty)) {
-      // Check if there's a value in the .env file
-      final envOllamaHost = dotenv.env['OLLAMA_HOST'];
-
-      if (envOllamaHost != null && envOllamaHost.isNotEmpty) {
-        dev.log('Setting Ollama IP from environment: $envOllamaHost');
-        setCustomOllamaIp(envOllamaHost);
-      }
+      _ensureOllamaIpIsSet();
     }
 
     emit(const LlmState.initial());
   }
 
-  Future<void> setCustomOllamaIp(String? ipAddress) async {
-    dev.log('Setting custom Ollama IP: $ipAddress');
-    await _llmService.setCustomOllamaIp(ipAddress);
-    _customOllamaIp = ipAddress;
+  Future<void> _ensureOllamaIpIsSet() async {
+    // Check if there's a value in the .env file
+    final envOllamaHost = dotenv.env['OLLAMA_HOST'];
 
-    if (_currentProvider == LlmProvider.local) {
-      // Refresh models if we're currently using local provider
-      emit(const LlmState.initial());
+    if (envOllamaHost != null && envOllamaHost.isNotEmpty) {
+      dev.log('Setting Ollama IP from environment: $envOllamaHost');
+      await setCustomOllamaIp(envOllamaHost);
+    } else {
+      // Set default IP
+      await setCustomOllamaIp(_defaultOllamaIp);
+      dev.log('Set default Ollama IP: $_defaultOllamaIp');
+    }
+  }
+
+  Future<void> setCustomOllamaIp(String? ipAddress) async {
+    try {
+      dev.log('Setting custom Ollama IP: $ipAddress');
+      final success = await _llmService.setCustomOllamaIp(ipAddress);
+
+      if (success) {
+        _customOllamaIp = ipAddress;
+
+        if (_currentProvider == LlmProvider.local) {
+          // Refresh models if we're currently using local provider
+          emit(const LlmState.initial());
+        }
+      } else {
+        dev.log('Failed to save custom Ollama IP');
+      }
+    } catch (e) {
+      dev.log('Error setting custom Ollama IP: $e');
     }
   }
 
   Future<List<String>> getAvailableModels() async {
-    dev.log('Getting available models for provider: $_currentProvider');
-    final models = _currentProvider == LlmProvider.local
-        ? await _llmService.getAvailableModels()
-        : await _geminiService.getAvailableModels();
-    dev.log('Available models: $models');
-    return models;
+    try {
+      dev.log('Getting available models for provider: $_currentProvider');
+      final models = _currentProvider == LlmProvider.local
+          ? await _llmService.getAvailableModels()
+          : await _geminiService.getAvailableModels();
+      return models;
+    } catch (e) {
+      dev.log('Error getting available models: $e');
+      return [];
+    }
   }
 
   Future<void> generateResponse({
