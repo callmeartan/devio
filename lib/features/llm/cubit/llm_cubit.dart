@@ -142,6 +142,39 @@ class LlmCubit extends Cubit<LlmState> {
     }
   }
 
+  Future<void> generateResponseWithImage({
+    required String prompt,
+    required Uint8List imageBytes,
+    String? modelName,
+    int? maxTokens,
+    double? temperature,
+  }) async {
+    dev.log('Generating response with image');
+
+    emit(const LlmState.loading());
+
+    try {
+      // For now, we'll use a standard text response approach since
+      // the Ollama API doesn't natively support image analysis
+      // This method could be extended later to use a multimodal model
+
+      const String errorMessage =
+          'Image analysis is not supported with local models. '
+          'Consider using a multimodal model like llava, bakllava, or moondream.';
+
+      dev.log(errorMessage);
+      emit(LlmState.error(errorMessage));
+
+      // Alternatively, when implementing real image analysis:
+      // 1. Convert image to base64
+      // 2. Create a request with both prompt and image
+      // 3. Send to an LLM service that supports multimodal inputs
+    } catch (e) {
+      dev.log('Error in image analysis: $e');
+      emit(LlmState.error('Failed to analyze image: $e'));
+    }
+  }
+
   @override
   Future<void> close() {
     _llmService.dispose();
