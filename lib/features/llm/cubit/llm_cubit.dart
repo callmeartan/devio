@@ -5,6 +5,7 @@ import '../services/llm_service.dart';
 import '../services/gemini_service.dart';
 import 'llm_state.dart';
 import 'dart:developer' as dev;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 enum LlmProvider {
   local,
@@ -27,8 +28,24 @@ class LlmCubit extends Cubit<LlmState> {
   }
 
   Future<void> _loadCustomOllamaIp() async {
-    _customOllamaIp = await _llmService.getCustomOllamaIp();
-    dev.log('Loaded custom Ollama IP: $_customOllamaIp');
+    // First check if there's a value in the .env file
+    final envOllamaHost = dotenv.env['OLLAMA_HOST'];
+
+    if (envOllamaHost != null && envOllamaHost.isNotEmpty) {
+      dev.log('Setting Ollama IP from environment: $envOllamaHost');
+      await setCustomOllamaIp(envOllamaHost);
+    } else {
+      // Fall back to stored preferences
+      _customOllamaIp = await _llmService.getCustomOllamaIp();
+      dev.log('Loaded custom Ollama IP from preferences: $_customOllamaIp');
+
+      // If no custom IP is set, use localhost by default
+      if (_customOllamaIp == null || _customOllamaIp!.isEmpty) {
+        _customOllamaIp = 'localhost:11434';
+        await _llmService.setCustomOllamaIp(_customOllamaIp);
+        dev.log('Set default Ollama IP to localhost:11434');
+      }
+    }
   }
 
   LlmProvider get currentProvider => _currentProvider;
@@ -37,6 +54,19 @@ class LlmCubit extends Cubit<LlmState> {
   void setProvider(LlmProvider provider) {
     dev.log('Switching LLM provider to: $provider');
     _currentProvider = provider;
+
+    // If switching to local provider, make sure we have a custom Ollama IP
+    if (provider == LlmProvider.local &&
+        (_customOllamaIp == null || _customOllamaIp!.isEmpty)) {
+      // Check if there's a value in the .env file
+      final envOllamaHost = dotenv.env['OLLAMA_HOST'];
+
+      if (envOllamaHost != null && envOllamaHost.isNotEmpty) {
+        dev.log('Setting Ollama IP from environment: $envOllamaHost');
+        setCustomOllamaIp(envOllamaHost);
+      }
+    }
+
     emit(const LlmState.initial());
   }
 

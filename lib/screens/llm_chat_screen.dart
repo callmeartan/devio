@@ -359,6 +359,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final llmCubit = context.read<LlmCubit>();
 
     return BlocListener<ChatCubit, ChatState>(
       listener: (context, state) {
@@ -378,7 +379,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             loading: () => const Center(
               child: CircularProgressIndicator(),
             ),
-            authenticated: (uid, _, __) {
+            authenticated: (uid, displayName, email) {
               return Scaffold(
                 backgroundColor: theme.colorScheme.surface,
                 drawer: Drawer(
@@ -981,6 +982,23 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     ],
                   ),
                   actions: [
+                    // Show Ollama config button if using local provider
+                    if (context.watch<LlmCubit>().currentProvider ==
+                        LlmProvider.local)
+                      Tooltip(
+                        message: context.read<LlmCubit>().customOllamaIp !=
+                                    null &&
+                                context
+                                    .read<LlmCubit>()
+                                    .customOllamaIp!
+                                    .isNotEmpty
+                            ? 'Ollama IP: ${context.read<LlmCubit>().customOllamaIp}'
+                            : 'Configure Ollama Connection',
+                        child: IconButton(
+                          icon: const Icon(Icons.settings_ethernet),
+                          onPressed: _showOllamaConfigDialog,
+                        ),
+                      ),
                     // Show a compact model indicator instead of the full selection UI
                     CompactModelIndicator(
                       selectedModel: _selectedModel,
@@ -1206,6 +1224,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             });
                           },
                           selectedImageBytes: _selectedImageBytes,
+                          onProviderChanged: _onProviderChanged,
                         ),
                       ),
                   ],
@@ -1556,6 +1575,177 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       }
       return !model.contains('vision');
     }).toList();
+  }
+
+  void _onProviderChanged(LlmProvider provider) {
+    setState(() {
+      _selectedImageBytes = null;
+      _selectedDocument = null;
+      _selectedModel = null;
+    });
+
+    context.read<LlmCubit>().setProvider(provider);
+    _loadAvailableModels();
+
+    // If switching to local provider, prompt for Ollama IP configuration
+    if (provider == LlmProvider.local) {
+      // Wait for the state to update before showing the dialog
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _promptForOllamaIpIfNeeded();
+      });
+    }
+  }
+
+  void _promptForOllamaIpIfNeeded() {
+    final llmCubit = context.read<LlmCubit>();
+    final customIp = llmCubit.customOllamaIp;
+
+    // If no custom IP is set, show the configuration dialog
+    if (customIp == null || customIp.isEmpty) {
+      _showOllamaConfigDialog();
+    }
+  }
+
+  void _showOllamaConfigDialog() {
+    final llmCubit = context.read<LlmCubit>();
+    final theme = Theme.of(context);
+
+    final ipController =
+        TextEditingController(text: llmCubit.customOllamaIp ?? '');
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must take action
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.laptop,
+              size: 20,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Ollama Connection Settings',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Enter Ollama server IP address and port',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: ipController,
+              decoration: InputDecoration(
+                hintText: 'e.g., localhost:11434 or 192.168.1.100:11434',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                prefixIcon: const Icon(Icons.link),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.primaryContainer,
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Connection Guide:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• Same device: use localhost:11434',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '• Different device: use your actual IP (192.168.x.x:11434)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '• Do NOT use 0.0.0.0 (binding address)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          // Only show Cancel if there's already a custom IP set
+          if (llmCubit.customOllamaIp != null &&
+              llmCubit.customOllamaIp!.isNotEmpty)
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+          FilledButton.icon(
+            onPressed: () async {
+              final ipAddress = ipController.text.trim().isEmpty
+                  ? null
+                  : ipController.text.trim();
+              await llmCubit.setCustomOllamaIp(ipAddress);
+              _loadAvailableModels(); // Refresh model list
+              Navigator.of(context).pop();
+            },
+            icon: const Icon(Icons.save, size: 16),
+            label: const Text('Save & Connect'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -33,6 +33,7 @@ class ModelSelectionUI extends StatefulWidget {
   final VoidCallback onClose;
   final Function(String) onModelSelected;
   final Uint8List? selectedImageBytes;
+  final Function(LlmProvider)? onProviderChanged;
 
   const ModelSelectionUI({
     super.key,
@@ -43,6 +44,7 @@ class ModelSelectionUI extends StatefulWidget {
     required this.onClose,
     required this.onModelSelected,
     this.selectedImageBytes,
+    this.onProviderChanged,
   });
 
   @override
@@ -410,8 +412,12 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
         PopupMenuButton<LlmProvider>(
           initialValue: llmCubit.currentProvider,
           onSelected: (LlmProvider provider) {
-            llmCubit.setProvider(provider);
-            widget.onRefresh();
+            if (widget.onProviderChanged != null) {
+              widget.onProviderChanged!(provider);
+            } else {
+              llmCubit.setProvider(provider);
+              widget.onRefresh();
+            }
           },
           tooltip: 'Select AI provider',
           color: theme.colorScheme.surface,
@@ -564,7 +570,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Enter Ollama server IP address or URL',
+              'Enter Ollama server IP address and port',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.7),
               ),
@@ -573,7 +579,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
             TextField(
               controller: ipController,
               decoration: InputDecoration(
-                hintText: 'e.g., 192.168.1.10 or http://example.com:11434',
+                hintText: 'e.g., localhost:11434 or 192.168.1.100:11434',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -585,26 +591,6 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 14,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Leave empty to use default (localhost:11434)',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -615,20 +601,48 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                   width: 1,
                 ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.computer,
-                    size: 16,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Connect to Ollama running on another machine in your network',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: theme.colorScheme.primary,
                       ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Connection Guide:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• Same device: use localhost:11434',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '• Different device: use your actual IP (192.168.x.x:11434)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '• Do NOT use 0.0.0.0 (binding address)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],

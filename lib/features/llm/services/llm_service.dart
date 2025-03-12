@@ -6,24 +6,13 @@ import '../models/llm_response.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LlmService {
-  final String baseUrl;
   final http.Client _client;
   static const _timeout = Duration(seconds: 120);
   static const String _customOllamaIpKey = 'custom_ollama_ip';
 
   LlmService({
-    String? baseUrl,
     http.Client? client,
-  })  : baseUrl = baseUrl ?? _getDefaultBaseUrl(),
-        _client = client ?? http.Client();
-
-  static String _getDefaultBaseUrl() {
-    // When running on iOS simulator or device, we need to use the host machine's IP
-    if (Platform.isIOS) {
-      return 'http://localhost:8080'; // Use localhost for iOS too
-    }
-    return 'http://localhost:8080';
-  }
+  }) : _client = client ?? http.Client();
 
   // Get the saved custom Ollama IP address
   Future<String?> getCustomOllamaIp() async {
@@ -43,8 +32,6 @@ class LlmService {
         prefs.setString(_customOllamaIpKey, ipAddress);
       }
 
-      // Update server config
-      await _updateServerOllamaConfig(ipAddress);
       return true;
     } catch (e) {
       dev.log('Error saving custom Ollama IP: $e');
@@ -52,49 +39,9 @@ class LlmService {
     }
   }
 
-  // Update the server's Ollama configuration
-  Future<void> _updateServerOllamaConfig(String? ipAddress) async {
-    try {
-      final response = await _client
-          .post(
-            Uri.parse('$baseUrl/config/ollama'),
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({
-              'custom_ollama_ip': ipAddress,
-            }),
-          )
-          .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode != 200) {
-        dev.log('Error updating server Ollama config: ${response.body}');
-      } else {
-        dev.log('Server Ollama config updated successfully');
-      }
-    } catch (e) {
-      dev.log('Error connecting to server to update Ollama config: $e');
-      // Don't rethrow - this is a non-critical operation
-    }
-  }
-
   // Get the Ollama server URL with the custom IP if set
   Future<String> getOllamaServerUrl() async {
-    try {
-      // Try to get the current config from the server
-      final response = await _client
-          .get(Uri.parse('$baseUrl/config/ollama'))
-          .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        return jsonResponse['ollama_api_base'] as String;
-      }
-    } catch (e) {
-      dev.log('Error getting Ollama config from server: $e');
-    }
-
-    // Fallback to local preferences
+    // Get from local preferences
     final customIp = await getCustomOllamaIp();
     if (customIp == null || customIp.isEmpty) {
       return 'http://localhost:11434'; // Default Ollama URL
@@ -104,24 +51,36 @@ class LlmService {
     if (customIp.startsWith('http://') || customIp.startsWith('https://')) {
       return customIp;
     } else {
-      return 'http://$customIp:11434'; // Add protocol and port
+      // Parse the IP and port from the format IP:PORT
+      final parts = customIp.split(':');
+      if (parts.length >= 2) {
+        final ip = parts[0];
+        final port = parts.last; // Get the last part as port
+        return 'http://$ip:$port'; // Use the provided port
+      } else {
+        return 'http://$customIp:11434'; // Add protocol and default port
+      }
     }
   }
 
   Future<List<String>> getAvailableModels() async {
     try {
-      dev.log('Fetching available models from: $baseUrl/models');
+      final ollamaUrl = await getOllamaServerUrl();
+      dev.log('Fetching available models from: $ollamaUrl/api/tags');
+
       final response = await _client
           .get(
-            Uri.parse('$baseUrl/models'),
+            Uri.parse('$ollamaUrl/api/tags'),
           )
-          .timeout(const Duration(
-              seconds: 5)); // Use shorter timeout for model check
+          .timeout(const Duration(seconds: 5));
 
       dev.log('Models response status code: ${response.statusCode}');
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        final models = List<String>.from(jsonResponse['models']);
+        final models = jsonResponse['models'] != null
+            ? List<String>.from(
+                jsonResponse['models'].map((model) => model['name'] as String))
+            : <String>[];
         dev.log('Available models: $models');
         return models;
       } else {
@@ -130,7 +89,7 @@ class LlmService {
         return _getDefaultModels();
       }
     } catch (e) {
-      dev.log('Error connecting to server: $e');
+      dev.log('Error connecting to Ollama server: $e');
       // Return default models instead of throwing
       return _getDefaultModels();
     }
@@ -153,8 +112,9 @@ class LlmService {
     double temperature = 0.7,
   }) async {
     try {
-      dev.log('Generating response...');
-      dev.log('Base URL: $baseUrl');
+      final ollamaUrl = await getOllamaServerUrl();
+      dev.log('Generating response using Ollama directly...');
+      dev.log('Ollama URL: $ollamaUrl');
 
       // Ensure model name has the correct format
       final formattedModelName =
@@ -167,16 +127,19 @@ class LlmService {
       dev.log('- Temperature: $temperature');
 
       final requestBody = {
+        'model': formattedModelName,
         'prompt': prompt,
-        'model_name': formattedModelName,
-        'max_tokens': maxTokens,
-        'temperature': temperature,
+        'stream': false,
+        'options': {
+          'num_predict': maxTokens,
+          'temperature': temperature,
+        }
       };
       dev.log('Request body: $requestBody');
 
       final response = await _client
           .post(
-            Uri.parse('$baseUrl/generate'),
+            Uri.parse('$ollamaUrl/api/generate'),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -194,15 +157,8 @@ class LlmService {
             jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         dev.log('Parsed JSON response: $jsonResponse');
 
-        // Clean up the response text
-        String cleanText = (jsonResponse['response'] as String? ??
-                jsonResponse['text'] as String)
-            .replaceAll('â', "'")
-            .replaceAll('â', "'")
-            .replaceAll('â', '"')
-            .replaceAll('â', '"')
-            .replaceAll('â', '-')
-            .replaceAll('■', "'");
+        // Extract the response text
+        final responseText = jsonResponse['response'] as String? ?? '';
 
         // Extract metrics from Ollama format
         final Map<String, dynamic> metrics = {};
@@ -258,7 +214,7 @@ class LlmService {
 
         // Create response object
         final cleanedResponse = <String, dynamic>{
-          'text': cleanText,
+          'text': responseText,
           'model_name': modelName,
           ...metrics,
         };
@@ -279,7 +235,7 @@ class LlmService {
       return LlmResponse(
         text: '',
         isError: true,
-        errorMessage: 'Error connecting to LLM server: $e',
+        errorMessage: 'Error connecting to Ollama server: $e',
       );
     }
   }

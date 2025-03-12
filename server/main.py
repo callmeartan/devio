@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     default_max_tokens: int = 1000
     default_temperature: float = 0.7
     request_timeout: float = 1200.0
-    custom_ollama_ip: str = ""  # Added new setting for custom Ollama IP
+    custom_ollama_ip: str = os.environ.get("OLLAMA_HOST", "")  # Get from environment variable
 
     class Config:
         env_prefix = "OLLAMA_"
@@ -22,11 +22,27 @@ settings = Settings()
 
 # Update Ollama API base if custom IP is provided
 if settings.custom_ollama_ip:
-    if not settings.custom_ollama_ip.startswith(('http://', 'https://')):
-        settings.ollama_api_base = f"http://{settings.custom_ollama_ip}:11434"
+    # Parse the IP and port from the format IP:PORT
+    parts = settings.custom_ollama_ip.split(':')
+    if len(parts) >= 2:
+        ip = parts[0]
+        port = parts[-1]  # Get the last part as port
+        # If there are 3 parts, the middle one might be part of the IP (IPv6) or another port
+        if len(parts) == 3 and parts[1].isdigit():
+            ip = f"{parts[0]}:{parts[1]}"
+        
+        if not ip.startswith(('http://', 'https://')):
+            settings.ollama_api_base = f"http://{ip}:{port}"
+        else:
+            # If protocol is included, use as is
+            settings.ollama_api_base = settings.custom_ollama_ip
     else:
-        # If protocol is included, use as is
-        settings.ollama_api_base = settings.custom_ollama_ip
+        # If no port is specified, use the default Ollama port
+        if not settings.custom_ollama_ip.startswith(('http://', 'https://')):
+            settings.ollama_api_base = f"http://{settings.custom_ollama_ip}:11434"
+        else:
+            # If protocol is included, use as is
+            settings.ollama_api_base = settings.custom_ollama_ip
 
 app = FastAPI()
 
@@ -282,11 +298,27 @@ async def update_ollama_config(request: OllamaConfigRequest):
         
         # Update Ollama API base if custom IP is provided
         if settings.custom_ollama_ip:
-            if not settings.custom_ollama_ip.startswith(('http://', 'https://')):
-                settings.ollama_api_base = f"http://{settings.custom_ollama_ip}:11434"
+            # Parse the IP and port from the format IP:PORT
+            parts = settings.custom_ollama_ip.split(':')
+            if len(parts) >= 2:
+                ip = parts[0]
+                port = parts[-1]  # Get the last part as port
+                # If there are 3 parts, the middle one might be part of the IP (IPv6) or another port
+                if len(parts) == 3 and parts[1].isdigit():
+                    ip = f"{parts[0]}:{parts[1]}"
+                
+                if not ip.startswith(('http://', 'https://')):
+                    settings.ollama_api_base = f"http://{ip}:{port}"
+                else:
+                    # If protocol is included, use as is
+                    settings.ollama_api_base = settings.custom_ollama_ip
             else:
-                # If protocol is included, use as is
-                settings.ollama_api_base = settings.custom_ollama_ip
+                # If no port is specified, use the default Ollama port
+                if not settings.custom_ollama_ip.startswith(('http://', 'https://')):
+                    settings.ollama_api_base = f"http://{settings.custom_ollama_ip}:11434"
+                else:
+                    # If protocol is included, use as is
+                    settings.ollama_api_base = settings.custom_ollama_ip
         else:
             # Reset to default
             settings.ollama_api_base = "http://localhost:11434"
@@ -343,6 +375,7 @@ if __name__ == "__main__":
     # Log startup configuration
     logger.info("Starting server with configuration:")
     logger.info(f"Ollama API Base: {settings.ollama_api_base}")
+    logger.info(f"Custom Ollama IP: {settings.custom_ollama_ip}")
     logger.info(f"Default Max Tokens: {settings.default_max_tokens}")
     logger.info(f"Default Temperature: {settings.default_temperature}")
     logger.info(f"Request Timeout: {settings.request_timeout}")
