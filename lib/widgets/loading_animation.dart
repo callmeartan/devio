@@ -20,14 +20,14 @@ class _LoadingAnimationState extends State<LoadingAnimation>
   late final AnimationController _rotationController;
   late final AnimationController _scaleController;
   late final AnimationController _opacityController;
-  
+
   final List<AnimationController> _dotControllers = [];
   final int numberOfDots = 3;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Rotation animation
     _rotationController = AnimationController(
       duration: const Duration(seconds: 2),
@@ -70,7 +70,7 @@ class _LoadingAnimationState extends State<LoadingAnimation>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     Widget content = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -136,8 +136,8 @@ class _LoadingAnimationState extends State<LoadingAnimation>
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary
-                            .withOpacity(0.6 + (0.4 * _dotControllers[index].value)),
+                        color: theme.colorScheme.primary.withOpacity(
+                            0.6 + (0.4 * _dotControllers[index].value)),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -197,7 +197,7 @@ class _LoadingAnimationState extends State<LoadingAnimation>
         child: content,
       );
     }
-    
+
     return Center(child: content);
   }
-} 
+}

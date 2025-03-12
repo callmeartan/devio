@@ -50,14 +50,15 @@ class ChatCubit extends Cubit<ChatState> {
 
   void _initializeChatStream() {
     _chatSubscription?.cancel();
-    
+
     if (state.currentChatId != null) {
-      developer.log('Initializing chat stream for chat: ${state.currentChatId}');
-      _chatSubscription = _chatRepository
-          .getChatMessagesForId(state.currentChatId!)
-          .listen(
+      developer
+          .log('Initializing chat stream for chat: ${state.currentChatId}');
+      _chatSubscription =
+          _chatRepository.getChatMessagesForId(state.currentChatId!).listen(
         (messages) {
-          developer.log('Received ${messages.length} messages for chat: ${state.currentChatId}');
+          developer.log(
+              'Received ${messages.length} messages for chat: ${state.currentChatId}');
           _localMessages[state.currentChatId!] = messages;
           _updateMessagesState(state.currentChatId);
         },
@@ -106,22 +107,22 @@ class ChatCubit extends Cubit<ChatState> {
         evalDuration: evalDuration,
         evalRate: evalRate,
       );
-      
+
       // Add message to local state immediately
       final chatId = message.chatId;
       _localMessages[chatId] = [...(_localMessages[chatId] ?? []), message];
       _updateMessagesState(chatId);
-      
+
       await _chatRepository.sendMessage(message);
       developer.log('Message sent successfully, chatId: ${message.chatId}');
-      
+
       // If this is a new chat, update the chat ID and histories
       if (state.currentChatId == null) {
         developer.log('New chat created with ID: ${message.chatId}');
         emit(state.copyWith(currentChatId: message.chatId));
         _initializeChatStream();
       }
-      
+
       // Always refresh chat histories after sending a message
       await _loadChatHistories();
     } catch (e) {
@@ -151,32 +152,33 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> forceDeleteChat(String chatId) async {
     try {
       developer.log('Force deleting chat: $chatId');
-      
+
       // Cancel subscription if it's the current chat
       if (state.currentChatId == chatId) {
         _chatSubscription?.cancel();
       }
-      
+
       // Delete from repository
       await _chatRepository.deleteChat(chatId);
-      
+
       // Clean up local state
       _localMessages.remove(chatId);
-      
+
       // Update state
       if (state.currentChatId == chatId) {
         emit(state.copyWith(currentChatId: null, messages: []));
       }
-      
+
       // Remove from pinned chats if needed
       if (state.pinnedChatIds.contains(chatId)) {
-        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)..remove(chatId);
+        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)
+          ..remove(chatId);
         emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
       }
-      
+
       // Reload histories
       await _loadChatHistories();
-      
+
       developer.log('Successfully force deleted chat: $chatId');
     } catch (e) {
       developer.log('Error force deleting chat: $e');
@@ -188,26 +190,26 @@ class ChatCubit extends Cubit<ChatState> {
     try {
       developer.log('Starting chat clear process in cubit');
       emit(state.copyWith(isLoading: true, error: null));
-      
+
       // Cancel existing chat subscription
       _chatSubscription?.cancel();
-      
+
       // Clear chats in repository
       await _chatRepository.clearChat();
-      
+
       // Clear local state
       _localMessages.clear();
-      
+
       // Reset state completely and start new chat
       emit(const ChatState());
       startNewChat();
-      
+
       // Small delay to ensure Firebase operations complete
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       // Reload histories
       await _loadChatHistories();
-      
+
       developer.log('Chat clear process completed in cubit');
     } catch (e) {
       developer.log('Error clearing chat in cubit: $e');
@@ -222,7 +224,8 @@ class ChatCubit extends Cubit<ChatState> {
     try {
       developer.log('Pinning chat: $chatId');
       if (!state.pinnedChatIds.contains(chatId)) {
-        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)..add(chatId);
+        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)
+          ..add(chatId);
         emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
         await _chatRepository.updateChatPin(chatId, true);
       }
@@ -236,7 +239,8 @@ class ChatCubit extends Cubit<ChatState> {
     try {
       developer.log('Unpinning chat: $chatId');
       if (state.pinnedChatIds.contains(chatId)) {
-        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)..remove(chatId);
+        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)
+          ..remove(chatId);
         emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
         await _chatRepository.updateChatPin(chatId, false);
       }
@@ -250,18 +254,19 @@ class ChatCubit extends Cubit<ChatState> {
     try {
       developer.log('Deleting chat: $chatId');
       await _chatRepository.deleteChat(chatId);
-      
+
       // Remove from pinned chats if it was pinned
       if (state.pinnedChatIds.contains(chatId)) {
-        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)..remove(chatId);
+        final updatedPinnedChats = List<String>.from(state.pinnedChatIds)
+          ..remove(chatId);
         emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
       }
-      
+
       // If the deleted chat was the current chat, clear it
       if (state.currentChatId == chatId) {
         emit(state.copyWith(currentChatId: null, messages: []));
       }
-      
+
       await _loadChatHistories();
     } catch (e) {
       developer.log('Error deleting chat: $e');
@@ -288,35 +293,36 @@ class ChatCubit extends Cubit<ChatState> {
     String? senderName,
   }) {
     developer.log('Adding placeholder message with ID: $id');
-    
+
     // Create a placeholder message
     final message = ChatMessage(
       id: id,
       chatId: state.currentChatId ?? 'new-chat',
       senderId: senderId,
-      content: '',  // Empty content for placeholder
+      content: '', // Empty content for placeholder
       isAI: isAI,
       senderName: senderName,
       timestamp: DateTime.now(),
-      isPlaceholder: true,  // Mark as placeholder
+      isPlaceholder: true, // Mark as placeholder
     );
-    
+
     // Add to local messages
     final chatId = message.chatId;
     _localMessages[chatId] = [...(_localMessages[chatId] ?? []), message];
     _updateMessagesState(chatId);
   }
-  
+
   // Add a method to remove a placeholder message
   void removePlaceholderMessage(String placeholderId) {
     developer.log('Removing placeholder message with ID: $placeholderId');
-    
+
     if (state.currentChatId == null) return;
-    
+
     // Remove the placeholder from local messages
     final chatId = state.currentChatId!;
     final messages = _localMessages[chatId] ?? [];
-    _localMessages[chatId] = messages.where((m) => m.id != placeholderId).toList();
+    _localMessages[chatId] =
+        messages.where((m) => m.id != placeholderId).toList();
     _updateMessagesState(chatId);
   }
 
@@ -331,7 +337,7 @@ class ChatCubit extends Cubit<ChatState> {
     if (state.searchQuery.isEmpty) {
       return state.chatHistories;
     }
-    
+
     final query = state.searchQuery.toLowerCase();
     return state.chatHistories.where((chat) {
       final title = (chat['title'] as String).toLowerCase();
@@ -344,4 +350,4 @@ class ChatCubit extends Cubit<ChatState> {
     _chatSubscription?.cancel();
     return super.close();
   }
-} 
+}

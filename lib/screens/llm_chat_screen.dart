@@ -32,12 +32,16 @@ class ChatMessage {
   final bool isUser;
   final String? senderName;
   final DateTime timestamp;
+  final Uint8List? imageBytes;
+  final String? documentPath;
 
   ChatMessage({
     required this.text,
     required this.isUser,
     this.senderName,
     DateTime? timestamp,
+    this.imageBytes,
+    this.documentPath,
   }) : timestamp = timestamp ?? DateTime.now();
 }
 
@@ -93,8 +97,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Set Gemini as default provider
-    context.read<LlmCubit>().setProvider(LlmProvider.gemini);
+    // Set local as default provider
+    context.read<LlmCubit>().setProvider(LlmProvider.local);
     _loadAvailableModels();
     _chatScrollController.addListener(_scrollListener);
 
@@ -167,49 +171,19 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       if (mounted) {
         setState(() {
           _isLoadingModels = false;
-
-          // Filter out models that are known to be unavailable
-          // This is a fallback in case the API returns models that are actually unavailable
-          final provider = context.read<LlmCubit>().currentProvider;
-          if (provider == LlmProvider.gemini) {
-            // For Gemini, we'll use a more conservative list of models that are likely to be available
-            // This helps prevent the 429 quota errors
-            _availableModels = _filterReliableGeminiModels(models);
-          } else {
-            _availableModels = models;
-          }
+          _availableModels = models;
 
           // Filter models based on current context
           final filteredModels = _getFilteredModels();
 
           // Ensure we have at least one model available
           if (filteredModels.isEmpty) {
-            if (provider == LlmProvider.gemini) {
-              // Default to the most reliable model based on context
-              _availableModels = [
-                _selectedImageBytes != null
-                    ? 'gemini-1.0-pro-vision'
-                    : 'gemini-1.0-pro'
-              ];
-            } else {
-              _availableModels = ['local-model'];
-            }
+            _availableModels = ['local-model'];
           }
 
           // Always select a default model if none is selected
           if (_selectedModel == null) {
-            _selectedModel = provider == LlmProvider.gemini
-                ? (_selectedImageBytes != null
-                    ? 'gemini-1.0-pro-vision'
-                    : 'gemini-1.0-pro')
-                : filteredModels.firstOrNull;
-          }
-          // If switching to Gemini, ensure we have a Gemini model selected
-          else if (provider == LlmProvider.gemini &&
-              !_selectedModel!.startsWith('gemini-')) {
-            _selectedModel = _selectedImageBytes != null
-                ? 'gemini-1.0-pro-vision'
-                : 'gemini-1.0-pro';
+            _selectedModel = filteredModels.firstOrNull;
           }
 
           developer.log('Selected model: $_selectedModel');
@@ -221,45 +195,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       if (mounted) {
         setState(() {
           _isLoadingModels = false;
-          // If we encounter an error, set a minimal set of reliable models
-          final provider = context.read<LlmCubit>().currentProvider;
-          if (provider == LlmProvider.gemini) {
-            _availableModels = [
-              _selectedImageBytes != null
-                  ? 'gemini-1.0-pro-vision'
-                  : 'gemini-1.0-pro'
-            ];
-            _selectedModel = _availableModels.first;
-          } else {
-            _availableModels = ['local-model'];
-            _selectedModel = 'local-model';
-          }
+          _availableModels = ['local-model'];
+          _selectedModel = 'local-model';
         });
         _showErrorSnackBar('Failed to load models: $e');
       }
     }
-  }
-
-  // Helper method to filter Gemini models to only include the most reliable ones
-  List<String> _filterReliableGeminiModels(List<String> allModels) {
-    // These are the models that are most likely to be available and not hit quota limits
-    final reliableModels = [
-      'gemini-1.0-pro',
-      'gemini-1.0-pro-vision',
-    ];
-
-    // Filter the available models to only include the reliable ones
-    final filteredModels =
-        allModels.where((model) => reliableModels.contains(model)).toList();
-
-    // If no reliable models are found, return a default set
-    if (filteredModels.isEmpty) {
-      return _selectedImageBytes != null
-          ? ['gemini-1.0-pro-vision']
-          : ['gemini-1.0-pro'];
-    }
-
-    return filteredModels;
   }
 
   void _showErrorSnackBar(String message) {
@@ -901,7 +842,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 ? Colors.white.withOpacity(0.1)
                                 : Colors.black.withOpacity(0.1),
                             child: authState.maybeWhen(
-                              authenticated: (_, __, photoUrl) {
+                              authenticated: (_, displayName, photoUrl) {
                                 if (photoUrl != null &&
                                     photoUrl.startsWith('http')) {
                                   return ClipOval(
@@ -1283,108 +1224,57 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   void _sendMessage() {
-    if (_selectedModel == null) {
-      _showErrorSnackBar('Please select a model first');
+    if (_messageController.text.trim().isEmpty &&
+        _selectedImageBytes == null &&
+        _selectedDocument == null) {
       return;
     }
 
-    final prompt = _messageController.text.trim();
-    if (prompt.isEmpty) {
-      return;
-    }
+    final message = _messageController.text.trim();
+    _messageController.clear();
 
-    // Check if we're trying to send an image with a non-vision model
-    if (_selectedImageBytes != null && !_selectedModel!.contains('vision')) {
-      _showErrorSnackBar(
-          'Please select a vision-capable model to analyze images');
-      return;
-    }
-
-    // Check if we're using the correct provider for image analysis
-    if (_selectedImageBytes != null &&
-        context.read<LlmCubit>().currentProvider != LlmProvider.gemini) {
-      _showErrorSnackBar('Image analysis is only available with Gemini');
-      return;
-    }
-
-    // Check if we're already waiting for a response
-    if (_isWaitingForAiResponse) {
-      return;
-    }
-
+    // Add message to chat history
     final authState = context.read<AuthCubit>().state;
     final userId = authState.maybeWhen(
-      authenticated: (uid, displayName, _) => uid,
-      orElse: () =>
-          throw Exception('User must be authenticated to send messages'),
+      authenticated: (uid, _, __) => uid,
+      orElse: () => 'anonymous',
     );
 
-    final userName = authState.maybeWhen(
-      authenticated: (_, displayName, __) => displayName,
-      orElse: () => null,
-    );
+    context.read<ChatCubit>().sendMessage(
+          senderId: userId,
+          content: message,
+          isAI: false,
+        );
 
-    // Set waiting flag
     setState(() {
+      _selectedImageBytes = null;
+      _selectedDocument = null;
       _isWaitingForAiResponse = true;
     });
 
-    // First send the user's message
-    context
-        .read<ChatCubit>()
-        .sendMessage(
-          senderId: userId,
-          content: prompt,
-          isAI: false,
-          senderName: userName,
-        )
-        .then((_) {
-      // Add a placeholder message for the AI response
-      final placeholderId =
-          'placeholder-${DateTime.now().millisecondsSinceEpoch}';
+    _scrollToBottom();
+
+    // Generate response based on the message
+    if (_selectedDocument != null) {
+      // Document analysis is not supported without Gemini
+      _showErrorSnackBar(
+          'Document analysis is not supported with local models');
       setState(() {
-        _placeholderMessageId = placeholderId;
+        _isWaitingForAiResponse = false;
       });
-
-      // Add the placeholder message to the chat
-      context.read<ChatCubit>().addPlaceholderMessage(
-            id: placeholderId,
-            senderId: 'ai',
-            isAI: true,
-            senderName: _kAiUserName,
+    } else if (_selectedImageBytes != null) {
+      // Image analysis is not supported without Gemini
+      _showErrorSnackBar('Image analysis is not supported with local models');
+      setState(() {
+        _isWaitingForAiResponse = false;
+      });
+    } else {
+      // Text-only message
+      context.read<LlmCubit>().generateResponse(
+            prompt: message,
+            modelName: _selectedModel,
           );
-
-      // Generate response based on whether an image or document is selected
-      try {
-        if (_selectedImageBytes != null) {
-          context.read<LlmCubit>().generateResponseWithImage(
-                prompt: prompt,
-                imageBytes: _selectedImageBytes!,
-                modelName: _selectedModel!,
-              );
-          _clearSelectedImage();
-        } else if (_selectedDocument != null) {
-          context.read<LlmCubit>().generateResponseWithDocument(
-                prompt: prompt,
-                documentPath: _selectedDocument!.path,
-                modelName: _selectedModel!,
-              );
-          _clearSelectedDocument();
-        } else {
-          context.read<LlmCubit>().generateResponse(
-                prompt: prompt,
-                modelName: _selectedModel!,
-              );
-        }
-      } catch (e) {
-        _handleApiError(e);
-      }
-
-      _messageController.clear();
-      _scrollToBottom();
-    }).catchError((error) {
-      _handleApiError(error);
-    });
+    }
   }
 
   void _handleApiError(dynamic error) {
@@ -1400,68 +1290,52 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     String errorMessage = 'Failed to generate response';
 
-    // Check for quota errors
-    if (error.toString().contains('429') ||
-        error.toString().contains('RESOURCE_EXHAUSTED') ||
-        error.toString().contains('quota')) {
-      errorMessage =
-          'API quota exceeded. Please try again later or switch to a different model.';
-
-      // Show a more detailed error dialog
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('API Quota Exceeded'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'You have reached the usage limit for the Gemini API.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Suggestions:',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              Text('• Try using gemini-1.0-pro model instead'),
-              Text('• Wait a few minutes before trying again'),
-              Text('• Switch to a different provider if available'),
-              const SizedBox(height: 16),
-              Text(
-                'Error details: ${error.toString()}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Dismiss'),
+    // Show a simple error dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'There was an error connecting to the local AI model.',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  _showModelSelection = true;
-                  // Auto-select the most reliable model
-                  _selectedModel = _selectedImageBytes != null
-                      ? 'gemini-1.0-pro-vision'
-                      : 'gemini-1.0-pro';
-                });
-              },
-              child: const Text('Use Reliable Model'),
+            const SizedBox(height: 16),
+            Text(
+              'Suggestions:',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            Text('• Make sure Ollama is running on your machine'),
+            Text('• Check the Ollama IP configuration'),
+            Text('• Verify that the selected model is installed'),
+            const SizedBox(height: 16),
+            Text(
+              'Error details: ${error.toString()}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
             ),
           ],
         ),
-      );
-    } else {
-      _showErrorSnackBar('$errorMessage: $error');
-    }
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Dismiss'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showOllamaConfigDialog();
+            },
+            child: const Text('Configure Ollama'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _sendInitialGreeting() {
@@ -1526,55 +1400,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   String _getModelDisplayName(String model) {
-    // Convert model names to more user-friendly display names
-    switch (model) {
-      case 'gemini-pro':
-        return 'Gemini Pro';
-      case 'gemini-1.5-pro':
-        return 'Gemini 1.5 Pro';
-      case 'gemini-1.0-pro':
-        return 'Gemini 1.0 Pro';
-      case 'gemini-pro-vision':
-        return 'Gemini Pro Vision';
-      case 'gemini-1.5-pro-vision':
-        return 'Gemini 1.5 Pro Vision';
-      case 'gemini-1.5-pro-vision-latest':
-        return 'Gemini 1.5 Pro Vision (Latest)';
-      case 'gemini-1.0-pro-vision':
-        return 'Gemini 1.0 Pro Vision';
-      case 'gemini-ultra':
-        return 'Gemini Ultra';
-      case 'gemini-ultra-vision':
-        return 'Gemini Ultra Vision';
-      default:
-        // Handle any other model names by formatting them nicely
-        if (model.startsWith('gemini-')) {
-          // Remove the 'gemini-' prefix and replace hyphens with spaces
-          final formattedName = model.substring(7).replaceAll('-', ' ');
-          // Capitalize each word
-          final words = formattedName.split(' ');
-          final capitalizedWords = words.map((word) => word.isNotEmpty
-              ? '${word[0].toUpperCase()}${word.substring(1)}'
-              : '');
-          return 'Gemini ${capitalizedWords.join(' ')}';
-        }
-        return model;
-    }
+    // For local models, just return the model name
+    return model;
   }
 
   List<String> _getFilteredModels() {
-    final provider = context.read<LlmCubit>().currentProvider;
-
-    // Filter models based on current context
-    return _availableModels.where((model) {
-      if (provider == LlmProvider.local) {
-        return true;
-      }
-      if (_selectedImageBytes != null) {
-        return model.contains('vision');
-      }
-      return !model.contains('vision');
-    }).toList();
+    // Return all available models
+    return _availableModels;
   }
 
   void _onProviderChanged(LlmProvider provider) {
@@ -1588,12 +1420,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     _loadAvailableModels();
 
     // If switching to local provider, prompt for Ollama IP configuration
-    if (provider == LlmProvider.local) {
-      // Wait for the state to update before showing the dialog
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _promptForOllamaIpIfNeeded();
-      });
-    }
+    // Wait for the state to update before showing the dialog
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _promptForOllamaIpIfNeeded();
+    });
   }
 
   void _promptForOllamaIpIfNeeded() {

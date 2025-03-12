@@ -35,7 +35,9 @@ class SimpleDrawerMenuItem extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                    color: isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: icon,
@@ -55,7 +57,9 @@ class SimpleDrawerMenuItem extends StatelessWidget {
               if (showTrailingIcon)
                 Icon(
                   Icons.chevron_right,
-                  color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.5)
+                      : Colors.black.withOpacity(0.5),
                 ),
             ],
           ),
@@ -97,7 +101,7 @@ class DrawerMenuItem extends StatelessWidget {
 
   void _showOptionsDialog(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -173,7 +177,7 @@ class DrawerMenuItem extends StatelessWidget {
   void _showRenameDialog(BuildContext context) {
     final theme = Theme.of(context);
     final controller = TextEditingController(text: title);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -194,7 +198,9 @@ class DrawerMenuItem extends StatelessWidget {
           decoration: InputDecoration(
             hintText: 'Enter new name',
             hintStyle: theme.textTheme.bodyLarge?.copyWith(
-              color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+              color: isDark
+                  ? Colors.white.withOpacity(0.5)
+                  : Colors.black.withOpacity(0.5),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -207,7 +213,9 @@ class DrawerMenuItem extends StatelessWidget {
             child: Text(
               'Cancel',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                color: isDark
+                    ? Colors.white.withOpacity(0.7)
+                    : Colors.black.withOpacity(0.7),
               ),
             ),
           ),
@@ -228,7 +236,7 @@ class DrawerMenuItem extends StatelessWidget {
 
   void _showDeleteConfirmation(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -252,7 +260,9 @@ class DrawerMenuItem extends StatelessWidget {
             child: Text(
               'Cancel',
               style: theme.textTheme.labelLarge?.copyWith(
-                color: isDark ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                color: isDark
+                    ? Colors.white.withOpacity(0.7)
+                    : Colors.black.withOpacity(0.7),
               ),
             ),
           ),
@@ -275,7 +285,9 @@ class DrawerMenuItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final backgroundColor = isSelected
-        ? (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1))
+        ? (isDark
+            ? Colors.white.withOpacity(0.1)
+            : Colors.black.withOpacity(0.1))
         : Colors.transparent;
 
     return InkWell(
@@ -294,7 +306,9 @@ class DrawerMenuItem extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: icon,
@@ -317,17 +331,21 @@ class DrawerMenuItem extends StatelessWidget {
                 child: Icon(
                   Icons.push_pin,
                   size: 16,
-                  color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.5)
+                      : Colors.black.withOpacity(0.5),
                 ),
               ),
             if (showTrailingIcon)
               Icon(
                 Icons.chevron_right,
-                color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                color: isDark
+                    ? Colors.white.withOpacity(0.5)
+                    : Colors.black.withOpacity(0.5),
               ),
           ],
         ),
       ),
     );
   }
-} 
+}

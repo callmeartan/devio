@@ -33,7 +33,9 @@ class SimpleDrawerMenuItem extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: icon,
@@ -53,11 +55,13 @@ class SimpleDrawerMenuItem extends StatelessWidget {
             if (showTrailingIcon)
               Icon(
                 Icons.chevron_right,
-                color: isDark ? Colors.white.withOpacity(0.5) : Colors.black.withOpacity(0.5),
+                color: isDark
+                    ? Colors.white.withOpacity(0.5)
+                    : Colors.black.withOpacity(0.5),
               ),
           ],
         ),
       ),
     );
   }
-} 
+}

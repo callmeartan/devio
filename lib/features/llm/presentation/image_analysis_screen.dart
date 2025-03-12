@@ -146,9 +146,10 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
                       children: [
                         TextSpan(
                           text: message,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.red,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: Colors.red,
+                                  ),
                         ),
                       ],
                     ),
@@ -162,4 +163,4 @@ class _ImageAnalysisScreenState extends State<ImageAnalysisScreen> {
       ),
     );
   }
-} 
+}

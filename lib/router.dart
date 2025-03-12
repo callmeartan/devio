@@ -24,20 +24,30 @@ final appRouter = GoRouter(
     // Check authentication state
     final authState = context?.read<AuthCubit>().state;
     final isAuthenticated = authState?.maybeWhen(
-      authenticated: (_, __, ___) => true,
-      orElse: () => false,
-    ) ?? false;
+          authenticated: (_, __, ___) => true,
+          orElse: () => false,
+        ) ??
+        false;
 
     // List of routes that require authentication
-    final authenticatedRoutes = ['/llm', '/profile', '/settings', '/notifications', '/edit-profile'];
-    
+    final authenticatedRoutes = [
+      '/llm',
+      '/profile',
+      '/settings',
+      '/notifications',
+      '/edit-profile'
+    ];
+
     // If user is authenticated and trying to access auth or landing routes, redirect to LLM
-    if (isAuthenticated && (state.matchedLocation == '/auth' || state.matchedLocation == '/landing')) {
+    if (isAuthenticated &&
+        (state.matchedLocation == '/auth' ||
+            state.matchedLocation == '/landing')) {
       return '/llm';
     }
-    
+
     // If user is not authenticated and trying to access authenticated routes, redirect to landing
-    if (!isAuthenticated && authenticatedRoutes.contains(state.matchedLocation)) {
+    if (!isAuthenticated &&
+        authenticatedRoutes.contains(state.matchedLocation)) {
       return '/landing';
     }
 
@@ -110,4 +120,4 @@ final appRouter = GoRouter(
       builder: (context, state) => const NotificationsScreen(),
     ),
   ],
-); 
+);

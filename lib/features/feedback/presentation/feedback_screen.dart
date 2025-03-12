@@ -62,7 +62,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to submit feedback: $e'),
@@ -79,7 +79,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -104,7 +104,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            
             _buildSection(
               theme,
               title: 'Feedback Details',
@@ -175,16 +174,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 ),
               ],
             ),
-            
             _buildSection(
               theme,
               title: 'Additional Information',
               children: [
                 SwitchListTile(
                   title: const Text('Include Screenshot'),
-                  subtitle: const Text('Attach a screenshot of the current screen'),
+                  subtitle:
+                      const Text('Attach a screenshot of the current screen'),
                   value: _includeScreenshot,
-                  onChanged: (value) => setState(() => _includeScreenshot = value),
+                  onChanged: (value) =>
+                      setState(() => _includeScreenshot = value),
                 ),
                 if (_includeScreenshot)
                   Padding(
@@ -199,7 +199,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   ),
               ],
             ),
-            
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isSubmitting ? null : _submitFeedback,
@@ -227,7 +226,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     );
   }
 
-  Widget _buildSection(ThemeData theme, {
+  Widget _buildSection(
+    ThemeData theme, {
     required String title,
     required List<Widget> children,
   }) {
@@ -259,4 +259,4 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       ],
     );
   }
-} 
+}

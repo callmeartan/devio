@@ -1,26 +1,12 @@
 # DevIO - AI-Driven Development Assistant
 
-DevIO is a Flutter application that provides AI-powered assistance for app development using Google's Gemini AI models. It offers a seamless interface for developers to get real-time guidance, document analysis, and code suggestions.
+DevIO is a Flutter application that provides AI-powered assistance for app development using local AI models. It offers a seamless interface for developers to get real-time guidance and code suggestions.
 
 ## ✨ Features
 
 ### 🤖 AI Chat Interface
 - Real-time chat interface with AI development assistant
-- Support for multiple Gemini models:
-  - `gemini-1.5-pro` (Default)
-  - `gemini-1.5-pro-vision`
-  - `gemini-1.5-pro-vision-latest`
-  - And more...
-
-### 📄 Document Analysis
-- PDF document analysis and text extraction using image_picker
-- Ask questions about uploaded documents
-- Smart text chunking for large documents
-
-### 🖼️ Image Analysis
-- Image analysis using Gemini Vision models
-- Support for various image formats
-- Visual context understanding
+- Support for local AI models through Ollama
 
 ### 💬 Chat Management
 - Create and manage multiple chat sessions
@@ -52,15 +38,10 @@ DevIO is a Flutter application that provides AI-powered assistance for app devel
 - Flutter SDK (>=3.0.0)
 - Dart SDK (>=3.0.0)
 - Firebase project setup
-- Google Cloud project with Gemini API enabled
+- Ollama installed locally for AI models
 
 ### Environment Setup
-1. Create a `.env` file in the root directory with:
-```
-GEMINI_API_KEY=your_api_key_here
-```
-
-2. Configure Firebase:
+1. Configure Firebase:
    - Add `google-services.json` (Android)
    - Add `GoogleService-Info.plist` (iOS)
    - Set up Firestore rules using the provided `firestore.rules` file
@@ -111,11 +92,6 @@ flutter run
 ### Authentication
 - google_sign_in: ^6.2.1
 - sign_in_with_apple: ^6.1.4
-
-### AI & Document Handling
-- google_generative_ai: ^0.4.6
-- syncfusion_flutter_pdf: ^28.2.9
-- image_picker: ^1.0.7
 
 ### Web Integration
 - webview_flutter: ^4.7.0
@@ -170,8 +146,7 @@ lib/
 - ChatCubit: Handles chat state and operations
 - AuthCubit: Manages authentication state
 - PreferencesCubit: Manages app preferences
-- DocumentService: Handles document processing
-- GeminiService: Manages Gemini API interactions
+- LlmService: Manages local AI model interactions
 
 ## 🔧 Development
 
@@ -202,7 +177,7 @@ The app uses the JosefinSans font family and a custom theme defined in the `them
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🙏 Acknowledgments
-- Google Gemini AI
 - Flutter team
 - Firebase team
+- Ollama project
 - All contributors

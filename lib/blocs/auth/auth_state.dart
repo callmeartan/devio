@@ -11,4 +11,4 @@ class AuthState with _$AuthState {
   }) = _Authenticated;
   const factory AuthState.unauthenticated() = _Unauthenticated;
   const factory AuthState.error(String message) = _Error;
-} 
+}

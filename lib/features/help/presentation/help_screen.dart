@@ -7,7 +7,7 @@ class HelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -51,7 +51,6 @@ class HelpScreen extends StatelessWidget {
               ),
             ],
           ),
-          
           _buildSection(
             theme,
             title: 'Frequently Asked Questions',
@@ -94,7 +93,6 @@ class HelpScreen extends StatelessWidget {
               ),
             ],
           ),
-          
           _buildSection(
             theme,
             title: 'Contact Us',
@@ -131,7 +129,6 @@ class HelpScreen extends StatelessWidget {
               ),
             ],
           ),
-          
           _buildSection(
             theme,
             title: 'Resources',
@@ -152,7 +149,8 @@ class HelpScreen extends StatelessWidget {
                 title: const Text('Video Tutorials'),
                 subtitle: const Text('Watch how-to guides'),
                 onTap: () async {
-                  final Uri videosUri = Uri.parse('https://devio.app/tutorials');
+                  final Uri videosUri =
+                      Uri.parse('https://devio.app/tutorials');
                   if (await canLaunchUrl(videosUri)) {
                     await launchUrl(videosUri);
                   }
@@ -165,7 +163,8 @@ class HelpScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(ThemeData theme, {
+  Widget _buildSection(
+    ThemeData theme, {
     required String title,
     required List<Widget> children,
   }) {
@@ -197,4 +196,4 @@ class HelpScreen extends StatelessWidget {
       ],
     );
   }
-} 
+}

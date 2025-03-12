@@ -24,4 +24,4 @@ class LlmResponse with _$LlmResponse {
 
   factory LlmResponse.fromJson(Map<String, dynamic> json) =>
       _$LlmResponseFromJson(json);
-} 
+}

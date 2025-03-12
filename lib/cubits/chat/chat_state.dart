@@ -14,4 +14,4 @@ class ChatState with _$ChatState {
     String? error,
     @Default('') String searchQuery,
   }) = _ChatState;
-} 
+}

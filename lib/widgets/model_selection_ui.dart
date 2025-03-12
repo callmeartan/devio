@@ -234,7 +234,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Row(
                           children: [
-                            _buildProviderSelector(context),
+                            _buildProviderSelector(),
                             const Spacer(),
                             if (widget.isLoadingModels)
                               Container(
@@ -402,296 +402,74 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     );
   }
 
-  Widget _buildProviderSelector(BuildContext context) {
-    final llmCubit = context.read<LlmCubit>();
+  Widget _buildProviderSelector() {
     final theme = Theme.of(context);
+    final llmCubit = context.watch<LlmCubit>();
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        PopupMenuButton<LlmProvider>(
-          initialValue: llmCubit.currentProvider,
-          onSelected: (LlmProvider provider) {
-            if (widget.onProviderChanged != null) {
-              widget.onProviderChanged!(provider);
-            } else {
-              llmCubit.setProvider(provider);
-              widget.onRefresh();
-            }
-          },
-          tooltip: 'Select AI provider',
-          color: theme.colorScheme.surface,
-          surfaceTintColor: Colors.transparent,
-          elevation: 4,
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<LlmProvider>>[
-            PopupMenuItem<LlmProvider>(
-              value: LlmProvider.local,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.computer,
-                    color: llmCubit.currentProvider == LlmProvider.local
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withOpacity(0.7),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Local Model',
-                    style: TextStyle(
-                      color: llmCubit.currentProvider == LlmProvider.local
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuItem<LlmProvider>(
-              value: LlmProvider.gemini,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.cloud,
-                    color: llmCubit.currentProvider == LlmProvider.gemini
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withOpacity(0.7),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Gemini',
-                    style: TextStyle(
-                      color: llmCubit.currentProvider == LlmProvider.gemini
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  llmCubit.currentProvider == LlmProvider.local
-                      ? Icons.computer
-                      : Icons.cloud,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  llmCubit.currentProvider == LlmProvider.local
-                      ? 'Local'
-                      : 'Gemini',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.arrow_drop_down,
-                  size: 16,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ],
-            ),
-          ),
-        ),
-        // Add Ollama IP configuration button only for local provider
-        if (llmCubit.currentProvider == LlmProvider.local)
-          Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: Tooltip(
-              message: llmCubit.customOllamaIp != null &&
-                      llmCubit.customOllamaIp!.isNotEmpty
-                  ? 'Ollama IP: ${llmCubit.customOllamaIp}'
-                  : 'Configure Ollama Connection',
-              child: IconButton(
-                icon: Icon(
-                  Icons.settings,
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                onPressed: () => _showOllamaConfigDialog(context),
-                style: IconButton.styleFrom(
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest
-                      .withOpacity(0.5),
-                  padding: const EdgeInsets.all(8),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  void _showOllamaConfigDialog(BuildContext context) {
-    final llmCubit = context.read<LlmCubit>();
-    final theme = Theme.of(context);
-
-    final ipController =
-        TextEditingController(text: llmCubit.customOllamaIp ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              Icons.laptop,
-              size: 20,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Ollama Connection Settings',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        content: _buildOllamaConfigContent(theme, ipController),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ),
-          FilledButton.icon(
-            onPressed: () => _saveOllamaConfig(ipController.text, context),
-            icon: const Icon(Icons.save, size: 16),
-            label: const Text('Save & Connect'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOllamaConfigContent(
-      ThemeData theme, TextEditingController ipController) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Enter Ollama server IP address and port',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: ipController,
-          decoration: InputDecoration(
-            hintText: 'e.g., localhost:11434 or 192.168.1.100:11434',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
-            prefixIcon: const Icon(Icons.link),
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildConnectionGuide(theme),
-      ],
-    );
-  }
-
-  Widget _buildConnectionGuide(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.colorScheme.primaryContainer,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return PopupMenuButton<LlmProvider>(
+      onSelected: widget.onProviderChanged,
+      position: PopupMenuPosition.under,
+      itemBuilder: (context) => [
+        PopupMenuItem<LlmProvider>(
+          value: LlmProvider.local,
+          child: Row(
             children: [
               Icon(
-                Icons.info_outline,
-                size: 16,
-                color: theme.colorScheme.primary,
+                Icons.computer,
+                color: llmCubit.currentProvider == LlmProvider.local
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurface.withOpacity(0.7),
+                size: 20,
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Connection Guide:',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.bold,
-                  ),
+              Text(
+                'Local',
+                style: TextStyle(
+                  color: llmCubit.currentProvider == LlmProvider.local
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          _buildGuideItem(
-            theme,
-            '• Same device: use localhost:11434',
-            theme.colorScheme.onPrimaryContainer,
+        ),
+      ],
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+            width: 1,
           ),
-          const SizedBox(height: 4),
-          _buildGuideItem(
-            theme,
-            '• Different device: use your actual IP (192.168.x.x:11434)',
-            theme.colorScheme.onPrimaryContainer,
-          ),
-          const SizedBox(height: 4),
-          _buildGuideItem(
-            theme,
-            '• Do NOT use 0.0.0.0 (binding address)',
-            theme.colorScheme.error,
-            isBold: true,
-          ),
-        ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.computer,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Local',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 16,
+              color: theme.colorScheme.onSurface,
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  Widget _buildGuideItem(ThemeData theme, String text, Color color,
-      {bool isBold = false}) {
-    return Text(
-      text,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: color,
-        fontWeight: isBold ? FontWeight.bold : null,
-      ),
-    );
-  }
-
-  Future<void> _saveOllamaConfig(String ipText, BuildContext context) async {
-    final ipAddress = ipText.trim().isEmpty ? null : ipText.trim();
-    await context.read<LlmCubit>().setCustomOllamaIp(ipAddress);
-    widget.onRefresh(); // Refresh model list
-    Navigator.of(context).pop();
   }
 
   Widget _buildModelSelector(BuildContext context) {
@@ -1194,55 +972,13 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
   }
 
   List<String> _getFilteredModels() {
-    final provider = context.read<LlmCubit>().currentProvider;
-
-    // Filter models based on current context
-    return widget.availableModels.where((model) {
-      if (provider == LlmProvider.local) {
-        return true;
-      }
-      if (widget.selectedImageBytes != null) {
-        return model.contains('vision');
-      }
-      return !model.contains('vision');
-    }).toList();
+    // Return all available models
+    return widget.availableModels;
   }
 
   String _getModelDisplayName(String model) {
-    // Convert model names to more user-friendly display names
-    switch (model) {
-      case 'gemini-pro':
-        return 'Gemini Pro';
-      case 'gemini-1.5-pro':
-        return 'Gemini 1.5 Pro';
-      case 'gemini-1.0-pro':
-        return 'Gemini 1.0 Pro';
-      case 'gemini-pro-vision':
-        return 'Gemini Pro Vision';
-      case 'gemini-1.5-pro-vision':
-        return 'Gemini 1.5 Pro Vision';
-      case 'gemini-1.5-pro-vision-latest':
-        return 'Gemini 1.5 Pro Vision (Latest)';
-      case 'gemini-1.0-pro-vision':
-        return 'Gemini 1.0 Pro Vision';
-      case 'gemini-ultra':
-        return 'Gemini Ultra';
-      case 'gemini-ultra-vision':
-        return 'Gemini Ultra Vision';
-      default:
-        // Handle any other model names by formatting them nicely
-        if (model.startsWith('gemini-')) {
-          // Remove the 'gemini-' prefix and replace hyphens with spaces
-          final formattedName = model.substring(7).replaceAll('-', ' ');
-          // Capitalize each word
-          final words = formattedName.split(' ');
-          final capitalizedWords = words.map((word) => word.isNotEmpty
-              ? '${word[0].toUpperCase()}${word.substring(1)}'
-              : '');
-          return 'Gemini ${capitalizedWords.join(' ')}';
-        }
-        return model;
-    }
+    // For local models, just return the model name
+    return model;
   }
 
   String _getModelDescription(String model) {

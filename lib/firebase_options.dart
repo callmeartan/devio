@@ -54,8 +54,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '575951766528',
     projectId: 'devio-cc71f',
     storageBucket: 'devio-cc71f.firebasestorage.app',
-    androidClientId: '575951766528-lg18aj9d77ah09vr0ftd1tjjgkmip1s8.apps.googleusercontent.com',
-    iosClientId: '575951766528-kisqr9pk6ki6lhce91n3rdgookec850f.apps.googleusercontent.com',
+    androidClientId:
+        '575951766528-lg18aj9d77ah09vr0ftd1tjjgkmip1s8.apps.googleusercontent.com',
+    iosClientId:
+        '575951766528-kisqr9pk6ki6lhce91n3rdgookec850f.apps.googleusercontent.com',
     iosBundleId: 'dev.artan.devio',
   );
 
@@ -74,8 +76,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '575951766528',
     projectId: 'devio-cc71f',
     storageBucket: 'devio-cc71f.firebasestorage.app',
-    androidClientId: '575951766528-lg18aj9d77ah09vr0ftd1tjjgkmip1s8.apps.googleusercontent.com',
-    iosClientId: '575951766528-kisqr9pk6ki6lhce91n3rdgookec850f.apps.googleusercontent.com',
+    androidClientId:
+        '575951766528-lg18aj9d77ah09vr0ftd1tjjgkmip1s8.apps.googleusercontent.com',
+    iosClientId:
+        '575951766528-kisqr9pk6ki6lhce91n3rdgookec850f.apps.googleusercontent.com',
     iosBundleId: 'dev.artan.devio',
   );
 
@@ -87,5 +91,4 @@ class DefaultFirebaseOptions {
     authDomain: 'devio-cc71f.firebaseapp.com',
     storageBucket: 'devio-cc71f.firebasestorage.app',
   );
-
 }

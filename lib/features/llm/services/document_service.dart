@@ -9,7 +9,7 @@ class DocumentService {
   Future<String> extractText(File file) async {
     try {
       final extension = path.extension(file.path).toLowerCase();
-      
+
       if (extension != '.pdf') {
         throw UnsupportedError('Currently only PDF files are supported');
       }
@@ -28,7 +28,7 @@ class DocumentService {
       final bytes = await file.readAsBytes();
       final document = PdfDocument(inputBytes: bytes);
       final PdfTextExtractor extractor = PdfTextExtractor(document);
-      
+
       // Extract text from all pages
       final buffer = StringBuffer();
       for (int i = 0; i < document.pages.count; i++) {
@@ -51,34 +51,25 @@ class DocumentService {
     return mimeType == 'application/pdf';
   }
 
-  /// Splits text into chunks that fit within Gemini's token limit
-  List<String> splitIntoChunks(String text, {int maxChunkSize = 30000}) {
+  /// Splits text into chunks that fit within token limits
+  List<String> splitIntoChunks(String text, {int chunkSize = 4000}) {
     final words = text.split(' ');
     final chunks = <String>[];
-    var currentChunk = StringBuffer();
-    var currentSize = 0;
+    String currentChunk = '';
 
     for (final word in words) {
-      // Approximate token count (rough estimate)
-      final wordSize = word.length ~/ 4;
-      
-      if (currentSize + wordSize > maxChunkSize) {
-        chunks.add(currentChunk.toString());
-        currentChunk = StringBuffer();
-        currentSize = 0;
+      if ((currentChunk + ' ' + word).length <= chunkSize) {
+        currentChunk += (currentChunk.isEmpty ? '' : ' ') + word;
+      } else {
+        chunks.add(currentChunk);
+        currentChunk = word;
       }
-
-      if (currentChunk.isNotEmpty) {
-        currentChunk.write(' ');
-      }
-      currentChunk.write(word);
-      currentSize += wordSize;
     }
 
     if (currentChunk.isNotEmpty) {
-      chunks.add(currentChunk.toString());
+      chunks.add(currentChunk);
     }
 
     return chunks;
   }
-} 
+}

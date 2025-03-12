@@ -9,7 +9,7 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -174,7 +174,8 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationTile(ThemeData theme, _NotificationItem notification) {
+  Widget _buildNotificationTile(
+      ThemeData theme, _NotificationItem notification) {
     return Dismissible(
       key: ValueKey(notification.title),
       background: Container(
@@ -209,7 +210,8 @@ class NotificationsScreen extends StatelessWidget {
         title: Text(
           notification.title,
           style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: notification.isUnread ? FontWeight.bold : FontWeight.normal,
+            fontWeight:
+                notification.isUnread ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         subtitle: Column(
@@ -268,4 +270,4 @@ class _NotificationItem {
     required this.time,
     required this.isUnread,
   });
-} 
+}

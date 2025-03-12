@@ -28,7 +28,8 @@ class ChatMessageWidget extends StatelessWidget {
         bottom: 8,
       ),
       child: Column(
-        crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           if (!isUser)
             Padding(
@@ -53,7 +54,8 @@ class ChatMessageWidget extends StatelessWidget {
               ),
             ),
           Row(
-            mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment:
+                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (isUser)
@@ -150,7 +152,7 @@ class ChatMessageWidget extends StatelessWidget {
   void _showMessageOptions(BuildContext context) {
     final theme = Theme.of(context);
     final isUser = !message.isAI;
-    
+
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -187,4 +189,4 @@ class ChatMessageWidget extends StatelessWidget {
       ),
     );
   }
-} 
+}

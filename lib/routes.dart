@@ -20,7 +20,8 @@ import 'repositories/chat_repository.dart';
 import 'cubits/chat/chat_cubit.dart';
 import 'features/llm/presentation/image_analysis_screen.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+final GlobalKey<NavigatorState> _rootNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'root');
 
 final router = GoRouter(
   navigatorKey: _rootNavigatorKey,
