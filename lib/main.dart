@@ -13,6 +13,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:devio/router.dart';
 import 'features/llm/cubit/llm_cubit.dart';
 import 'theme/app_theme.dart';
+import 'features/storage/cubit/storage_mode_cubit.dart';
+import 'features/storage/models/storage_mode.dart';
+import 'features/storage/services/local_auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,15 +26,21 @@ void main() async {
   );
 
   final prefs = await SharedPreferences.getInstance();
+  final localAuthService = LocalAuthService(prefs: prefs);
 
-  runApp(MyApp(prefs: prefs));
+  runApp(MyApp(
+    prefs: prefs,
+    localAuthService: localAuthService,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final SharedPreferences prefs;
+  final LocalAuthService localAuthService;
 
   const MyApp({
     required this.prefs,
+    required this.localAuthService,
     super.key,
   });
 
@@ -44,7 +53,18 @@ class MyApp extends StatelessWidget {
           create: (context) => PreferencesCubit(prefs),
         ),
         BlocProvider(
-          create: (context) => AuthCubit(),
+          create: (context) => StorageModeCubit(prefs),
+          lazy: false,
+        ),
+        BlocProvider(
+          create: (context) {
+            final storageCubit = context.read<StorageModeCubit>();
+            return AuthCubit(
+              prefs: prefs,
+              localAuthService: localAuthService,
+              storageMode: storageCubit.state.mode,
+            );
+          },
           lazy: false,
         ),
         Provider<ChatRepository>(

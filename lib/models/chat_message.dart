@@ -1,27 +1,54 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-part 'chat_message.freezed.dart';
-part 'chat_message.g.dart';
+// Simple implementation without Freezed
+class ChatMessage {
+  final String id;
+  final String chatId;
+  final String senderId;
+  final String content;
+  final DateTime timestamp;
+  final bool isAI;
+  final String? senderName;
+  // Performance metrics
+  final double? totalDuration;
+  final double? loadDuration;
+  final int? promptEvalCount;
+  final double? promptEvalDuration;
+  final double? promptEvalRate;
+  final int? evalCount;
+  final double? evalDuration;
+  final double? evalRate;
+  final bool isPlaceholder;
 
-@Freezed(toJson: true, fromJson: true)
-class ChatMessage with _$ChatMessage {
-  const ChatMessage._();
+  const ChatMessage({
+    required this.id,
+    required this.chatId,
+    required this.senderId,
+    required this.content,
+    required this.timestamp,
+    this.isAI = false,
+    this.senderName,
+    this.totalDuration,
+    this.loadDuration,
+    this.promptEvalCount,
+    this.promptEvalDuration,
+    this.promptEvalRate,
+    this.evalCount,
+    this.evalDuration,
+    this.evalRate,
+    this.isPlaceholder = false,
+  });
 
-  @JsonSerializable(explicitToJson: true)
-  const factory ChatMessage({
-    required String id,
-    required String chatId,
-    required String senderId,
-    required String content,
-    @JsonKey(
-        fromJson: ChatMessage._timestampFromJson,
-        toJson: ChatMessage._timestampToJson)
-    required DateTime timestamp,
-    @Default(false) bool isAI,
+  // Copy with method
+  ChatMessage copyWith({
+    String? id,
+    String? chatId,
+    String? senderId,
+    String? content,
+    DateTime? timestamp,
+    bool? isAI,
     String? senderName,
-    // Performance metrics
     double? totalDuration,
     double? loadDuration,
     int? promptEvalCount,
@@ -30,11 +57,71 @@ class ChatMessage with _$ChatMessage {
     int? evalCount,
     double? evalDuration,
     double? evalRate,
-    @Default(false) bool isPlaceholder,
-  }) = _ChatMessage;
+    bool? isPlaceholder,
+  }) {
+    return ChatMessage(
+      id: id ?? this.id,
+      chatId: chatId ?? this.chatId,
+      senderId: senderId ?? this.senderId,
+      content: content ?? this.content,
+      timestamp: timestamp ?? this.timestamp,
+      isAI: isAI ?? this.isAI,
+      senderName: senderName ?? this.senderName,
+      totalDuration: totalDuration ?? this.totalDuration,
+      loadDuration: loadDuration ?? this.loadDuration,
+      promptEvalCount: promptEvalCount ?? this.promptEvalCount,
+      promptEvalDuration: promptEvalDuration ?? this.promptEvalDuration,
+      promptEvalRate: promptEvalRate ?? this.promptEvalRate,
+      evalCount: evalCount ?? this.evalCount,
+      evalDuration: evalDuration ?? this.evalDuration,
+      evalRate: evalRate ?? this.evalRate,
+      isPlaceholder: isPlaceholder ?? this.isPlaceholder,
+    );
+  }
 
-  factory ChatMessage.fromJson(Map<String, dynamic> json) =>
-      _$ChatMessageFromJson(json);
+  // Convert to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'chat_id': chatId,
+      'sender_id': senderId,
+      'content': content,
+      'timestamp': _timestampToJson(timestamp),
+      'is_ai': isAI,
+      'sender_name': senderName,
+      'total_duration': totalDuration,
+      'load_duration': loadDuration,
+      'prompt_eval_count': promptEvalCount,
+      'prompt_eval_duration': promptEvalDuration,
+      'prompt_eval_rate': promptEvalRate,
+      'eval_count': evalCount,
+      'eval_duration': evalDuration,
+      'eval_rate': evalRate,
+      'is_placeholder': isPlaceholder,
+    };
+  }
+
+  // Factory method to create from JSON
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'] as String,
+      chatId: json['chat_id'] as String,
+      senderId: json['sender_id'] as String,
+      content: json['content'] as String,
+      timestamp: _timestampFromJson(json['timestamp']),
+      isAI: json['is_ai'] as bool? ?? false,
+      senderName: json['sender_name'] as String?,
+      totalDuration: json['total_duration'] as double?,
+      loadDuration: json['load_duration'] as double?,
+      promptEvalCount: json['prompt_eval_count'] as int?,
+      promptEvalDuration: json['prompt_eval_duration'] as double?,
+      promptEvalRate: json['prompt_eval_rate'] as double?,
+      evalCount: json['eval_count'] as int?,
+      evalDuration: json['eval_duration'] as double?,
+      evalRate: json['eval_rate'] as double?,
+      isPlaceholder: json['is_placeholder'] as bool? ?? false,
+    );
+  }
 
   factory ChatMessage.create({
     String? chatId,

@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:devio/features/storage/services/local_auth_service.dart';
 
 import 'package:devio/main.dart';
 
@@ -16,9 +17,15 @@ void main() {
     // Set up mock SharedPreferences
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    
+
+    // Create a LocalAuthService instance with the mock SharedPreferences
+    final localAuthService = LocalAuthService(prefs: prefs);
+
     // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp(prefs: prefs));
+    await tester.pumpWidget(MyApp(
+      prefs: prefs,
+      localAuthService: localAuthService,
+    ));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

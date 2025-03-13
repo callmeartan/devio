@@ -13,6 +13,9 @@ import 'package:devio/blocs/auth/auth_cubit.dart';
 import 'package:devio/features/settings/cubit/preferences_cubit.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:developer' as developer;
+import 'package:devio/features/storage/cubit/storage_mode_cubit.dart';
+import 'package:devio/features/storage/models/storage_mode.dart';
+import 'package:devio/features/storage/services/local_auth_service.dart';
 
 // Create a class to listen for auth state changes
 class AuthStateChangeNotifier extends ChangeNotifier {
@@ -29,43 +32,82 @@ final appRouter = GoRouter(
   redirect: (context, state) async {
     if (context == null) return null;
 
-    // Check if user is authenticated using Firebase directly
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final isAuthenticated = currentUser != null;
+    // Check if we're in Local Mode
+    final storageCubit = context.read<StorageModeCubit?>();
+    final isLocalMode = storageCubit != null && storageCubit.isLocalMode;
 
-    // List of routes that require authentication
-    final authenticatedRoutes = [
-      '/llm',
-      '/profile',
-      '/settings',
-      '/notifications',
-      '/edit-profile'
-    ];
+    // If in Local Mode, check if a local user exists
+    if (isLocalMode) {
+      final localAuthService = LocalAuthService(
+        prefs: context.read<SharedPreferences>(),
+      );
+      final hasLocalUser = await localAuthService.hasLocalUser();
 
-    // If user is authenticated, redirect from initial/auth routes to LLM
-    if (isAuthenticated) {
-      // If currently on landing, auth or empty path, go to LLM
-      if (state.matchedLocation == '/landing' ||
-          state.matchedLocation == '/auth' ||
-          state.matchedLocation == '/') {
-        return '/llm';
-      }
-      // Otherwise, allow access to other routes for authenticated users
-      return null;
-    } else {
-      // If user is not authenticated and trying to access authenticated routes
-      if (authenticatedRoutes.contains(state.matchedLocation)) {
-        // Try anonymous sign-in first
-        try {
-          developer.log('Attempting anonymous sign-in from router...');
-          await FirebaseAuth.instance.signInAnonymously();
-          developer.log('Anonymous sign-in successful from router');
-          // After successful sign-in, allow access to the requested route
-          return state.matchedLocation;
-        } catch (e) {
-          developer.log('Anonymous sign-in failed from router: $e');
-          // If anonymous sign-in fails, redirect to landing
+      // List of routes that require authentication
+      final authenticatedRoutes = [
+        '/llm',
+        '/profile',
+        '/settings',
+        '/notifications',
+        '/edit-profile'
+      ];
+
+      // If user is authenticated in Local Mode
+      if (hasLocalUser) {
+        // If currently on landing, auth or empty path, go to LLM
+        if (state.matchedLocation == '/landing' ||
+            state.matchedLocation == '/auth' ||
+            state.matchedLocation == '/') {
+          return '/llm';
+        }
+        // Otherwise, allow access to other routes for authenticated users
+        return null;
+      } else {
+        // If user is not authenticated and trying to access authenticated routes
+        if (authenticatedRoutes.contains(state.matchedLocation)) {
           return '/landing';
+        }
+      }
+    } else {
+      // In Cloud Mode, use Firebase authentication
+      // Check if user is authenticated using Firebase directly
+      final currentUser = FirebaseAuth.instance.currentUser;
+      final isAuthenticated = currentUser != null;
+
+      // List of routes that require authentication
+      final authenticatedRoutes = [
+        '/llm',
+        '/profile',
+        '/settings',
+        '/notifications',
+        '/edit-profile'
+      ];
+
+      // If user is authenticated, redirect from initial/auth routes to LLM
+      if (isAuthenticated) {
+        // If currently on landing, auth or empty path, go to LLM
+        if (state.matchedLocation == '/landing' ||
+            state.matchedLocation == '/auth' ||
+            state.matchedLocation == '/') {
+          return '/llm';
+        }
+        // Otherwise, allow access to other routes for authenticated users
+        return null;
+      } else {
+        // If user is not authenticated and trying to access authenticated routes
+        if (authenticatedRoutes.contains(state.matchedLocation)) {
+          // Try anonymous sign-in first
+          try {
+            developer.log('Attempting anonymous sign-in from router...');
+            await FirebaseAuth.instance.signInAnonymously();
+            developer.log('Anonymous sign-in successful from router');
+            // After successful sign-in, allow access to the requested route
+            return state.matchedLocation;
+          } catch (e) {
+            developer.log('Anonymous sign-in failed from router: $e');
+            // If anonymous sign-in fails, redirect to landing
+            return '/landing';
+          }
         }
       }
     }
@@ -113,6 +155,9 @@ final appRouter = GoRouter(
           ),
           BlocProvider.value(
             value: context.read<AuthCubit>(),
+          ),
+          BlocProvider.value(
+            value: context.read<StorageModeCubit>(),
           ),
         ],
         child: const SettingsScreen(),

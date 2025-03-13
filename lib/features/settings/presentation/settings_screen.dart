@@ -5,6 +5,8 @@ import '../cubit/preferences_cubit.dart';
 import '../cubit/preferences_state.dart';
 import '../../../blocs/auth/auth_cubit.dart';
 import 'dart:ui';
+import 'package:devio/features/storage/cubit/storage_mode_cubit.dart';
+import 'package:devio/features/settings/widgets/storage_mode_selector.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -170,6 +172,19 @@ class SettingsScreen extends StatelessWidget {
                               ],
                             ),
                             orElse: () => const SizedBox.shrink(),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildSection(
+                            context,
+                            title: 'Data Storage',
+                            icon: Icons.storage_outlined,
+                            children: [
+                              BlocBuilder<StorageModeCubit, StorageModeState>(
+                                builder: (context, state) {
+                                  return const StorageModeSelector();
+                                },
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                           _buildSection(

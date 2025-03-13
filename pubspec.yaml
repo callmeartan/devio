@@ -49,6 +49,11 @@ dependencies:
   animate_do: ^4.2.0
   flutter_animate: ^4.5.0
   
+  # Local storage
+  flutter_secure_storage: ^9.0.0
+  sqflite: ^2.3.2
+  path_provider: ^2.1.2
+  
   # Webview
   webview_flutter: ^4.7.0
   webview_flutter_wkwebview: ^3.12.0

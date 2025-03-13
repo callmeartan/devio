@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -9,8 +8,10 @@ import 'package:flutter/foundation.dart'
 import 'package:devio/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:devio/features/storage/models/storage_mode.dart';
+import 'package:devio/features/storage/services/local_auth_service.dart';
 
-part 'auth_cubit.freezed.dart';
 part 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
@@ -18,13 +19,19 @@ class AuthCubit extends Cubit<AuthState> {
   final GoogleSignIn _googleSignIn;
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
+  final SharedPreferences _prefs;
+  final LocalAuthService _localAuthService;
+  final StorageMode _storageMode;
 
-  AuthCubit(
-      {FirebaseAuth? auth,
-      GoogleSignIn? googleSignIn,
-      FirebaseFirestore? firestore,
-      FirebaseStorage? storage})
-      : _auth = auth ?? FirebaseAuth.instance,
+  AuthCubit({
+    FirebaseAuth? auth,
+    GoogleSignIn? googleSignIn,
+    FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
+    SharedPreferences? prefs,
+    LocalAuthService? localAuthService,
+    StorageMode? storageMode,
+  })  : _auth = auth ?? FirebaseAuth.instance,
         _googleSignIn = googleSignIn ??
             GoogleSignIn(
               scopes: ['email', 'profile'],
@@ -34,19 +41,91 @@ class AuthCubit extends Cubit<AuthState> {
             ),
         _firestore = firestore ?? FirebaseFirestore.instance,
         _storage = storage ?? FirebaseStorage.instance,
+        _prefs = prefs ?? SharedPreferences.getInstance() as SharedPreferences,
+        _localAuthService = localAuthService ??
+            LocalAuthService(
+                prefs: prefs ??
+                    SharedPreferences.getInstance() as SharedPreferences),
+        _storageMode = storageMode ?? StorageMode.cloud,
         super(const AuthState.initial()) {
-    // Listen to auth state changes
-    _auth.authStateChanges().listen((User? user) {
-      if (user != null) {
-        emit(AuthState.authenticated(
-          uid: user.uid,
-          displayName: user.displayName,
-          email: user.email,
-        ));
+    // If in cloud mode, listen to Firebase auth state changes
+    if (_storageMode == StorageMode.cloud) {
+      _auth.authStateChanges().listen((User? user) {
+        if (user != null) {
+          emit(AuthState.authenticated(
+            uid: user.uid,
+            displayName: user.displayName,
+            email: user.email,
+          ));
+        } else {
+          emit(const AuthState.unauthenticated());
+        }
+      });
+    } else {
+      // In local mode, check if a local user exists
+      _checkLocalUser();
+    }
+  }
+
+  // Check if a local user exists and emit the appropriate state
+  Future<void> _checkLocalUser() async {
+    try {
+      final hasUser = await _localAuthService.hasLocalUser();
+      if (hasUser) {
+        final userData = await _localAuthService.getLocalUser();
+        if (userData != null) {
+          emit(AuthState.authenticated(
+            uid: userData['uid'] as String,
+            displayName: userData['displayName'] as String?,
+            email: null, // Local users don't have emails
+          ));
+        } else {
+          emit(const AuthState.unauthenticated());
+        }
       } else {
         emit(const AuthState.unauthenticated());
       }
-    });
+    } catch (e) {
+      developer.log('Error checking local user: $e');
+      emit(const AuthState.unauthenticated());
+    }
+  }
+
+  // Sign in with local mode (create a local user)
+  Future<void> signInWithLocalMode({String? displayName}) async {
+    emit(const AuthState.loading());
+    try {
+      developer.log('Signing in with Local Mode...');
+
+      // Check if a local user already exists
+      final hasUser = await _localAuthService.hasLocalUser();
+      String userId;
+
+      if (hasUser) {
+        // Get the existing user
+        final userData = await _localAuthService.getLocalUser();
+        userId = userData?['uid'] as String;
+      } else {
+        // Create a new local user
+        userId = await _localAuthService.createLocalUser(
+          displayName: displayName,
+        );
+      }
+
+      // Get the user data
+      final userData = await _localAuthService.getLocalUser();
+
+      emit(AuthState.authenticated(
+        uid: userId,
+        displayName: userData?['displayName'] as String?,
+        email: null, // Local users don't have emails
+      ));
+
+      developer.log('Successfully signed in with Local Mode');
+    } catch (e) {
+      developer.log('Error signing in with Local Mode: $e');
+      emit(AuthState.error(e.toString()));
+    }
   }
 
   Future<void> signInAnonymously() async {
@@ -227,8 +306,13 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> signOut() async {
     try {
-      await _auth.signOut();
-      await _googleSignIn.signOut();
+      if (_storageMode == StorageMode.cloud) {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+      } else {
+        // In local mode, we don't delete the user data, just sign out
+        // This allows the user to sign back in without losing data
+      }
       emit(const AuthState.unauthenticated());
     } catch (e) {
       emit(AuthState.error(e.toString()));
@@ -271,60 +355,67 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> deleteAccount() async {
     emit(const AuthState.loading());
     try {
-      final user = _auth.currentUser;
-      if (user != null) {
-        final userId = user.uid;
-        // Get the provider data before deleting
-        final providers = user.providerData.map((e) => e.providerId).toList();
+      if (_storageMode == StorageMode.cloud) {
+        final user = _auth.currentUser;
+        if (user != null) {
+          final userId = user.uid;
+          // Get the provider data before deleting
+          final providers = user.providerData.map((e) => e.providerId).toList();
 
-        developer.log('Starting account deletion process for user: $userId');
+          developer.log('Starting account deletion process for user: $userId');
 
-        // First, delete all user data from Firestore
-        try {
-          await _deleteAllUserData(userId);
-          developer.log('Successfully deleted all user data from Firestore');
-        } catch (e) {
-          developer.log('Error deleting Firestore data: $e');
-          // Continue with account deletion even if Firestore deletion fails
-          // But rethrow if this is the only error
-          final firestoreError = e;
-
-          // Then try to delete the auth account
+          // First, delete all user data from Firestore
           try {
-            await user.delete();
-          } catch (authError) {
-            if (authError is FirebaseAuthException &&
-                authError.code == 'requires-recent-login') {
-              // Handle reauthentication
-              await _handleReauthentication(user, providers);
+            await _deleteAllUserData(userId);
+            developer.log('Successfully deleted all user data from Firestore');
+          } catch (e) {
+            developer.log('Error deleting Firestore data: $e');
+            // Continue with account deletion even if Firestore deletion fails
+            // But rethrow if this is the only error
+            final firestoreError = e;
 
-              // Try deleting all data again after reauthentication
-              await _deleteAllUserData(userId);
-
-              // Try deleting account again after reauthentication
+            // Then try to delete the auth account
+            try {
               await user.delete();
-            } else {
-              // If there's an auth error that's not about reauthentication, throw it
-              throw authError;
+            } catch (authError) {
+              if (authError is FirebaseAuthException &&
+                  authError.code == 'requires-recent-login') {
+                // Handle reauthentication
+                await _handleReauthentication(user, providers);
+
+                // Try deleting all data again after reauthentication
+                await _deleteAllUserData(userId);
+
+                // Try deleting account again after reauthentication
+                await user.delete();
+              } else {
+                // If there's an auth error that's not about reauthentication, throw it
+                throw authError;
+              }
             }
+
+            // If we got here, the auth account was deleted successfully
+            // but there was an error with Firestore deletion
+            developer.log(
+                'Auth account deleted but there were Firestore errors: $firestoreError');
           }
 
-          // If we got here, the auth account was deleted successfully
-          // but there was an error with Firestore deletion
-          developer.log(
-              'Auth account deleted but there were Firestore errors: $firestoreError');
+          // Sign out and clean up after successful deletion
+          await _googleSignIn.signOut();
+          await _auth.signOut();
+        } else {
+          emit(const AuthState.error('No user found to delete'));
+          return;
         }
-
-        // Sign out and clean up after successful deletion
-        await _googleSignIn.signOut();
-        await _auth.signOut();
-
-        // Emit unauthenticated state for proper redirection
-        emit(const AuthState.unauthenticated());
-        developer.log('Account deletion completed successfully');
       } else {
-        emit(const AuthState.error('No user found to delete'));
+        // In local mode, delete the local user
+        await _localAuthService.deleteLocalUser();
+        developer.log('Local user deleted');
       }
+
+      // Emit unauthenticated state for proper redirection
+      emit(const AuthState.unauthenticated());
+      developer.log('Account deletion completed successfully');
     } catch (e) {
       developer.log('Error deleting account: $e');
       emit(AuthState.error(e.toString()));
