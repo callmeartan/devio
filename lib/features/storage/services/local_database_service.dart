@@ -218,19 +218,29 @@ class LocalDatabaseService {
     }
   }
 
-  /// Soft deletes a chat
+  /// Deletes a chat (permanent deletion for Local Mode)
   Future<void> deleteChat(String chatId) async {
     try {
       final db = await database;
 
-      await db.update(
-        tableChats,
-        {'is_deleted': 1, 'updated_at': DateTime.now().millisecondsSinceEpoch},
-        where: 'id = ?',
-        whereArgs: [chatId],
-      );
+      // Use a transaction to ensure atomicity
+      await db.transaction((txn) async {
+        // Delete messages first
+        await txn.delete(
+          tableMessages,
+          where: 'chat_id = ?',
+          whereArgs: [chatId],
+        );
 
-      developer.log('Soft deleted chat with ID: $chatId');
+        // Delete the chat
+        await txn.delete(
+          tableChats,
+          where: 'id = ?',
+          whereArgs: [chatId],
+        );
+      });
+
+      developer.log('Permanently deleted chat with ID: $chatId');
     } catch (e) {
       developer.log('Error deleting chat: $e');
       rethrow;

@@ -75,6 +75,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final ScrollController _chatScrollController = ScrollController();
   final ScrollController _historyScrollController = ScrollController();
+  final ScrollController _drawerChatListController = ScrollController();
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
@@ -106,8 +107,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     // Start a new chat immediately
     context.read<ChatCubit>().startNewChat();
 
-    // Send initial greeting since we know we're authenticated (router ensures this)
-    _sendInitialGreeting();
+    // The BlocListener will handle sending the initial greeting for new chats
 
     // Schedule scroll to bottom after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -123,6 +123,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     _scrollController.dispose();
     _chatScrollController.dispose();
     _historyScrollController.dispose();
+    _drawerChatListController.dispose();
     _messageController.dispose();
     _searchController.dispose();
     _messageFocusNode.dispose();
@@ -311,6 +312,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     developer.log('Current auth state: $currentAuthState');
 
     return BlocListener<ChatCubit, ChatState>(
+      listenWhen: (previous, current) =>
+          // Only listen when the currentChatId changes or when messages change
+          previous.currentChatId != current.currentChatId ||
+          previous.messages.length != current.messages.length,
       listener: (context, state) {
         // Log chat state changes
         developer.log(
@@ -321,6 +326,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             _chatScrollController.position.pixels >
                 _chatScrollController.position.maxScrollExtent - 300) {
           _scrollToBottom();
+        }
+
+        // Check if this is a new chat with no messages
+        if (state.messages.isEmpty && state.currentChatId != null) {
+          // This appears to be a new chat, send the initial greeting
+          developer.log('New chat detected, sending initial greeting');
+          _sendInitialGreeting();
         }
       },
       child: BlocBuilder<AuthCubit, AuthState>(
@@ -1268,6 +1280,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 : Colors.black.withOpacity(0.7)),
       ),
       title: chat['title'] as String,
+      chatId: chatId,
       onTap: () {
         Navigator.pop(context);
         context.read<ChatCubit>().selectChat(chatId);
@@ -1950,7 +1963,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         filteredChats.where((chat) => chat['isPinned'] != true).toList();
 
     return ListView(
-      controller: _chatScrollController,
+      controller: _drawerChatListController,
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
         if (pinnedChats.isNotEmpty) ...[

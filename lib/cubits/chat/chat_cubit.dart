@@ -100,11 +100,13 @@ class ChatCubit extends Cubit<ChatState> {
     _initializeChatStream();
   }
 
-  void startNewChat() {
+  void startNewChat() async {
     developer.log('Starting new chat');
 
-    // Generate a new chat ID
+    // Generate a new chat ID and default title
     final newChatId = DateTime.now().millisecondsSinceEpoch.toString();
+    final defaultTitle = 'New Chat';
+
     developer.log('New chat ID: $newChatId');
 
     // Cancel any existing subscription
@@ -118,6 +120,22 @@ class ChatCubit extends Cubit<ChatState> {
 
     // Initialize new chat state with the new chat ID
     emit(ChatState(currentChatId: newChatId));
+
+    // Create the chat in the database if in Local Mode
+    if (isLocalMode) {
+      try {
+        final localRepository = _repository as LocalChatRepository;
+        // Create the chat in the local database
+        await localRepository.createChat(defaultTitle);
+        developer.log('Created new chat in local database with ID: $newChatId');
+
+        // Refresh chat histories to include the new chat
+        await _loadChatHistories();
+      } catch (e) {
+        developer.log('Error creating chat in local database: $e');
+        emit(state.copyWith(error: 'Failed to create new chat: $e'));
+      }
+    }
 
     // Initialize stream for the new chat
     _initializeChatStream();
@@ -240,6 +258,29 @@ class ChatCubit extends Cubit<ChatState> {
       if (state.currentChatId == null || state.currentChatId != chatId) {
         developer.log('Updating current chat ID to: $chatId');
         emit(state.copyWith(currentChatId: chatId));
+
+        // If we're in Local Mode and creating a new chat, create it in the database
+        if (isLocalMode) {
+          try {
+            final localRepository = _repository as LocalChatRepository;
+            // Check if the chat exists
+            final chats = await localRepository.getChats();
+            final chatExists = chats.any((chat) => chat['id'] == chatId);
+
+            if (!chatExists) {
+              // Create the chat with a default title based on the message content
+              final title = content.length > 30
+                  ? '${content.substring(0, 27)}...'
+                  : content;
+              await localRepository.createChat(title);
+              developer
+                  .log('Created new chat in local database with ID: $chatId');
+            }
+          } catch (e) {
+            developer.log('Error checking/creating chat in local database: $e');
+            // Continue anyway to avoid blocking the message
+          }
+        }
       }
 
       // Add message to local state immediately
@@ -249,9 +290,9 @@ class ChatCubit extends Cubit<ChatState> {
       // Update state with new message
       _updateMessagesState(chatId);
 
-      // Send message to Firestore
+      // Send message to repository
       await _repository.sendMessage(message);
-      developer.log('Message sent successfully to Firestore, chatId: $chatId');
+      developer.log('Message sent successfully to repository, chatId: $chatId');
 
       // Initialize stream if needed
       if (_chatSubscription == null) {
@@ -410,6 +451,10 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> deleteChat(String chatId) async {
     try {
       developer.log('Deleting chat: $chatId');
+
+      // Remove from local messages cache immediately for UI responsiveness
+      _localMessages.remove(chatId);
+
       await _repository.deleteChat(chatId);
 
       // Remove from pinned chats if it was pinned
@@ -421,10 +466,23 @@ class ChatCubit extends Cubit<ChatState> {
 
       // If the deleted chat was the current chat, clear it
       if (state.currentChatId == chatId) {
+        _chatSubscription?.cancel();
+        _chatSubscription = null;
         emit(state.copyWith(currentChatId: null, messages: []));
       }
 
+      // Force refresh chat histories
       await _loadChatHistories();
+
+      // In Local Mode, we need to make sure the chat is removed from the UI
+      if (isLocalMode) {
+        // Update state to remove the chat from the list
+        final updatedHistories =
+            state.chatHistories.where((chat) => chat['id'] != chatId).toList();
+
+        emit(state.copyWith(chatHistories: updatedHistories));
+        developer.log('Removed chat $chatId from local state');
+      }
     } catch (e) {
       developer.log('Error deleting chat: $e');
       emit(state.copyWith(error: 'Failed to delete chat: $e'));

@@ -72,6 +72,7 @@ class SimpleDrawerMenuItem extends StatelessWidget {
 class DrawerMenuItem extends StatelessWidget {
   final Widget icon;
   final String title;
+  final String chatId;
   final VoidCallback onTap;
   final bool isDark;
   final bool showLeadingBackground;
@@ -87,6 +88,7 @@ class DrawerMenuItem extends StatelessWidget {
     super.key,
     required this.icon,
     required this.title,
+    required this.chatId,
     required this.onTap,
     required this.isDark,
     required this.onPin,
@@ -130,9 +132,9 @@ class DrawerMenuItem extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 if (isPinned) {
-                  onUnpin(title);
+                  onUnpin(chatId);
                 } else {
-                  onPin(title);
+                  onPin(chatId);
                 }
               },
             ),
@@ -223,7 +225,7 @@ class DrawerMenuItem extends StatelessWidget {
             onPressed: () {
               final newTitle = controller.text.trim();
               if (newTitle.isNotEmpty && newTitle != title) {
-                onRename(title, newTitle);
+                onRename(chatId, newTitle);
               }
               Navigator.pop(context);
             },
@@ -268,7 +270,7 @@ class DrawerMenuItem extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () {
-              onDelete(title);
+              onDelete(chatId);
               Navigator.pop(context);
             },
             style: FilledButton.styleFrom(
