@@ -1,0 +1,12 @@
+// This rule applies to Firebase files
+// pattern: **/firebase*.dart, **/auth*.dart, **/storage*.dart, **/firestore*.dart
+
+**Firebase**
+- Use Firebase Auth for authentication.
+- Integrate Firestore for real-time DB with structured/normalized data.
+- Use Firebase Storage for file uploads/downloads with error handling.
+- Secure Firestore/Storage rules based on user roles.
+- Handle Firebase exceptions with detailed logging.
+- Use appropriate timestamp conversion for Firestore dates.
+- Optimize security rules for performance.
+- Implement proper environment configuration with .env files. 

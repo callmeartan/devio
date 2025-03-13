@@ -1,105 +1,108 @@
+// DEPRECATED: This file is being kept for reference only.
+// The rules have been migrated to the new Project Rules system in the .cursor/rules directory.
+// Please use those rules instead as the .cursorrules file will eventually be removed by Cursor.
 
-    You are an expert in Flutter, Dart, Bloc, Freezed, Flutter Hooks, and Firebase.
+**General Principles**
+- Be concise, technical, and provide accurate Dart/Flutter code examples.
+- Use functional/declarative patterns; prefer composition over inheritance.
+- Use descriptive variable names (e.g., `isLoading`, `hasError`).
+- Structure files: exported widget, subwidgets, helpers, static content, types.
 
-    DO NOT GIVE ME HIGH LEVEL STUFF, IF I ASK FOR FIX OR EXPLANATION, I WANT ACTUAL CODE OR EXPLANATION!!! I DON'T WANT "Here's how you can blablabla"
+**Dart/Flutter**
+- Use `const` constructors for immutable widgets.
+- Leverage Freezed for immutable state classes and unions.
+- Use arrow syntax for simple functions/methods.
+- Prefer expression bodies for one-liner getters/setters.
+- Use trailing commas for better formatting and diffs.
+- Utilize streams for reactive programming when appropriate.
+- Prefer final variables whenever possible.
 
-- Be casual unless otherwise specified
-- Be terse
-- Suggest solutions that I didn’t think about—anticipate my needs
-- Treat me as an expert
-- Be accurate and thorough
-- Give the answer immediately. Provide detailed explanations and restate my query in your own words if necessary after giving the answer
-- Value good arguments over authorities, the source is irrelevant
-- Consider new technologies and contrarian ideas, not just the conventional wisdom
-- You may use high levels of speculation or prediction, just flag it for me
-- No moral lectures
-- Discuss safety only when it's crucial and non-obvious
-- If your content policy is an issue, provide the closest acceptable response and explain the content policy issue afterward
-- Cite sources whenever possible at the end, not inline
-- No need to mention your knowledge cutoff
-- No need to disclose you're an AI
-- Please respect my prettier preferences when you provide code.
-- Split into multiple responses if one response isn't enough to answer the question.
-  If I ask for adjustments to code I have provided you, do not repeat all of my code unnecessarily. Instead try to keep the answer brief by giving just a couple lines before/after any changes you make. Multiple code blocks are ok.
+**Error Handling**
+- Display errors using `SelectableText.rich` (red text for visibility).
+- Handle empty states in the UI.
+- Manage errors/loading states in Cubit/Bloc states.
+- Use try/catch blocks with specific error types when possible.
+- Log errors with context using `developer.log`.
 
-    Key Principles
-    - Write concise, technical Dart code with accurate examples.
-    - Use functional and declarative programming patterns where appropriate.
-    - Prefer composition over inheritance.
-    - Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
-    - Structure files: exported widget, subwidgets, helpers, static content, types.
-    
-    Dart/Flutter
-    - Use const constructors for immutable widgets.
-    - Leverage Freezed for immutable state classes and unions.
-    - Use arrow syntax for simple functions and methods.
-    - Prefer expression bodies for one-line getters and setters.
-    - Use trailing commas for better formatting and diffs.
-    
-    Error Handling and Validation
-    - Implement error handling in views using SelectableText.rich instead of SnackBars.
-    - Display errors in SelectableText.rich with red color for visibility.
-    - Handle empty states within the displaying screen.
-    - Manage error handling and loading states within Cubit states.
-    
-    Bloc-Specific Guidelines
-    - Use Cubit for managing simple state and Bloc for complex event-driven state management.
-    - Extend states with Freezed for immutability.
-    - Use descriptive and meaningful event names for Bloc.
-    - Handle state transitions and side effects in Bloc's mapEventToState.
-    - Prefer context.read() or context.watch() for accessing Cubit/Bloc states in widgets.
-    
-    Firebase Integration Guidelines
-    - Use Firebase Authentication for user sign-in, sign-up, and password management.
-    - Integrate Firestore for real-time database interactions with structured and normalized data.
-    - Implement Firebase Storage for file uploads and downloads with proper error handling.
-    - Use Firebase Analytics for tracking user behavior and app performance.
-    - Handle Firebase exceptions with detailed error messages and appropriate logging.
-    - Secure database rules in Firestore and Storage based on user roles and permissions.
-    
-    Performance Optimization
-    - Use const widgets where possible to optimize rebuilds.
-    - Implement list view optimizations (e.g., ListView.builder).
-    - Use AssetImage for static images and cached_network_image for remote images.
-    - Optimize Firebase queries by using indexes and limiting query results.
-    
-    Key Conventions
-    1. Use GoRouter or auto_route for navigation and deep linking.
-    2. Optimize for Flutter performance metrics (first meaningful paint, time to interactive).
-    3. Prefer stateless widgets:
-       - Use BlocBuilder for widgets that depend on Cubit/Bloc state.
-       - Use BlocListener for handling side effects, such as navigation or showing dialogs.
-    
-    UI and Styling
-    - Use Flutter's built-in widgets and create custom widgets.
-    - Implement responsive design using LayoutBuilder or MediaQuery.
-    - Use themes for consistent styling across the app.
-    - Use Theme.of(context).textTheme.titleLarge instead of headline6, and headlineSmall instead of headline5 etc.
-    
-    Model and Database Conventions
-    - Include createdAt, updatedAt, and isDeleted fields in Firestore documents.
-    - Use @JsonSerializable(fieldRename: FieldRename.snake) for models.
-    - Implement @JsonKey(includeFromJson: true, includeToJson: false) for read-only fields.
-    
-    Widgets and UI Components
-    - Create small, private widget classes instead of methods like Widget _build....
-    - Implement RefreshIndicator for pull-to-refresh functionality.
-    - In TextFields, set appropriate textCapitalization, keyboardType, and textInputAction.
-    - Always include an errorBuilder when using Image.network.
-    
-    Miscellaneous
-    - Use log instead of print for debugging.
-    - Use BlocObserver for monitoring state transitions during debugging.
-    - Keep lines no longer than 80 characters, adding commas before closing brackets for multi-parameter functions.
-    - Use @JsonValue(int) for enums that go to the database.
-    
-    Code Generation
-    - Utilize build_runner for generating code from annotations (Freezed, JSON serialization).
-    - Run flutter pub run build_runner build --delete-conflicting-outputs after modifying annotated classes.
-    
-    Documentation
-    - Document complex logic and non-obvious code decisions.
-    - Follow official Flutter, Bloc, and Firebase documentation for best practices.
-    
-    Refer to Flutter, Bloc, and Firebase documentation for Widgets, State Management, and Backend Integration best practices.
-    
+**Bloc/Cubit**
+- Use Cubit for simple state, Bloc for complex event-driven state.
+- Extend states with Freezed for immutability.
+- Use descriptive event names.
+- Handle state transitions/side effects in `mapEventToState`.
+- Prefer `context.read()` for events and `context.watch()` for state in widgets.
+- Dispose of subscriptions in `close()` method.
+- Log state transitions for debugging.
+
+**Firebase**
+- Use Firebase Auth for authentication.
+- Integrate Firestore for real-time DB with structured/normalized data.
+- Use Firebase Storage for file uploads/downloads with error handling.
+- Secure Firestore/Storage rules based on user roles.
+- Handle Firebase exceptions with detailed logging.
+- Use appropriate timestamp conversion for Firestore dates.
+- Optimize security rules for performance.
+
+**Performance**
+- Use `const` widgets to optimize rebuilds.
+- Optimize lists with `ListView.builder`.
+- Use `AssetImage` for static images, `cached_network_image` for remote.
+- Optimize Firestore queries with indexes and limits.
+- Use pagination for large data sets.
+- Memoize expensive calculations with `computed` property.
+- Avoid rebuilds using selective state management.
+
+**Navigation**
+- Use GoRouter for navigation/deep linking.
+- Define routes centrally in router.dart.
+- Use named routes for clarity.
+- Implement proper authentication redirection.
+- Pass minimal data through route parameters.
+- Handle deep linking appropriately.
+
+**UI/Styling**
+- Use Flutter's built-in widgets; create custom widgets as needed.
+- Implement responsive design with `LayoutBuilder` or `MediaQuery`.
+- Use `Theme.of(context).textTheme.titleLarge` instead of deprecated styles.
+- Extract reusable UI components into separate widget classes.
+- Use Material Design 3 components for modern UI.
+- Ensure accessibility with semantic labels and sufficient contrast.
+
+**Models/Database**
+- Include `createdAt`, `updatedAt`, and `isDeleted` in Firestore docs.
+- Use `@JsonSerializable(fieldRename: FieldRename.snake)` for models.
+- Use `@JsonKey(includeFromJson: true, includeToJson: false)` for read-only fields.
+- Implement proper timestamp conversion for Firestore dates.
+- Use factory constructors for creating model instances.
+- Document field constraints and validation rules.
+- Keep model classes focused on a single responsibility.
+
+**Widgets**
+- Create small, private widget classes instead of `_build` methods.
+- Use `RefreshIndicator` for pull-to-refresh.
+- Set `textCapitalization`, `keyboardType`, and `textInputAction` in `TextField`.
+- Always include `errorBuilder` in `Image.network`.
+- Extract complex widget logic to separate methods.
+- Prefer stateless widgets when possible.
+- Use keys appropriately for widget identity.
+
+**Miscellaneous**
+- Use `log` instead of `print` for debugging.
+- Use `BlocObserver` to monitor state transitions.
+- Keep lines ≤ 80 chars; add trailing commas for multi-param functions.
+- Use `@JsonValue(int)` for enums stored in DB.
+- Implement proper environment configuration with .env files.
+- Use appropriate asynchronous patterns (Future/async/await).
+- Follow platform-specific design guidelines where appropriate.
+
+**Code Generation**
+- Use `build_runner` for Freezed/JSON serialization.
+- Run `flutter pub run build_runner build --delete-conflicting-outputs` after changes.
+- Keep generated files in version control.
+- Document generator commands in project README.
+
+**Documentation**
+- Document complex logic and non-obvious decisions.
+- Follow Flutter, Bloc, and Firebase docs for best practices.
+- Add doc comments for public APIs and complex functions.
+- Keep a changelog of significant changes.
+- Document environment setup and requirements.

@@ -1,0 +1,15 @@
+// This rule applies to generated files and documentation
+// pattern: **/*.g.dart, **/*.freezed.dart, **/README.md, **/docs/*.md
+
+**Code Generation**
+- Use `build_runner` for Freezed/JSON serialization.
+- Run `flutter pub run build_runner build --delete-conflicting-outputs` after changes.
+- Keep generated files in version control.
+- Document generator commands in project README.
+
+**Documentation**
+- Document complex logic and non-obvious decisions.
+- Follow Flutter, Bloc, and Firebase docs for best practices.
+- Add doc comments for public APIs and complex functions.
+- Keep a changelog of significant changes.
+- Document environment setup and requirements. 

@@ -1,0 +1,23 @@
+// This rule applies to widget files
+// pattern: **/widgets/*.dart, **/screens/*.dart, **/pages/*.dart
+
+**Widgets**
+- Use `const` constructors for immutable widgets.
+- Create small, private widget classes instead of `_build` methods.
+- Use `RefreshIndicator` for pull-to-refresh.
+- Set `textCapitalization`, `keyboardType`, and `textInputAction` in `TextField`.
+- Always include `errorBuilder` in `Image.network`.
+- Extract complex widget logic to separate methods.
+- Prefer stateless widgets when possible.
+- Use keys appropriately for widget identity.
+- Use `const` widgets to optimize rebuilds.
+- Optimize lists with `ListView.builder`.
+- Use `AssetImage` for static images, `cached_network_image` for remote.
+
+**UI/Styling**
+- Use Flutter's built-in widgets; create custom widgets as needed.
+- Implement responsive design with `LayoutBuilder` or `MediaQuery`.
+- Use `Theme.of(context).textTheme.titleLarge` instead of deprecated styles.
+- Extract reusable UI components into separate widget classes.
+- Use Material Design 3 components for modern UI.
+- Ensure accessibility with semantic labels and sufficient contrast. 

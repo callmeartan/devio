@@ -1,0 +1,12 @@
+// This rule applies to all Dart and Flutter files
+// pattern: **/*.dart
+
+**General Principles**
+- Be concise, technical, and provide accurate Dart/Flutter code examples.
+- Use functional/declarative patterns; prefer composition over inheritance.
+- Use descriptive variable names (e.g., `isLoading`, `hasError`).
+- Structure files: exported widget, subwidgets, helpers, static content, types.
+- Keep lines ≤ 80 chars; add trailing commas for multi-param functions.
+- Use `log` instead of `print` for debugging.
+- Use appropriate asynchronous patterns (Future/async/await).
+- Prefer final variables whenever possible. 

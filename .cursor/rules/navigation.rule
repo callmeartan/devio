@@ -1,0 +1,11 @@
+// This rule applies to navigation files
+// pattern: **/router.dart, **/routes*.dart, **/navigation*.dart
+
+**Navigation**
+- Use GoRouter for navigation/deep linking.
+- Define routes centrally in router.dart.
+- Use named routes for clarity.
+- Implement proper authentication redirection.
+- Pass minimal data through route parameters.
+- Handle deep linking appropriately.
+- Follow platform-specific design guidelines where appropriate. 

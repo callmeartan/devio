@@ -1,0 +1,19 @@
+// This rule applies to models and repositories
+// pattern: **/models/*.dart, **/repositories/*.dart, **/services/*.dart
+
+**Models/Database**
+- Include `createdAt`, `updatedAt`, and `isDeleted` in Firestore docs.
+- Use `@JsonSerializable(fieldRename: FieldRename.snake)` for models.
+- Use `@JsonKey(includeFromJson: true, includeToJson: false)` for read-only fields.
+- Implement proper timestamp conversion for Firestore dates.
+- Use factory constructors for creating model instances.
+- Document field constraints and validation rules.
+- Keep model classes focused on a single responsibility.
+- Use `@JsonValue(int)` for enums stored in DB.
+- Utilize streams for reactive programming when appropriate.
+
+**Dart/Flutter**
+- Leverage Freezed for immutable state classes and unions.
+- Use arrow syntax for simple functions/methods.
+- Prefer expression bodies for one-liner getters/setters.
+- Use trailing commas for better formatting and diffs. 

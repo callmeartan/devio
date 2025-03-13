@@ -1,0 +1,25 @@
+// This rule applies to state management files
+// pattern: **/blocs/*.dart, **/cubits/*.dart, **/state*.dart, **/cubit*.dart, **/bloc*.dart
+
+**Bloc/Cubit**
+- Use Cubit for simple state, Bloc for complex event-driven state.
+- Extend states with Freezed for immutability.
+- Use descriptive event names.
+- Handle state transitions/side effects in `mapEventToState`.
+- Prefer `context.read()` for events and `context.watch()` for state in widgets.
+- Dispose of subscriptions in `close()` method.
+- Log state transitions for debugging.
+- Use BlocObserver to monitor state transitions.
+
+**Error Handling**
+- Display errors using `SelectableText.rich` (red text for visibility).
+- Handle empty states in the UI.
+- Manage errors/loading states in Cubit/Bloc states.
+- Use try/catch blocks with specific error types when possible.
+- Log errors with context using `developer.log`.
+
+**Performance**
+- Memoize expensive calculations with `computed` property.
+- Avoid rebuilds using selective state management.
+- Use pagination for large data sets.
+- Optimize Firestore queries with indexes and limits. 
