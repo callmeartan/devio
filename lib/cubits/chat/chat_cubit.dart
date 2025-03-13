@@ -20,13 +20,32 @@ class ChatCubit extends Cubit<ChatState> {
     try {
       developer.log('Loading chat histories...');
       emit(state.copyWith(isLoading: true));
+
       final histories = await _chatRepository.getChatHistories();
       developer.log('Loaded ${histories.length} chat histories');
-      emit(state.copyWith(
-        chatHistories: histories,
-        isLoading: false,
-        error: null,
-      ));
+
+      // Update pinned chat IDs based on loaded histories
+      final pinnedChatIds = histories
+          .where((chat) => chat['isPinned'] == true)
+          .map((chat) => chat['id'] as String)
+          .toList();
+
+      // If histories are empty, make sure we completely reset the state
+      if (histories.isEmpty) {
+        developer.log('No chat histories found, resetting state completely');
+        emit(ChatState(
+          isLoading: false,
+          error: null,
+          pinnedChatIds: pinnedChatIds,
+        ));
+      } else {
+        emit(state.copyWith(
+          chatHistories: histories,
+          pinnedChatIds: pinnedChatIds,
+          isLoading: false,
+          error: null,
+        ));
+      }
     } catch (e) {
       developer.log('Error loading chat histories: $e');
       emit(state.copyWith(
@@ -193,30 +212,108 @@ class ChatCubit extends Cubit<ChatState> {
 
       // Cancel existing chat subscription
       _chatSubscription?.cancel();
+      _chatSubscription = null;
 
-      // Clear chats in repository
-      await _chatRepository.clearChat();
-
-      // Clear local state
+      // Clear local state immediately to reflect in UI
       _localMessages.clear();
+      emit(ChatState(isLoading: true));
 
-      // Reset state completely and start new chat
+      // Add timeout to prevent hanging operations
+      final clearOperation = _chatRepository.clearChat().timeout(
+        const Duration(
+            seconds: 60), // Increased timeout for more thorough clearing
+        onTimeout: () {
+          throw TimeoutException(
+              'Chat clear operation timed out after 60 seconds');
+        },
+      );
+
+      // Clear chats in repository with timeout
+      await clearOperation;
+      developer.log('Repository clear operation completed');
+
+      // Reset state completely after repository operation completes
+      // This is important - create a fresh state object instead of modifying the existing one
+      emit(ChatState(isLoading: false));
+
+      // Force a thorough reload of chat histories to verify clearing worked
+      developer.log('Performing verification reload of chat histories');
+      try {
+        // First attempt
+        await _loadChatHistories().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            developer.log('First history reload timed out, trying again...');
+            return;
+          },
+        );
+
+        // If histories were loaded and still contain data, try to clear again
+        if (state.chatHistories.isNotEmpty) {
+          developer.log(
+              'WARNING: Still found ${state.chatHistories.length} chat histories after clearing. Attempting cleanup...');
+
+          // Sleep briefly to allow Firestore to complete any pending operations
+          await Future.delayed(const Duration(seconds: 2));
+
+          // Try one more time to clear any remaining chats
+          try {
+            await _chatRepository.clearChat().timeout(
+              const Duration(seconds: 30),
+              onTimeout: () {
+                developer.log('Second clear operation timed out');
+                return;
+              },
+            );
+
+            // Reload histories again after second clear attempt
+            await _loadChatHistories();
+          } catch (secondClearError) {
+            developer.log('Error in second clear attempt: $secondClearError');
+          }
+        }
+      } catch (historyError) {
+        developer.log('Error reloading chat histories: $historyError');
+        // Try one more time after a brief delay
+        await Future.delayed(const Duration(seconds: 1));
+        try {
+          await _loadChatHistories();
+        } catch (e) {
+          developer.log('Second attempt to reload histories failed: $e');
+        }
+      }
+
+      // Force emit a fresh state regardless of what happened above
+      final currentHistories = state.chatHistories;
+      if (currentHistories.isNotEmpty) {
+        developer.log(
+            'WARNING: Still have ${currentHistories.length} histories after all clearing attempts');
+      } else {
+        developer.log('Successfully verified all chat histories were cleared');
+      }
+
+      // Create fresh state and start new chat
       emit(const ChatState());
       startNewChat();
-
-      // Small delay to ensure Firebase operations complete
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Reload histories
-      await _loadChatHistories();
 
       developer.log('Chat clear process completed in cubit');
     } catch (e) {
       developer.log('Error clearing chat in cubit: $e');
+
+      // Attempt to reload histories even if clear failed
+      try {
+        await _loadChatHistories();
+      } catch (_) {
+        // Ignore secondary errors
+      }
+
       emit(state.copyWith(
         isLoading: false,
         error: 'Failed to clear chat: $e',
       ));
+
+      // Rethrow to allow UI to handle the error
+      rethrow;
     }
   }
 

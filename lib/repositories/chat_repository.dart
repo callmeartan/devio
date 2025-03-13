@@ -70,6 +70,15 @@ class ChatRepository {
       final metadataSnapshot =
           await _firestore.collection(_chatMetadataPath).get();
 
+      developer
+          .log('Retrieved ${metadataSnapshot.docs.length} metadata documents');
+
+      // If we don't have any metadata, return an empty list early
+      if (metadataSnapshot.docs.isEmpty) {
+        developer.log('No chat metadata found, returning empty list');
+        return [];
+      }
+
       final metadataMap = Map.fromEntries(
           metadataSnapshot.docs.map((doc) => MapEntry(doc.id, doc.data())));
 
@@ -81,6 +90,23 @@ class ChatRepository {
           .get();
 
       developer.log('Retrieved ${snapshot.docs.length} messages');
+
+      // If we don't have any messages, but still have metadata, clear the metadata
+      if (snapshot.docs.isEmpty && metadataSnapshot.docs.isNotEmpty) {
+        developer.log(
+            'Found metadata but no messages - cleaning up orphaned metadata');
+
+        // Batch delete all metadata since we have no messages
+        final cleanupBatch = _firestore.batch();
+        for (var doc in metadataSnapshot.docs) {
+          cleanupBatch.delete(doc.reference);
+        }
+        await cleanupBatch.commit();
+
+        developer.log(
+            'Cleaned up ${metadataSnapshot.docs.length} orphaned metadata records');
+        return [];
+      }
 
       final Map<String, ChatMessage> chatHistories = {};
       for (var doc in snapshot.docs) {
@@ -98,6 +124,13 @@ class ChatRepository {
         }
       }
 
+      // If we have no chat histories after processing messages, return empty list
+      if (chatHistories.isEmpty) {
+        developer
+            .log('No valid chat histories found after processing messages');
+        return [];
+      }
+
       // Combine messages with metadata
       final result = chatHistories.entries.map((entry) {
         final metadata = metadataMap[entry.key] ?? {};
@@ -108,6 +141,23 @@ class ChatRepository {
           'isPinned': metadata['isPinned'] ?? false,
         };
       }).toList();
+
+      // Detect and cleanup any orphaned metadata (metadata with no messages)
+      final validChatIds = chatHistories.keys.toSet();
+      final allMetadataIds = metadataMap.keys.toSet();
+      final orphanedMetadataIds = allMetadataIds.difference(validChatIds);
+
+      if (orphanedMetadataIds.isNotEmpty) {
+        developer.log(
+            'Found ${orphanedMetadataIds.length} orphaned metadata records - cleaning up');
+        final cleanupBatch = _firestore.batch();
+        for (var orphanId in orphanedMetadataIds) {
+          cleanupBatch
+              .delete(_firestore.collection(_chatMetadataPath).doc(orphanId));
+        }
+        await cleanupBatch.commit();
+        developer.log('Cleaned up orphaned metadata records');
+      }
 
       // Sort by pinned status first, then by timestamp
       result.sort((a, b) {
@@ -166,17 +216,40 @@ class ChatRepository {
       final userId = _auth.currentUser!.uid;
       developer.log('Starting chat clear process for user: $userId');
 
-      // Get all messages for the current user
-      final allMessages = await _firestore
+      // Step 1: Get all metadata first - this ensures we capture ALL chats
+      final allMetadata = await _firestore.collection(_chatMetadataPath).get();
+      developer.log('Found ${allMetadata.docs.length} total metadata records');
+
+      // Step 2: Also search for chats where the user participated (as sender or recipient)
+      final userSentMessages = await _firestore
           .collection(_collectionPath)
           .where('senderId', isEqualTo: userId)
           .get();
 
-      // Get all chat IDs from the messages
-      final chatIds = allMessages.docs
+      // Get messages addressed to this user (AI responses) - if your schema supports this
+      // If you don't store recipient info, you might need a different approach
+      final messageChatIds = userSentMessages.docs
           .map((doc) => (doc.data()['chatId'] as String))
           .toSet()
           .toList();
+
+      developer
+          .log('Found ${messageChatIds.length} chats from message queries');
+
+      // Step 3: Combine all chat IDs from metadata and messages
+      final chatIds = [
+        ...messageChatIds,
+        ...allMetadata.docs.map((doc) => doc.id),
+      ].toSet().toList(); // Use set to remove duplicates
+
+      developer.log('Combined ${chatIds.length} unique chat IDs to process');
+
+      if (chatIds.isEmpty) {
+        developer.log('No chats to clear, operation completed successfully');
+        return;
+      }
+
+      // Step 4: Delete ALL chat records from Firestore
 
       // Clear chat metadata first
       developer.log('Clearing chat metadata...');
@@ -188,16 +261,77 @@ class ChatRepository {
       await metadataBatch.commit();
       developer.log('Cleared metadata for ${chatIds.length} chats');
 
-      // Then clear messages
-      developer.log('Clearing chat messages...');
-      final messageBatch = _firestore.batch();
-      for (var doc in allMessages.docs) {
-        messageBatch.delete(doc.reference);
-      }
-      await messageBatch.commit();
-      developer.log('Cleared ${allMessages.docs.length} messages');
+      // Step 5: Now delete ALL messages
+      developer.log('Starting to clear chat messages...');
+      int totalMessagesDeleted = 0;
 
-      developer.log('Chat clear process completed successfully');
+      // Process in smaller batches to avoid transaction limits
+      final batchSize = 20;
+      for (var i = 0; i < chatIds.length; i += batchSize) {
+        final currentBatchEnd =
+            (i + batchSize < chatIds.length) ? i + batchSize : chatIds.length;
+        final currentBatch = chatIds.sublist(i, currentBatchEnd);
+
+        developer.log(
+            'Processing batch ${i ~/ batchSize + 1} with ${currentBatch.length} chats');
+
+        // For each chat in the current batch
+        for (var chatId in currentBatch) {
+          try {
+            // Get all messages for this chat (including AI responses)
+            final chatMessages = await _firestore
+                .collection(_collectionPath)
+                .where('chatId', isEqualTo: chatId)
+                .get();
+
+            if (chatMessages.docs.isEmpty) {
+              developer.log('No messages found for chat $chatId');
+              continue;
+            }
+
+            // Use batch to delete these messages
+            // Split into smaller batches if needed (Firestore has a limit of 500 ops per batch)
+            final maxBatchSize = 400; // Keep well below the 500 limit
+            for (var j = 0; j < chatMessages.docs.length; j += maxBatchSize) {
+              final end = (j + maxBatchSize < chatMessages.docs.length)
+                  ? j + maxBatchSize
+                  : chatMessages.docs.length;
+
+              final messageBatch = _firestore.batch();
+              for (var k = j; k < end; k++) {
+                messageBatch.delete(chatMessages.docs[k].reference);
+              }
+
+              await messageBatch.commit();
+              int batchCount = end - j;
+              totalMessagesDeleted += batchCount;
+              developer.log('Deleted $batchCount messages from chat $chatId');
+            }
+          } catch (e) {
+            // Log but continue with other chats
+            developer.log('Error clearing messages for chat $chatId: $e');
+          }
+        }
+      }
+
+      // Step 6: Verify deletion by checking for any remaining metadata
+      final remainingMetadata =
+          await _firestore.collection(_chatMetadataPath).get();
+      if (remainingMetadata.docs.isNotEmpty) {
+        developer.log(
+            'WARNING: ${remainingMetadata.docs.length} metadata records remain after deletion');
+
+        // Try one more time to delete any remaining metadata
+        final finalCleanupBatch = _firestore.batch();
+        for (var doc in remainingMetadata.docs) {
+          finalCleanupBatch.delete(doc.reference);
+        }
+        await finalCleanupBatch.commit();
+        developer.log('Performed final cleanup of remaining metadata');
+      }
+
+      developer.log(
+          'Chat clear process completed successfully - Deleted $totalMessagesDeleted total messages');
     } catch (e) {
       developer.log('Error clearing chat: $e');
       throw Exception('Failed to clear chat: $e');

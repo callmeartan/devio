@@ -515,9 +515,14 @@ class ProfileScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Cache the NavigatorState to use for checking if context is still mounted
+    final navigator = Navigator.of(context);
+    // Cache the ScaffoldMessengerState to avoid using context later
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF202123) : Colors.white,
         surfaceTintColor: Colors.transparent,
         title: const Text('Clear Chat History'),
@@ -525,7 +530,7 @@ class ProfileScreen extends StatelessWidget {
             'Are you sure you want to clear all chat history? This action cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => navigator.pop(),
             child: Text(
               'Cancel',
               style: TextStyle(
@@ -536,22 +541,74 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.read<ChatCubit>().clearChat();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Chat history cleared successfully',
-                    style: TextStyle(
-                      color: isDark ? Colors.black : Colors.white,
-                    ),
+            onPressed: () async {
+              // Close the dialog first
+              navigator.pop();
+
+              // Use cached scaffoldMessenger instead of context
+              final loadingSnackBar = SnackBar(
+                content: Text(
+                  'Clearing chat history...',
+                  style: TextStyle(
+                    color: isDark ? Colors.black : Colors.white,
                   ),
-                  backgroundColor: isDark
-                      ? Colors.white.withOpacity(0.9)
-                      : theme.colorScheme.primary,
                 ),
+                backgroundColor: isDark
+                    ? Colors.white.withOpacity(0.9)
+                    : theme.colorScheme.primary,
+                duration: const Duration(seconds: 60),
               );
+
+              // Show loading indicator using cached scaffoldMessenger
+              scaffoldMessenger.showSnackBar(loadingSnackBar);
+
+              try {
+                // Get the ChatCubit instance here before async operation starts
+                final chatCubit = context.read<ChatCubit>();
+
+                // Call the clear chat method and await its completion
+                await chatCubit.clearChat();
+
+                // Check if navigator is still active before showing results
+                if (navigator.mounted) {
+                  // Hide the loading indicator using cached messenger
+                  scaffoldMessenger.hideCurrentSnackBar();
+
+                  // Show success message using cached messenger
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Chat history cleared successfully',
+                        style: TextStyle(
+                          color: isDark ? Colors.black : Colors.white,
+                        ),
+                      ),
+                      backgroundColor: isDark
+                          ? Colors.white.withOpacity(0.9)
+                          : theme.colorScheme.primary,
+                    ),
+                  );
+                }
+              } catch (e) {
+                // Check if navigator is still active before showing error
+                if (navigator.mounted) {
+                  // Hide the loading indicator
+                  scaffoldMessenger.hideCurrentSnackBar();
+
+                  // Show error message
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Error clearing chat history: ${e.toString()}',
+                        style: TextStyle(
+                          color: isDark ? Colors.black : Colors.white,
+                        ),
+                      ),
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                  );
+                }
+              }
             },
             child: Text(
               'Clear History',
