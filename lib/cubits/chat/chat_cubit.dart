@@ -4,53 +4,92 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../models/chat_message.dart';
 import '../../repositories/chat_repository.dart';
 import 'chat_state.dart';
+import 'package:devio/features/storage/models/storage_mode.dart';
+import 'package:devio/features/storage/repositories/local_chat_repository.dart';
+import 'package:devio/features/storage/repositories/repository_factory.dart';
 
 class ChatCubit extends Cubit<ChatState> {
-  final ChatRepository _chatRepository;
+  final dynamic _repository;
+  final StorageMode _storageMode;
   StreamSubscription<List<ChatMessage>>? _chatSubscription;
   final Map<String, List<ChatMessage>> _localMessages = {};
 
-  ChatCubit({required ChatRepository chatRepository})
-      : _chatRepository = chatRepository,
+  ChatCubit({
+    required dynamic repository,
+    required StorageMode storageMode,
+  })  : _repository = repository,
+        _storageMode = storageMode,
         super(const ChatState()) {
     _loadChatHistories();
   }
 
+  /// Factory constructor that creates a ChatCubit with the appropriate repository
+  /// based on the storage mode
+  factory ChatCubit.fromStorageMode(StorageMode storageMode) {
+    final repository = RepositoryFactory.getChatRepository(storageMode);
+    return ChatCubit(repository: repository, storageMode: storageMode);
+  }
+
+  bool get isLocalMode => _storageMode == StorageMode.local;
+  bool get isCloudMode => _storageMode == StorageMode.cloud;
+
   Future<void> _loadChatHistories() async {
     try {
-      developer.log('Loading chat histories...');
+      developer.log('Loading chat histories in ${_storageMode.displayName}...');
       emit(state.copyWith(isLoading: true));
 
-      final histories = await _chatRepository.getChatHistories();
-      developer.log('Loaded ${histories.length} chat histories');
+      if (isCloudMode) {
+        final cloudRepository = _repository as ChatRepository;
+        final histories = await cloudRepository.getChatHistories();
+        developer.log('Loaded ${histories.length} chat histories from cloud');
 
-      // Update pinned chat IDs based on loaded histories
-      final pinnedChatIds = histories
-          .where((chat) => chat['isPinned'] == true)
-          .map((chat) => chat['id'] as String)
-          .toList();
+        // Update pinned chat IDs based on loaded histories
+        final pinnedChatIds = histories
+            .where((chat) => chat['isPinned'] == true)
+            .map((chat) => chat['id'] as String)
+            .toList();
 
-      // If histories are empty, make sure we completely reset the state
-      if (histories.isEmpty) {
-        developer.log('No chat histories found, resetting state completely');
-        emit(ChatState(
-          isLoading: false,
-          error: null,
-          pinnedChatIds: pinnedChatIds,
-        ));
-      } else {
         emit(state.copyWith(
           chatHistories: histories,
           pinnedChatIds: pinnedChatIds,
           isLoading: false,
-          error: null,
+        ));
+      } else if (isLocalMode) {
+        final localRepository = _repository as LocalChatRepository;
+        final chats = await localRepository.getChats();
+        developer
+            .log('Loaded ${chats.length} chat histories from local database');
+
+        // Convert to the same format as cloud histories
+        final histories = chats.map((chat) {
+          return {
+            'id': chat['id'],
+            'title': chat['title'],
+            'createdAt':
+                DateTime.fromMillisecondsSinceEpoch(chat['created_at'] as int),
+            'updatedAt':
+                DateTime.fromMillisecondsSinceEpoch(chat['updated_at'] as int),
+            'isPinned': chat['is_pinned'] == 1,
+          };
+        }).toList();
+
+        // Update pinned chat IDs
+        final pinnedChatIds = chats
+            .where((chat) => chat['is_pinned'] == 1)
+            .map((chat) => chat['id'] as String)
+            .toList();
+
+        emit(state.copyWith(
+          chatHistories: histories,
+          pinnedChatIds: pinnedChatIds,
+          isLoading: false,
         ));
       }
     } catch (e) {
       developer.log('Error loading chat histories: $e');
       emit(state.copyWith(
-        error: 'Failed to load chat histories: $e',
         isLoading: false,
+        error: 'Failed to load chat histories: $e',
       ));
     }
   }
@@ -97,33 +136,65 @@ class ChatCubit extends Cubit<ChatState> {
       final existingMessages = _localMessages[state.currentChatId!] ?? [];
       emit(state.copyWith(messages: existingMessages));
 
-      _chatSubscription =
-          _chatRepository.getChatMessagesForId(state.currentChatId!).listen(
-        (messages) {
-          developer.log(
-              'Received ${messages.length} messages for chat: ${state.currentChatId}');
+      if (isCloudMode) {
+        // For cloud mode, use the stream-based approach
+        final cloudRepository = _repository as ChatRepository;
+        _chatSubscription =
+            cloudRepository.getChatMessagesForId(state.currentChatId!).listen(
+          (messages) {
+            developer.log(
+                'Received ${messages.length} messages from Firestore stream');
 
-          // Merge new messages with existing ones
-          final chatId = state.currentChatId!;
-          final existingMessages = _localMessages[chatId] ?? [];
-          final mergedMessages = {...existingMessages, ...messages}.toList();
+            // Merge new messages with existing ones
+            final chatId = state.currentChatId!;
+            final existingMessages = _localMessages[chatId] ?? [];
+            final mergedMessages =
+                {...existingMessages, ...messages}.toList().cast<ChatMessage>();
 
-          _localMessages[chatId] = mergedMessages;
-          _updateMessagesState(chatId);
-        },
-        onError: (error) {
-          developer.log('Error in chat stream: $error');
-          // Keep existing messages on error
-          final existingMessages = _localMessages[state.currentChatId!] ?? [];
-          emit(state.copyWith(
-            messages: existingMessages,
-            error: 'Failed to load messages: $error',
-          ));
-        },
-      );
+            _localMessages[chatId] = mergedMessages;
+            _updateMessagesState(chatId);
+          },
+          onError: (error) {
+            developer.log('Error in chat stream: $error');
+            // Keep existing messages on error
+            final existingMessages = _localMessages[state.currentChatId!] ?? [];
+            emit(state.copyWith(
+              messages: existingMessages,
+              error: 'Failed to load messages: $error',
+            ));
+          },
+        );
+      } else if (isLocalMode) {
+        // For local mode, fetch messages directly
+        _loadLocalMessages(state.currentChatId!);
+      }
     } else {
       developer.log('No current chat ID, clearing messages');
       emit(state.copyWith(messages: []));
+    }
+  }
+
+  Future<void> _loadLocalMessages(String chatId) async {
+    try {
+      developer.log('Loading local messages for chatId: $chatId');
+      emit(state.copyWith(isLoading: true));
+
+      final localRepository = _repository as LocalChatRepository;
+      final messages = await localRepository.getMessages(chatId);
+
+      developer.log('Loaded ${messages.length} local messages');
+
+      // Update local messages cache
+      _localMessages[chatId] = messages;
+
+      // Update state with messages
+      emit(state.copyWith(messages: messages, isLoading: false));
+    } catch (e) {
+      developer.log('Error loading local messages: $e');
+      emit(state.copyWith(
+        error: 'Failed to load messages: $e',
+        isLoading: false,
+      ));
     }
   }
 
@@ -179,7 +250,7 @@ class ChatCubit extends Cubit<ChatState> {
       _updateMessagesState(chatId);
 
       // Send message to Firestore
-      await _chatRepository.sendMessage(message);
+      await _repository.sendMessage(message);
       developer.log('Message sent successfully to Firestore, chatId: $chatId');
 
       // Initialize stream if needed
@@ -224,7 +295,7 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> deleteMessage(String messageId) async {
     try {
       developer.log('Deleting message: $messageId');
-      await _chatRepository.deleteMessage(messageId);
+      await _repository.deleteMessage(messageId);
       await _loadChatHistories(); // Refresh chat histories after deletion
     } catch (e) {
       developer.log('Error deleting message: $e');
@@ -242,7 +313,7 @@ class ChatCubit extends Cubit<ChatState> {
       }
 
       // Delete from repository
-      await _chatRepository.deleteChat(chatId);
+      await _repository.deleteChat(chatId);
 
       // Clean up local state
       _localMessages.remove(chatId);
@@ -283,7 +354,7 @@ class ChatCubit extends Cubit<ChatState> {
       emit(const ChatState(isLoading: true));
 
       // Clear chats in repository
-      await _chatRepository.clearChat();
+      await _repository.clearChat();
       developer.log('Repository clear operation completed');
 
       // Reset state completely
@@ -313,7 +384,7 @@ class ChatCubit extends Cubit<ChatState> {
         final updatedPinnedChats = List<String>.from(state.pinnedChatIds)
           ..add(chatId);
         emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
-        await _chatRepository.updateChatPin(chatId, true);
+        await _repository.updateChatPin(chatId, true);
       }
     } catch (e) {
       developer.log('Error pinning chat: $e');
@@ -328,7 +399,7 @@ class ChatCubit extends Cubit<ChatState> {
         final updatedPinnedChats = List<String>.from(state.pinnedChatIds)
           ..remove(chatId);
         emit(state.copyWith(pinnedChatIds: updatedPinnedChats));
-        await _chatRepository.updateChatPin(chatId, false);
+        await _repository.updateChatPin(chatId, false);
       }
     } catch (e) {
       developer.log('Error unpinning chat: $e');
@@ -339,7 +410,7 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> deleteChat(String chatId) async {
     try {
       developer.log('Deleting chat: $chatId');
-      await _chatRepository.deleteChat(chatId);
+      await _repository.deleteChat(chatId);
 
       // Remove from pinned chats if it was pinned
       if (state.pinnedChatIds.contains(chatId)) {
@@ -363,7 +434,7 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> renameChat(String chatId, String newTitle) async {
     try {
       developer.log('Renaming chat: $chatId to: $newTitle');
-      await _chatRepository.updateChatTitle(chatId, newTitle);
+      await _repository.updateChatTitle(chatId, newTitle);
       await _loadChatHistories();
     } catch (e) {
       developer.log('Error renaming chat: $e');

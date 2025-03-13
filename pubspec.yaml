@@ -53,6 +53,7 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   sqflite: ^2.3.2
   path_provider: ^2.1.2
+  encrypt: ^5.0.3
   
   # Webview
   webview_flutter: ^4.7.0
@@ -75,6 +76,7 @@ dependencies:
   syncfusion_flutter_pdf: ^28.2.9  # For PDF handling
   path: ^1.8.3
   mime: ^2.0.0  # For MIME type detection
+  share_plus: ^10.1.4  # For sharing files
 
   # New dependencies
   google_fonts: ^6.2.1

@@ -6,7 +6,11 @@ import '../cubit/preferences_state.dart';
 import '../../../blocs/auth/auth_cubit.dart';
 import 'dart:ui';
 import 'package:devio/features/storage/cubit/storage_mode_cubit.dart';
+import 'package:devio/features/storage/models/storage_mode.dart';
 import 'package:devio/features/settings/widgets/storage_mode_selector.dart';
+import 'package:devio/cubits/chat/chat_cubit.dart';
+import 'package:devio/cubits/chat/chat_state.dart';
+import 'package:devio/features/storage/services/data_export_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -185,6 +189,57 @@ class SettingsScreen extends StatelessWidget {
                                 },
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 16),
+                          BlocBuilder<StorageModeCubit, StorageModeState>(
+                            builder: (context, storageState) {
+                              // Only show data management section in Local Mode
+                              if (storageState.mode == StorageMode.local) {
+                                return Column(
+                                  children: [
+                                    _buildSection(
+                                      context,
+                                      title: 'Data Management',
+                                      icon: Icons.download_outlined,
+                                      children: [
+                                        _buildTile(
+                                          context,
+                                          icon: Icons.file_download_outlined,
+                                          title: 'Export All Chats',
+                                          subtitle:
+                                              'Save all your local chats as a JSON file',
+                                          onTap: () => _exportAllChats(context),
+                                          showDivider: true,
+                                        ),
+                                        BlocBuilder<ChatCubit, ChatState>(
+                                          builder: (context, chatState) {
+                                            // Only show export current chat if a chat is selected
+                                            if (chatState.currentChatId !=
+                                                null) {
+                                              return _buildTile(
+                                                context,
+                                                icon: Icons.chat_outlined,
+                                                title: 'Export Current Chat',
+                                                subtitle:
+                                                    'Save the current chat as a JSON file',
+                                                onTap: () => _exportCurrentChat(
+                                                    context,
+                                                    chatState.currentChatId!),
+                                              );
+                                            } else {
+                                              return const SizedBox.shrink();
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                );
+                              } else {
+                                return const SizedBox.shrink();
+                              }
+                            },
                           ),
                           const SizedBox(height: 16),
                           _buildSection(
@@ -666,6 +721,80 @@ class SettingsScreen extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  void _exportAllChats(BuildContext context) async {
+    final theme = Theme.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    try {
+      // Show loading indicator
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Exporting all chats...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      // Create data export service
+      final dataExportService = DataExportService();
+
+      // Share all chats
+      await dataExportService.shareAllChatsExport();
+
+      // Show success message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: const Text('All chats exported successfully'),
+          backgroundColor: theme.colorScheme.primary,
+        ),
+      );
+    } catch (e) {
+      // Show error message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to export chats: $e'),
+          backgroundColor: theme.colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  void _exportCurrentChat(BuildContext context, String chatId) async {
+    final theme = Theme.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    try {
+      // Show loading indicator
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Exporting current chat...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      // Create data export service
+      final dataExportService = DataExportService();
+
+      // Share current chat
+      await dataExportService.shareChatExport(chatId);
+
+      // Show success message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: const Text('Chat exported successfully'),
+          backgroundColor: theme.colorScheme.primary,
+        ),
+      );
+    } catch (e) {
+      // Show error message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to export chat: $e'),
+          backgroundColor: theme.colorScheme.error,
+        ),
+      );
+    }
   }
 }
 

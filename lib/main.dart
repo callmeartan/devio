@@ -71,9 +71,10 @@ class MyApp extends StatelessWidget {
           create: (_) => ChatRepository(),
         ),
         BlocProvider(
-          create: (context) => ChatCubit(
-            chatRepository: context.read<ChatRepository>(),
-          ),
+          create: (context) {
+            final storageCubit = context.read<StorageModeCubit>();
+            return ChatCubit.fromStorageMode(storageCubit.state.mode);
+          },
         ),
         BlocProvider(
           create: (context) => LlmCubit(),
