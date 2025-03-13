@@ -147,7 +147,7 @@ final appRouter = GoRouter(
       path: '/auth',
       name: 'auth',
       builder: (context, state) {
-        final mode = (state.extra as Map<String, String>?)?['mode'] ?? 'login';
+        final mode = (state.extra as Map<String, dynamic>?)?['mode'] ?? 'login';
         return AuthScreen(isLogin: mode == 'login');
       },
     ),

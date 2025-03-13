@@ -9,12 +9,32 @@ class StorageModeCubit extends Cubit<StorageModeState> {
   final SharedPreferences _prefs;
   static const String _storageModeKey = 'storage_mode';
 
-  StorageModeCubit(this._prefs) : super(_loadInitialState(_prefs));
+  StorageModeCubit(this._prefs) : super(_loadInitialState(_prefs)) {
+    // Add debug logging for initial mode
+    developer.log(
+        'StorageModeCubit initialized with mode: ${state.mode.displayName}');
+    developer.log('isLocalMode: $isLocalMode, isCloudMode: $isCloudMode');
+  }
 
   static StorageModeState _loadInitialState(SharedPreferences prefs) {
     final storedModeIndex = prefs.getInt(_storageModeKey);
-    final mode = storedModeIndex == 1 ? StorageMode.local : StorageMode.cloud;
+    developer.log('Loaded storage mode index from prefs: $storedModeIndex');
 
+    // Explicitly handle the null case
+    StorageMode mode;
+    if (storedModeIndex == null) {
+      // No value stored yet, default to Cloud Mode
+      mode = StorageMode.cloud;
+      developer.log('No storage mode found in prefs, defaulting to Cloud Mode');
+    } else if (storedModeIndex == 1) {
+      // Value is 1, use Local Mode
+      mode = StorageMode.local;
+    } else {
+      // Value is 0 or any other value, use Cloud Mode
+      mode = StorageMode.cloud;
+    }
+
+    developer.log('Initial storage mode set to: ${mode.name}');
     return StorageModeState(mode: mode);
   }
 
@@ -27,6 +47,8 @@ class StorageModeCubit extends Cubit<StorageModeState> {
     try {
       // Save the mode to SharedPreferences
       await _prefs.setInt(_storageModeKey, mode == StorageMode.local ? 1 : 0);
+      developer.log(
+          'Saved storage mode to prefs: ${mode.name} (${mode == StorageMode.local ? 1 : 0})');
 
       // Update the state
       emit(state.copyWith(mode: mode, isChangingMode: false));

@@ -7,6 +7,8 @@ import 'chat_state.dart';
 import 'package:devio/features/storage/models/storage_mode.dart';
 import 'package:devio/features/storage/repositories/local_chat_repository.dart';
 import 'package:devio/features/storage/repositories/repository_factory.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uuid/uuid.dart';
 
 class ChatCubit extends Cubit<ChatState> {
   final dynamic _repository;
@@ -39,57 +41,171 @@ class ChatCubit extends Cubit<ChatState> {
       emit(state.copyWith(isLoading: true));
 
       if (isCloudMode) {
-        final cloudRepository = _repository as ChatRepository;
-        final histories = await cloudRepository.getChatHistories();
-        developer.log('Loaded ${histories.length} chat histories from cloud');
+        try {
+          // Check if Firebase Auth user is available
+          final firebaseAuth = FirebaseAuth.instance;
+          final currentUser = firebaseAuth.currentUser;
 
-        // Update pinned chat IDs based on loaded histories
-        final pinnedChatIds = histories
-            .where((chat) => chat['isPinned'] == true)
-            .map((chat) => chat['id'] as String)
-            .toList();
+          developer
+              .log('Current Firebase Auth user: ${currentUser?.uid ?? 'null'}');
 
-        emit(state.copyWith(
-          chatHistories: histories,
-          pinnedChatIds: pinnedChatIds,
-          isLoading: false,
-        ));
+          if (currentUser == null) {
+            // Try to sign in anonymously if no user is authenticated
+            developer.log(
+                'No authenticated user found for loading chat histories, attempting anonymous sign-in...');
+            try {
+              final userCredential = await firebaseAuth.signInAnonymously();
+              developer.log(
+                  'Anonymous sign-in successful for loading chat histories. User ID: ${userCredential.user?.uid}');
+            } catch (authError) {
+              developer.log(
+                  'Anonymous sign-in failed for loading chat histories: $authError');
+
+              // Show a user-friendly error message
+              String errorMessage = 'Unable to authenticate with Firebase.';
+              if (authError.toString().contains('network') ||
+                  authError.toString().contains('connection')) {
+                errorMessage =
+                    'Network connection issue. Please check your internet connection.';
+              }
+
+              emit(state.copyWith(
+                isLoading: false,
+                error: errorMessage,
+                chatHistories: [], // Ensure we have an empty list rather than null
+              ));
+              return;
+            }
+          }
+
+          // Now load chat histories from the cloud repository
+          try {
+            final cloudRepository = _repository as ChatRepository;
+            developer.log('Fetching chat histories from cloud repository...');
+            final histories = await cloudRepository.getChatHistories();
+            developer
+                .log('Loaded ${histories.length} chat histories from cloud');
+
+            // Log the chat histories for debugging
+            for (var i = 0; i < histories.length; i++) {
+              developer.log(
+                  'Chat $i: ID=${histories[i]['id']}, Title=${histories[i]['title']}, isPinned=${histories[i]['isPinned']}');
+            }
+
+            // Update pinned chat IDs based on loaded histories
+            final pinnedChatIds = histories
+                .where((chat) => chat['isPinned'] == true)
+                .map((chat) => chat['id'] as String)
+                .toList();
+
+            developer.log('Pinned chat IDs: $pinnedChatIds');
+
+            emit(state.copyWith(
+              chatHistories: histories,
+              pinnedChatIds: pinnedChatIds,
+              isLoading: false,
+              error: null, // Clear any previous errors
+            ));
+
+            developer.log(
+                'Chat histories state updated. Total: ${histories.length}');
+          } catch (historyError) {
+            developer
+                .log('Error loading chat histories from cloud: $historyError');
+
+            // Show a user-friendly error message
+            String errorMessage = 'Failed to load chat histories from cloud.';
+            if (historyError.toString().contains('network') ||
+                historyError.toString().contains('connection')) {
+              errorMessage =
+                  'Network connection issue. Please check your internet connection.';
+            } else if (historyError.toString().contains('permission') ||
+                historyError.toString().contains('denied')) {
+              errorMessage =
+                  'Permission denied. You may not have access to these chat histories.';
+            }
+
+            emit(state.copyWith(
+              isLoading: false,
+              error: errorMessage,
+              chatHistories: [], // Ensure we have an empty list rather than null
+            ));
+          }
+        } catch (e) {
+          developer.log('Error loading chat histories from cloud: $e');
+
+          // Show a user-friendly error message
+          String errorMessage = 'Failed to load chat histories.';
+          if (e.toString().contains('network') ||
+              e.toString().contains('connection')) {
+            errorMessage =
+                'Network connection issue. Please check your internet connection.';
+          }
+
+          emit(state.copyWith(
+            isLoading: false,
+            error: errorMessage,
+            chatHistories: [], // Ensure we have an empty list rather than null
+          ));
+        }
       } else if (isLocalMode) {
-        final localRepository = _repository as LocalChatRepository;
-        final chats = await localRepository.getChats();
-        developer
-            .log('Loaded ${chats.length} chat histories from local database');
+        try {
+          final localRepository = _repository as LocalChatRepository;
+          developer.log('Fetching chat histories from local repository...');
+          final chats = await localRepository.getChats();
+          developer
+              .log('Loaded ${chats.length} chat histories from local database');
 
-        // Convert to the same format as cloud histories
-        final histories = chats.map((chat) {
-          return {
-            'id': chat['id'],
-            'title': chat['title'],
-            'createdAt':
-                DateTime.fromMillisecondsSinceEpoch(chat['created_at'] as int),
-            'updatedAt':
-                DateTime.fromMillisecondsSinceEpoch(chat['updated_at'] as int),
-            'isPinned': chat['is_pinned'] == 1,
-          };
-        }).toList();
+          // Log the chat histories for debugging
+          for (var i = 0; i < chats.length; i++) {
+            developer.log(
+                'Chat $i: ID=${chats[i]['id']}, Title=${chats[i]['title']}, isPinned=${chats[i]['is_pinned']}');
+          }
 
-        // Update pinned chat IDs
-        final pinnedChatIds = chats
-            .where((chat) => chat['is_pinned'] == 1)
-            .map((chat) => chat['id'] as String)
-            .toList();
+          // Convert to the same format as cloud histories
+          final histories = chats.map((chat) {
+            return {
+              'id': chat['id'],
+              'title': chat['title'],
+              'createdAt': DateTime.fromMillisecondsSinceEpoch(
+                  chat['created_at'] as int),
+              'updatedAt': DateTime.fromMillisecondsSinceEpoch(
+                  chat['updated_at'] as int),
+              'isPinned': chat['is_pinned'] == 1,
+            };
+          }).toList();
 
-        emit(state.copyWith(
-          chatHistories: histories,
-          pinnedChatIds: pinnedChatIds,
-          isLoading: false,
-        ));
+          // Update pinned chat IDs
+          final pinnedChatIds = chats
+              .where((chat) => chat['is_pinned'] == 1)
+              .map((chat) => chat['id'] as String)
+              .toList();
+
+          developer.log('Pinned chat IDs: $pinnedChatIds');
+
+          emit(state.copyWith(
+            chatHistories: histories,
+            pinnedChatIds: pinnedChatIds,
+            isLoading: false,
+          ));
+
+          developer
+              .log('Chat histories state updated. Total: ${histories.length}');
+        } catch (e) {
+          developer.log('Error loading chat histories from local database: $e');
+          emit(state.copyWith(
+            isLoading: false,
+            error: 'Failed to load chat histories: $e',
+            chatHistories: [], // Ensure we have an empty list rather than null
+          ));
+        }
       }
     } catch (e) {
       developer.log('Error loading chat histories: $e');
       emit(state.copyWith(
         isLoading: false,
         error: 'Failed to load chat histories: $e',
+        chatHistories: [], // Ensure we have an empty list rather than null
       ));
     }
   }
@@ -100,47 +216,94 @@ class ChatCubit extends Cubit<ChatState> {
     _initializeChatStream();
   }
 
-  void startNewChat() async {
-    developer.log('Starting new chat');
+  Future<String> startNewChat() async {
+    try {
+      String chatId;
 
-    // Generate a new chat ID and default title
-    final newChatId = DateTime.now().millisecondsSinceEpoch.toString();
-    final defaultTitle = 'New Chat';
+      // Cancel any existing subscription
+      _chatSubscription?.cancel();
+      _chatSubscription = null;
 
-    developer.log('New chat ID: $newChatId');
+      if (_storageMode == StorageMode.cloud) {
+        developer.log('Starting new chat in Cloud Mode');
 
-    // Cancel any existing subscription
-    _chatSubscription?.cancel();
-    _chatSubscription = null;
+        // Check Firebase status first
+        final cloudRepository = _repository as ChatRepository;
+        developer.log('Checking Firebase status...');
 
-    // Clear local messages for the current chat
-    if (state.currentChatId != null) {
-      _localMessages.remove(state.currentChatId);
-    }
+        try {
+          final firebaseStatus = await cloudRepository.checkFirebaseStatus();
+          developer.log('Firebase status: $firebaseStatus');
 
-    // Initialize new chat state with the new chat ID
-    emit(ChatState(currentChatId: newChatId));
+          if (firebaseStatus['status'] == 'ok') {
+            // Firebase is available, create a new chat
+            developer.log('Firebase is available, creating new chat');
+            chatId = await cloudRepository.createNewChat();
+            developer.log('Successfully created new chat with ID: $chatId');
+          } else {
+            // Firebase is not available, show error and create a local chat ID
+            final errorMessage = firebaseStatus['error'] ?? 'Unknown error';
+            developer.log('Firebase is not available: $errorMessage');
 
-    // Create the chat in the database if in Local Mode
-    if (isLocalMode) {
-      try {
-        final localRepository = _repository as LocalChatRepository;
-        // Create the chat in the local database
-        await localRepository.createChat(defaultTitle);
-        developer.log('Created new chat in local database with ID: $newChatId');
+            // Generate a local chat ID
+            chatId = const Uuid().v4();
+            developer.log('Generated local chat ID: $chatId');
 
-        // Refresh chat histories to include the new chat
-        await _loadChatHistories();
-      } catch (e) {
-        developer.log('Error creating chat in local database: $e');
-        emit(state.copyWith(error: 'Failed to create new chat: $e'));
+            // Emit error state but continue with local chat ID
+            emit(state.copyWith(
+              error:
+                  'Could not connect to Firebase: $errorMessage. Using local chat ID instead.',
+            ));
+          }
+        } catch (e) {
+          // Error checking Firebase status, use local chat ID
+          developer.log('Error checking Firebase status: $e');
+          chatId = const Uuid().v4();
+          developer.log('Generated local chat ID due to error: $chatId');
+
+          // Emit error state but continue with local chat ID
+          emit(state.copyWith(
+            error:
+                'Error connecting to Firebase: $e. Using local chat ID instead.',
+          ));
+        }
+      } else {
+        developer.log('Starting new chat in Local Mode');
+        chatId = const Uuid().v4();
+
+        // Create the chat in the local database if in Local Mode
+        try {
+          final localRepository = _repository as LocalChatRepository;
+          await localRepository.createChat('New Chat');
+          developer.log('Created new chat in local database with ID: $chatId');
+
+          // Refresh chat histories to include the new chat
+          await _loadChatHistories();
+        } catch (e) {
+          developer.log('Error creating chat in local database: $e');
+        }
       }
+
+      // Update state with new chat ID
+      emit(state.copyWith(
+        currentChatId: chatId,
+        messages: [],
+        isLoading: false,
+      ));
+
+      // Initialize stream for the new chat
+      _initializeChatStream();
+
+      developer.log('Started new chat with ID: $chatId');
+      return chatId;
+    } catch (e) {
+      developer.log('Error starting new chat: $e');
+      emit(state.copyWith(
+        error: 'Failed to start new chat: $e',
+        isLoading: false,
+      ));
+      rethrow;
     }
-
-    // Initialize stream for the new chat
-    _initializeChatStream();
-
-    developer.log('New chat started with ID: $newChatId');
   }
 
   void _initializeChatStream() {
@@ -155,33 +318,28 @@ class ChatCubit extends Cubit<ChatState> {
       emit(state.copyWith(messages: existingMessages));
 
       if (isCloudMode) {
-        // For cloud mode, use the stream-based approach
-        final cloudRepository = _repository as ChatRepository;
-        _chatSubscription =
-            cloudRepository.getChatMessagesForId(state.currentChatId!).listen(
-          (messages) {
-            developer.log(
-                'Received ${messages.length} messages from Firestore stream');
+        // For cloud mode, check authentication first
+        final firebaseAuth = FirebaseAuth.instance;
+        final currentUser = firebaseAuth.currentUser;
 
-            // Merge new messages with existing ones
-            final chatId = state.currentChatId!;
-            final existingMessages = _localMessages[chatId] ?? [];
-            final mergedMessages =
-                {...existingMessages, ...messages}.toList().cast<ChatMessage>();
-
-            _localMessages[chatId] = mergedMessages;
-            _updateMessagesState(chatId);
-          },
-          onError: (error) {
-            developer.log('Error in chat stream: $error');
-            // Keep existing messages on error
-            final existingMessages = _localMessages[state.currentChatId!] ?? [];
+        if (currentUser == null) {
+          // Try to sign in anonymously if no user is authenticated
+          developer.log(
+              'No authenticated user found for chat stream, attempting anonymous sign-in...');
+          firebaseAuth.signInAnonymously().then((_) {
+            developer.log('Anonymous sign-in successful for chat stream');
+            _initializeCloudChatStream();
+          }).catchError((error) {
+            developer.log('Anonymous sign-in failed for chat stream: $error');
             emit(state.copyWith(
-              messages: existingMessages,
-              error: 'Failed to load messages: $error',
+              error:
+                  'Authentication error: $error. Please try again or restart the app.',
             ));
-          },
-        );
+          });
+        } else {
+          // User is already authenticated, initialize the stream
+          _initializeCloudChatStream();
+        }
       } else if (isLocalMode) {
         // For local mode, fetch messages directly
         _loadLocalMessages(state.currentChatId!);
@@ -189,6 +347,42 @@ class ChatCubit extends Cubit<ChatState> {
     } else {
       developer.log('No current chat ID, clearing messages');
       emit(state.copyWith(messages: []));
+    }
+  }
+
+  void _initializeCloudChatStream() {
+    try {
+      final cloudRepository = _repository as ChatRepository;
+      _chatSubscription =
+          cloudRepository.getChatMessagesForId(state.currentChatId!).listen(
+        (messages) {
+          developer.log(
+              'Received ${messages.length} messages from Firestore stream');
+
+          // Merge new messages with existing ones
+          final chatId = state.currentChatId!;
+          final existingMessages = _localMessages[chatId] ?? [];
+          final mergedMessages =
+              {...existingMessages, ...messages}.toList().cast<ChatMessage>();
+
+          _localMessages[chatId] = mergedMessages;
+          _updateMessagesState(chatId);
+        },
+        onError: (error) {
+          developer.log('Error in chat stream: $error');
+          // Keep existing messages on error
+          final existingMessages = _localMessages[state.currentChatId!] ?? [];
+          emit(state.copyWith(
+            messages: existingMessages,
+            error: 'Failed to load messages: $error',
+          ));
+        },
+      );
+    } catch (e) {
+      developer.log('Error initializing cloud chat stream: $e');
+      emit(state.copyWith(
+        error: 'Failed to initialize chat stream: $e',
+      ));
     }
   }
 
@@ -291,8 +485,71 @@ class ChatCubit extends Cubit<ChatState> {
       _updateMessagesState(chatId);
 
       // Send message to repository
-      await _repository.sendMessage(message);
-      developer.log('Message sent successfully to repository, chatId: $chatId');
+      if (isCloudMode) {
+        try {
+          // Check if Firebase Auth user is available
+          final firebaseAuth = FirebaseAuth.instance;
+          final currentUser = firebaseAuth.currentUser;
+
+          if (currentUser == null) {
+            // Try to sign in anonymously if no user is authenticated
+            developer.log(
+                'No authenticated user found, attempting anonymous sign-in...');
+            try {
+              await firebaseAuth.signInAnonymously();
+              developer.log('Anonymous sign-in successful');
+            } catch (authError) {
+              developer.log('Anonymous sign-in failed: $authError');
+              emit(state.copyWith(
+                error:
+                    'Authentication error: $authError. Message saved locally.',
+              ));
+
+              // Still keep the message in local state
+              developer
+                  .log('Message saved locally due to authentication error');
+              return;
+            }
+          }
+
+          // Now send the message to the repository
+          try {
+            await _repository.sendMessage(message);
+            developer.log(
+                'Message sent successfully to cloud repository, chatId: $chatId');
+          } catch (sendError) {
+            developer
+                .log('Error sending message to cloud repository: $sendError');
+
+            // Keep the message in local state and show a warning
+            emit(state.copyWith(
+              error:
+                  'Failed to send message to cloud: $sendError. Message saved locally.',
+            ));
+
+            developer.log('Message saved locally due to cloud send error');
+          }
+        } catch (e) {
+          developer.log('Error in cloud message handling: $e');
+          emit(state.copyWith(
+            error: 'Error handling message: $e. Message saved locally.',
+          ));
+
+          developer.log('Message saved locally due to general error');
+        }
+      } else {
+        // Local mode - send to local repository
+        try {
+          await _repository.sendMessage(message);
+          developer.log(
+              'Message sent successfully to local repository, chatId: $chatId');
+        } catch (e) {
+          developer.log('Error sending message to local repository: $e');
+          emit(state.copyWith(
+            error: 'Failed to save message locally: $e',
+          ));
+        }
+      }
 
       // Initialize stream if needed
       if (_chatSubscription == null) {
@@ -302,9 +559,10 @@ class ChatCubit extends Cubit<ChatState> {
       // Refresh chat histories after sending a message
       await _loadChatHistories();
     } catch (e) {
-      developer.log('Error sending message: $e');
-      emit(state.copyWith(error: 'Failed to send message: $e'));
-      rethrow;
+      developer.log('Error in sendMessage: $e');
+      emit(state.copyWith(
+        error: 'Failed to send message: $e',
+      ));
     }
   }
 
@@ -384,37 +642,31 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> clearChat() async {
     try {
       developer.log('Starting chat clear process in cubit');
-      emit(state.copyWith(isLoading: true, error: null));
+      emit(state.copyWith(isLoading: true));
 
-      // Cancel existing chat subscription
-      _chatSubscription?.cancel();
-      _chatSubscription = null;
+      if (isCloudMode) {
+        final cloudRepository = _repository as ChatRepository;
+        await cloudRepository.clearChat();
+        developer.log('Cleared chat in cloud repository');
+      } else if (isLocalMode) {
+        final localRepository = _repository as LocalChatRepository;
+        await localRepository.clearChat();
+        developer.log('Cleared chat in local repository');
+      }
 
-      // Clear local state immediately to reflect in UI
-      _localMessages.clear();
-      emit(const ChatState(isLoading: true));
-
-      // Clear chats in repository
-      await _repository.clearChat();
-      developer.log('Repository clear operation completed');
-
-      // Reset state completely
-      emit(const ChatState());
-
-      // Force a reload of chat histories to verify clearing worked
+      // Reload chat histories
       await _loadChatHistories();
 
       // Start a new chat
-      startNewChat();
+      await startNewChat();
 
       developer.log('Chat clear process completed in cubit');
     } catch (e) {
-      developer.log('Error clearing chat in cubit: $e');
+      developer.log('Error clearing chat: $e');
       emit(state.copyWith(
-        isLoading: false,
         error: 'Failed to clear chat: $e',
+        isLoading: false,
       ));
-      rethrow;
     }
   }
 
@@ -558,6 +810,95 @@ class ChatCubit extends Cubit<ChatState> {
       final title = (chat['title'] as String).toLowerCase();
       return title.contains(query);
     }).toList();
+  }
+
+  /// Tests the Firestore connection by trying to access a test document
+  Future<Map<String, dynamic>> testFirestoreConnection() async {
+    try {
+      developer.log('Testing Firestore connection...');
+
+      if (!isCloudMode) {
+        return {
+          'success': false,
+          'error': 'Not in cloud mode. Current mode: $_storageMode',
+        };
+      }
+
+      // Check if Firebase Auth user is available
+      final firebaseAuth = FirebaseAuth.instance;
+      final currentUser = firebaseAuth.currentUser;
+
+      developer
+          .log('Current Firebase Auth user: ${currentUser?.uid ?? 'null'}');
+
+      if (currentUser == null) {
+        // Try to sign in anonymously if no user is authenticated
+        developer.log(
+            'No authenticated user found, attempting anonymous sign-in...');
+        try {
+          final userCredential = await firebaseAuth.signInAnonymously();
+          developer.log(
+              'Anonymous sign-in successful. User ID: ${userCredential.user?.uid}');
+        } catch (authError) {
+          developer.log('Anonymous sign-in failed: $authError');
+          return {
+            'success': false,
+            'error': 'Authentication failed: $authError',
+          };
+        }
+      }
+
+      // Now test Firestore access
+      try {
+        final cloudRepository = _repository as ChatRepository;
+
+        // First check security rules
+        developer.log('Checking Firestore security rules...');
+        final securityRulesResult =
+            await cloudRepository.checkFirestoreSecurityRules();
+
+        if (securityRulesResult['success'] != true) {
+          developer.log(
+              'Firestore security rules check failed: ${securityRulesResult['error']}');
+          return securityRulesResult;
+        }
+
+        developer.log(
+            'Firestore security rules check passed, now trying to get chat histories...');
+
+        // Now try to get chat histories
+        final histories = await cloudRepository.getChatHistories();
+
+        developer.log(
+            'Successfully retrieved ${histories.length} chat histories from Firestore');
+
+        return {
+          'success': true,
+          'message': 'Retrieved ${histories.length} chat histories',
+          'histories': histories,
+          'securityRules': securityRulesResult,
+        };
+      } catch (firestoreError) {
+        developer.log(
+            'Error retrieving chat histories from Firestore: $firestoreError');
+        return {
+          'success': false,
+          'error': 'Firestore error: $firestoreError',
+        };
+      }
+    } catch (e) {
+      developer.log('Unexpected error testing Firestore connection: $e');
+      return {
+        'success': false,
+        'error': 'Unexpected error: $e',
+      };
+    }
+  }
+
+  /// Reloads chat histories from the repository
+  Future<void> reloadChatHistories() async {
+    developer.log('Manually reloading chat histories...');
+    await _loadChatHistories();
   }
 
   @override

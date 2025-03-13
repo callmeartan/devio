@@ -6,6 +6,8 @@ import 'package:devio/constants/assets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:devio/features/storage/models/storage_mode.dart';
 import 'package:devio/features/storage/cubit/storage_mode_cubit.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -168,8 +170,7 @@ class _LandingScreenState extends State<LandingScreen> {
                           SizedBox(
                             width: 260,
                             child: ElevatedButton(
-                              onPressed: () => context
-                                  .go('/auth', extra: {'mode': 'signup'}),
+                              onPressed: () => _handleGetStarted(context),
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.black,
                                 backgroundColor: Colors.white,
@@ -197,8 +198,7 @@ class _LandingScreenState extends State<LandingScreen> {
                           SizedBox(
                             width: 260,
                             child: OutlinedButton(
-                              onPressed: () =>
-                                  context.go('/auth', extra: {'mode': 'login'}),
+                              onPressed: () => _handleSignIn(context),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor:
                                     theme.brightness == Brightness.light
@@ -298,22 +298,91 @@ class _LandingScreenState extends State<LandingScreen> {
   }
 
   void _handleLocalModeLogin(BuildContext context) async {
-    // Set the storage mode to local
-    if (context.read<StorageModeCubit?>() != null) {
-      await context.read<StorageModeCubit>().useLocalMode();
+    try {
+      // Set the storage mode to local
+      if (context.read<StorageModeCubit?>() != null) {
+        developer.log('Setting storage mode to Local Mode');
+        await context.read<StorageModeCubit>().useLocalMode();
+        developer.log(
+            'Storage mode set to Local Mode: ${context.read<StorageModeCubit>().isLocalMode}');
+      } else {
+        developer.log('StorageModeCubit not available in context');
+      }
+
+      // Sign in with local mode
+      await context.read<AuthCubit>().signInWithLocalMode();
+
+      // Show a welcome toast
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Welcome to Local Mode! Your data stays on your device.'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      developer.log('Error in _handleLocalModeLogin: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
     }
+  }
 
-    // Sign in with local mode
-    await context.read<AuthCubit>().signInWithLocalMode();
+  void _handleGetStarted(BuildContext context) async {
+    try {
+      // Set the storage mode to cloud
+      if (context.read<StorageModeCubit?>() != null) {
+        developer.log('Setting storage mode to Cloud Mode for Get Started');
+        await context.read<StorageModeCubit>().useCloudMode();
+        developer.log(
+            'Storage mode set to Cloud Mode: ${context.read<StorageModeCubit>().isCloudMode}');
+      } else {
+        developer.log('StorageModeCubit not available in context');
+      }
 
-    // Show a welcome toast
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Welcome to Local Mode! Your data stays on your device.'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 3),
-      ),
-    );
+      // Navigate to auth screen with signup mode
+      context.go('/auth', extra: {'mode': 'signup'});
+    } catch (e) {
+      developer.log('Error in _handleGetStarted: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _handleSignIn(BuildContext context) async {
+    try {
+      // Set the storage mode to cloud
+      if (context.read<StorageModeCubit?>() != null) {
+        developer.log('Setting storage mode to Cloud Mode for Sign In');
+        await context.read<StorageModeCubit>().useCloudMode();
+        developer.log(
+            'Storage mode set to Cloud Mode: ${context.read<StorageModeCubit>().isCloudMode}');
+      } else {
+        developer.log('StorageModeCubit not available in context');
+      }
+
+      // Navigate to auth screen with login mode
+      context.go('/auth', extra: {'mode': 'login'});
+    } catch (e) {
+      developer.log('Error in _handleSignIn: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _buildCodeSnippets(ThemeData theme) {

@@ -25,6 +25,9 @@ import '../widgets/typing_indicator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:devio/features/storage/cubit/storage_mode_cubit.dart';
+import 'package:devio/features/storage/models/storage_mode.dart';
+import 'package:devio/repositories/chat_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 const String _kAiUserName = 'AI Assistant';
 
@@ -547,6 +550,33 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       padding: EdgeInsets.zero,
                                     ),
                                   ),
+
+                                  // Add Firebase Test button for cloud mode
+                                  if (context.read<ChatCubit>().isCloudMode)
+                                    const SizedBox(width: 8),
+                                  if (context.read<ChatCubit>().isCloudMode)
+                                    Container(
+                                      height: 40,
+                                      width: 40,
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.grey.shade800
+                                            : Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: IconButton(
+                                        icon: Icon(
+                                          Icons.cloud_sync,
+                                          size: 20,
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.8)
+                                              : Colors.black.withOpacity(0.7),
+                                        ),
+                                        onPressed: _testFirestoreConnection,
+                                        tooltip: 'Test Firebase Connection',
+                                        padding: EdgeInsets.zero,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -587,6 +617,27 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         ),
                       ),
                       const Divider(height: 1),
+
+                      // Add a prominent Firebase test button for cloud mode
+                      if (context.read<ChatCubit>().isCloudMode)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _testFirestoreConnection();
+                            },
+                            icon: const Icon(Icons.cloud_sync),
+                            label: const Text('Test Firebase Connection'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 44),
+                            ),
+                          ),
+                        ),
+
                       const SizedBox(height: 8),
 
                       // Chats Section
@@ -652,66 +703,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                               );
                             }
 
-                            // Add a check for the current storage mode
-                            final isLocalMode =
-                                context.watch<StorageModeCubit>().isLocalMode;
-
-                            // Display a visual indicator for Local Mode
-                            if (isLocalMode) {
-                              // Add a banner at the top of the drawer to indicate Local Mode
-                              return Column(
-                                children: [
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        vertical: 8, horizontal: 16),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 8, horizontal: 12),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? Colors.blue.shade900
-                                              .withOpacity(0.3)
-                                          : Colors.blue.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: isDark
-                                            ? Colors.blue.shade700
-                                            : Colors.blue.shade200,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.smartphone,
-                                          size: 16,
-                                          color: isDark
-                                              ? Colors.blue.shade300
-                                              : Colors.blue.shade700,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            'Local Mode Active - Chats stored on device only',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: isDark
-                                                  ? Colors.blue.shade300
-                                                  : Colors.blue.shade700,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child:
-                                        _buildChatList(context, state, isDark),
-                                  ),
-                                ],
-                              );
-                            }
-
+                            // Simply return the chat list without any banner
                             return _buildChatList(context, state, isDark);
                           },
                         ),
@@ -776,6 +768,25 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           showTrailingIcon: true,
                         ),
                       ),
+
+                      // Add a debug button for cloud mode
+                      if (context.read<ChatCubit>().isCloudMode)
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: simple.SimpleDrawerMenuItem(
+                            icon: Icon(
+                              Icons.bug_report,
+                              size: 20,
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
+                            title: 'Debug Chat State',
+                            onTap: () {
+                              Navigator.pop(context);
+                              _debugChatState();
+                            },
+                            isDark: isDark,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -827,6 +838,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           onPressed: _showOllamaConfigDialog,
                         ),
                       ),
+
                     // Show a compact model indicator instead of the full selection UI
                     CompactModelIndicator(
                       selectedModel: _selectedModel,
@@ -1044,6 +1056,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                       ),
                   ],
                 ),
+                // Add floating action button for testing Firebase in cloud mode
+                floatingActionButton: context.read<ChatCubit>().isCloudMode
+                    ? FloatingActionButton(
+                        onPressed: _testFirestoreConnection,
+                        tooltip: 'Test Firebase Connection',
+                        child: const Icon(Icons.cloud_sync),
+                      )
+                    : null,
               );
             },
             unauthenticated: () {
@@ -1836,7 +1856,75 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     final chatCubit = context.read<ChatCubit>();
     final filteredChats = chatCubit.getFilteredChatHistories();
 
+    // Add debug logging
+    developer.log(
+        'Building chat list. Storage mode: ${chatCubit.isCloudMode ? "Cloud" : "Local"}');
+    developer.log('Filtered chats count: ${filteredChats.length}');
+    for (var i = 0; i < filteredChats.length; i++) {
+      developer.log(
+          'Chat $i: ID=${filteredChats[i]['id']}, Title=${filteredChats[i]['title']}, isPinned=${filteredChats[i]['isPinned']}');
+    }
+
+    // If there's an error, show it prominently
+    if (state.error != null && state.error!.isNotEmpty) {
+      developer.log('Error in chat state: ${state.error}');
+
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error Loading Chats',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                state.error!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.8)
+                      : Colors.black.withOpacity(0.8),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => chatCubit.reloadChatHistories(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+              ),
+            ),
+            if (chatCubit.isCloudMode) ...[
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => _testFirestoreConnection(),
+                child: const Text('Test Firebase Connection'),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
     if (filteredChats.isEmpty) {
+      developer
+          .log('No filtered chats found. Search query: "${state.searchQuery}"');
+
       if (state.searchQuery.isNotEmpty) {
         return Center(
           child: Column(
@@ -2008,6 +2096,292 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               .toList(),
         ],
       ],
+    );
+  }
+
+  Future<void> _testFirestoreConnection() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+
+    try {
+      // Show a loading indicator
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('Testing Firebase connection...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      // Get the chat repository from the ChatCubit
+      final chatCubit = context.read<ChatCubit>();
+
+      // Test the Firestore connection
+      final result = await chatCubit.testFirestoreConnection();
+
+      // Show a basic result in a snackbar
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            result['success'] == true
+                ? 'Firebase connection successful! ${result['message'] ?? ''}'
+                : 'Firebase connection failed: ${result['error'] ?? 'Unknown error'}',
+          ),
+          backgroundColor: result['success'] == true
+              ? Colors.green
+              : theme.colorScheme.error,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+
+      // Show more detailed results in a dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            result['success'] == true
+                ? 'Firebase Connection Successful'
+                : 'Firebase Connection Failed',
+            style: TextStyle(
+              color: result['success'] == true
+                  ? Colors.green
+                  : theme.colorScheme.error,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (result['message'] != null)
+                  Text('Message: ${result['message']}'),
+                if (result['error'] != null)
+                  Text(
+                    'Error: ${result['error']}',
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                const SizedBox(height: 16),
+
+                // Show security rules results if available
+                if (result['securityRules'] != null) ...[
+                  const Text(
+                    'Security Rules Check:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Collections access
+                  if ((result['securityRules']['collections']
+                              as Map<String, dynamic>?)
+                          ?.isNotEmpty ??
+                      false) ...[
+                    const Text('Collections Access:'),
+                    const SizedBox(height: 4),
+                    ...(result['securityRules']['collections']
+                            as Map<String, dynamic>)
+                        .entries
+                        .map(
+                          (entry) => Row(
+                            children: [
+                              Icon(
+                                entry.value == true
+                                    ? Icons.check_circle
+                                    : Icons.cancel,
+                                color: entry.value == true
+                                    ? Colors.green
+                                    : theme.colorScheme.error,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(entry.key),
+                              ),
+                            ],
+                          ),
+                        ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  // Details
+                  if ((result['securityRules']['details']
+                              as Map<String, dynamic>?)
+                          ?.isNotEmpty ??
+                      false) ...[
+                    const Text('Details:'),
+                    const SizedBox(height: 4),
+                    ...(result['securityRules']['details']
+                            as Map<String, dynamic>)
+                        .entries
+                        .map(
+                          (entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              '${entry.key}: ${entry.value}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: entry.value
+                                            .toString()
+                                            .contains('failed') ||
+                                        entry.value.toString().contains('error')
+                                    ? theme.colorScheme.error
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
+                ],
+
+                const SizedBox(height: 16),
+                Text(
+                  'User ID: ${FirebaseAuth.instance.currentUser?.uid ?? 'Not authenticated'}',
+                  style: const TextStyle(fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+            if (result['success'] == true)
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  chatCubit.reloadChatHistories();
+                },
+                child: const Text('Reload Chat Histories'),
+              ),
+          ],
+        ),
+      );
+
+      // If successful, try to reload chat histories
+      if (result['success'] == true) {
+        await chatCubit.reloadChatHistories();
+      }
+    } catch (e) {
+      // Show the error
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Error testing Firebase connection: $e'),
+          backgroundColor: theme.colorScheme.error,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  void _debugChatState() {
+    final chatCubit = context.read<ChatCubit>();
+    final storageModeCubit = context.read<StorageModeCubit>();
+    final authCubit = context.read<AuthCubit>();
+
+    // Get current state information
+    final isCloudMode = chatCubit.isCloudMode;
+    final isLocalMode = chatCubit.isLocalMode;
+    final chatState = chatCubit.state;
+    final storageMode = storageModeCubit.state.mode;
+    final authState = authCubit.state;
+
+    // Log detailed information
+    developer.log('=== DEBUG CHAT STATE ===');
+    developer.log('Storage Mode: ${storageMode.displayName}');
+    developer.log('ChatCubit.isCloudMode: $isCloudMode');
+    developer.log('ChatCubit.isLocalMode: $isLocalMode');
+    developer.log('Auth State: $authState');
+    developer.log('Chat Histories Count: ${chatState.chatHistories.length}');
+    developer.log('Chat Error: ${chatState.error}');
+    developer.log('Chat Is Loading: ${chatState.isLoading}');
+
+    // Show a dialog with the information
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Chat State Debug Info'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDebugItem('Storage Mode', storageMode.displayName),
+              _buildDebugItem('Is Cloud Mode', isCloudMode.toString()),
+              _buildDebugItem('Is Local Mode', isLocalMode.toString()),
+              _buildDebugItem('Auth State', authState.toString()),
+              _buildDebugItem(
+                  'Chat Histories', chatState.chatHistories.length.toString()),
+              if (chatState.error != null)
+                _buildDebugItem('Error', chatState.error.toString(),
+                    isError: true),
+              _buildDebugItem('Is Loading', chatState.isLoading.toString()),
+              const SizedBox(height: 16),
+              const Text('Chat Histories:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              if (chatState.chatHistories.isEmpty)
+                const Text('No chat histories found',
+                    style: TextStyle(fontStyle: FontStyle.italic)),
+              ...chatState.chatHistories.map((chat) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('ID: ${chat['id']}',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w500)),
+                        Text('Title: ${chat['title']}'),
+                        Text('Pinned: ${chat['isPinned']}'),
+                      ],
+                    ),
+                  )),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              chatCubit.reloadChatHistories();
+            },
+            child: const Text('Reload Histories'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _testFirestoreConnection();
+            },
+            child: const Text('Test Firebase'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebugItem(String label, String value, {bool isError = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: isError ? Colors.red : null,
+                fontWeight: isError ? FontWeight.bold : null,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -4,7 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform;
+    show defaultTargetPlatform, TargetPlatform, kIsWeb;
 import 'package:devio/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -38,7 +38,9 @@ class AuthCubit extends Cubit<AuthState> {
               scopes: ['email', 'profile'],
               clientId: defaultTargetPlatform == TargetPlatform.iOS
                   ? DefaultFirebaseOptions.currentPlatform.iosClientId
-                  : null,
+                  : kIsWeb
+                      ? '575951766528-kisqr9pk6ki6lhce91n3rdgookec850f.apps.googleusercontent.com' // Use web client ID for web platform
+                      : null,
             ),
         _firestore = firestore ?? FirebaseFirestore.instance,
         _storage = storage ?? FirebaseStorage.instance,
@@ -51,14 +53,19 @@ class AuthCubit extends Cubit<AuthState> {
         super(const AuthState.initial()) {
     // If in cloud mode, listen to Firebase auth state changes
     if (_storageMode == StorageMode.cloud) {
+      developer.log('Setting up Firebase auth state listener in Cloud Mode');
       _auth.authStateChanges().listen((User? user) {
         if (user != null) {
+          developer.log(
+              'Firebase auth state changed: User authenticated - UID: ${user.uid}, Display Name: ${user.displayName}, Email: ${user.email}');
           emit(AuthState.authenticated(
             uid: user.uid,
             displayName: user.displayName,
             email: user.email,
           ));
         } else {
+          developer
+              .log('Firebase auth state changed: User is NOT authenticated');
           emit(const AuthState.unauthenticated());
         }
       });
@@ -133,9 +140,22 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthState.loading());
     try {
       developer.log('Attempting anonymous sign in through AuthCubit...');
+
+      // Check current auth state before sign in
+      final currentUser = _auth.currentUser;
+      developer.log(
+          'Current auth state before anonymous sign in: ${currentUser != null ? "Authenticated as ${currentUser.uid}" : "Not authenticated"}');
+
       final userCredential = await _auth.signInAnonymously();
-      developer
-          .log('Anonymous sign in successful: ${userCredential.user?.uid}');
+
+      developer.log(
+          'Anonymous sign in successful: UID=${userCredential.user?.uid}, isAnonymous=${userCredential.user?.isAnonymous}');
+
+      // Verify the user is properly set in Firebase Auth
+      final verifyUser = _auth.currentUser;
+      developer.log(
+          'Verified Firebase Auth current user after sign in: ${verifyUser?.uid ?? "null"}');
+
       emit(AuthState.authenticated(
         uid: userCredential.user?.uid ?? '',
         displayName: userCredential.user?.displayName,
@@ -145,6 +165,9 @@ class AuthCubit extends Cubit<AuthState> {
       developer
           .log('Firebase Auth Error in AuthCubit: ${e.code} - ${e.message}');
       emit(AuthState.error(e.message ?? 'Anonymous sign in failed'));
+    } catch (e) {
+      developer.log('Unexpected error during anonymous sign in: $e');
+      emit(AuthState.error('Unexpected error: $e'));
     }
   }
 
