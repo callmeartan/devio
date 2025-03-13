@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../blocs/auth/auth_cubit.dart';
 import '../../../features/settings/cubit/preferences_cubit.dart';
 import '../../../features/settings/cubit/preferences_state.dart';
@@ -284,6 +285,13 @@ class ProfileScreen extends StatelessWidget {
                             icon: Icons.description_outlined,
                             title: 'Terms of Service',
                             onTap: () => _showTermsOfServiceDialog(context),
+                            showDivider: true,
+                          ),
+                          _buildTile(
+                            context,
+                            icon: Icons.star_outline,
+                            title: 'Star us on GitHub',
+                            onTap: () => _launchGitHubRepo(context),
                             showDivider: true,
                           ),
                           _buildTile(
@@ -1367,6 +1375,46 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _launchGitHubRepo(BuildContext context) async {
+    final Uri url = Uri.parse('https://github.com/callmeartan/devio');
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    try {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Could not open GitHub repository',
+                style: TextStyle(
+                  color: isDark ? Colors.black : Colors.white,
+                ),
+              ),
+              backgroundColor: isDark
+                  ? Colors.white.withOpacity(0.9)
+                  : theme.colorScheme.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error opening URL: ${e.toString()}',
+              style: TextStyle(
+                color: isDark ? Colors.black : Colors.white,
+              ),
+            ),
+            backgroundColor: theme.colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildSection(
