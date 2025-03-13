@@ -79,6 +79,16 @@ class LlmService {
       final ollamaUrl = await getOllamaServerUrl();
       dev.log('Fetching available models from: $ollamaUrl/api/tags');
 
+      // First verify connection
+      final versionResponse = await _client
+          .get(Uri.parse('$ollamaUrl/api/version'))
+          .timeout(const Duration(seconds: 5));
+
+      if (versionResponse.statusCode != 200) {
+        dev.log('Server not connected: ${versionResponse.statusCode}');
+        return [];
+      }
+
       final response = await _client
           .get(Uri.parse('$ollamaUrl/api/tags'))
           .timeout(const Duration(seconds: 5));
@@ -95,10 +105,10 @@ class LlmService {
 
       dev.log(
           'Error fetching models: ${response.statusCode} - ${response.body}');
-      return _getDefaultModels();
+      return [];
     } catch (e) {
       dev.log('Error connecting to Ollama server: $e');
-      return _getDefaultModels();
+      return [];
     }
   }
 
@@ -268,6 +278,20 @@ class LlmService {
   Future<Map<String, dynamic>> testConnection() async {
     try {
       final ollamaUrl = await getOllamaServerUrl();
+
+      // Test basic connectivity first
+      try {
+        final uri = Uri.parse(ollamaUrl);
+        final socket = await Socket.connect(uri.host, uri.port,
+            timeout: const Duration(seconds: 2));
+        socket.destroy();
+      } catch (e) {
+        return {
+          'status': 'error',
+          'error': 'Cannot connect to server: Connection refused',
+        };
+      }
+
       final response = await _client
           .get(Uri.parse('$ollamaUrl/api/version'))
           .timeout(const Duration(seconds: 5));
@@ -297,7 +321,20 @@ class LlmService {
     try {
       final ollamaUrl = await getOllamaServerUrl();
 
-      // First check if server is reachable using version endpoint
+      // Test basic connectivity first
+      try {
+        final uri = Uri.parse(ollamaUrl);
+        final socket = await Socket.connect(uri.host, uri.port,
+            timeout: const Duration(seconds: 2));
+        socket.destroy();
+      } catch (e) {
+        return {
+          'status': 'error',
+          'error': 'Cannot connect to server: Connection refused',
+        };
+      }
+
+      // Check if server is reachable using version endpoint
       final versionResponse = await _client
           .get(Uri.parse('$ollamaUrl/api/version'))
           .timeout(const Duration(seconds: 5));

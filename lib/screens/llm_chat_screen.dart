@@ -149,6 +149,28 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       });
 
       developer.log('Loading available models...');
+
+      // First test connection
+      final connectionTest = await context.read<LlmCubit>().testConnection();
+      if (connectionTest['status'] != 'connected') {
+        if (mounted) {
+          setState(() {
+            _isLoadingModels = false;
+            _availableModels = [];
+            _selectedModel = null;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Not connected to Ollama server: ${connectionTest['error']}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       final models = await context.read<LlmCubit>().getAvailableModels();
       developer.log('Models loaded: $models');
 
@@ -160,14 +182,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           // Filter models based on current context
           final filteredModels = _getFilteredModels();
 
-          // Ensure we have at least one model available
-          if (filteredModels.isEmpty) {
-            _availableModels = ['local-model'];
-          }
-
-          // Always select a default model if none is selected
-          if (_selectedModel == null) {
-            _selectedModel = filteredModels.firstOrNull;
+          // Only set a default model if we have models available
+          if (filteredModels.isNotEmpty) {
+            _selectedModel ??= filteredModels.first;
+          } else {
+            _selectedModel = null;
           }
 
           developer.log('Selected model: $_selectedModel');
@@ -179,8 +198,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       if (mounted) {
         setState(() {
           _isLoadingModels = false;
-          _availableModels = ['local-model'];
-          _selectedModel = 'local-model';
+          _availableModels = [];
+          _selectedModel = null;
         });
         _showErrorSnackBar('Failed to load models: $e');
       }
@@ -814,10 +833,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                         ),
                                       ),
                                     ),
-                                  ...unpinnedChats.map(
-                                    (chat) => _buildChatItem(chat,
-                                        state.currentChatId, isDark, context),
-                                  ),
+                                  ...unpinnedChats
+                                      .map(
+                                        (chat) => _buildChatItem(
+                                            chat,
+                                            state.currentChatId,
+                                            isDark,
+                                            context),
+                                      )
+                                      .toList(),
                                 ],
                               ],
                             );
@@ -1501,10 +1525,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 Center(
                   child: FilledButton.icon(
                     onPressed: () async {
+                      // First save the IP to test
+                      await llmCubit
+                          .setCustomOllamaIp(ipController.text.trim());
+
                       final result = await llmCubit.testConnection();
                       if (!context.mounted) return;
 
                       if (result['status'] == 'connected') {
+                        // Load models after successful connection
+                        _loadAvailableModels();
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
