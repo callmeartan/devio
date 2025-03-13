@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/features/storage/cubit/storage_mode_cubit.dart';
 import 'package:devio/features/storage/models/storage_mode.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
+import 'package:go_router/go_router.dart';
+import 'package:devio/router.dart'; // Import the router file
 
 class StorageModeSelector extends StatelessWidget {
   const StorageModeSelector({super.key});
@@ -185,11 +187,10 @@ class StorageModeSelector extends StatelessWidget {
               Navigator.of(context).pop();
               cubit.changeMode(mode);
 
-              // Sign out to force re-authentication in the new mode
-              context.read<AuthCubit>().signOut();
-
-              // Navigate back to landing screen
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              // Use the new method that handles both sign out and navigation
+              context.read<AuthCubit>().signOutAndNavigate(
+                    (path) => context.go(path),
+                  );
             },
             child: const Text('Switch Mode'),
           ),

@@ -26,23 +26,46 @@ class AuthStateChangeNotifier extends ChangeNotifier {
   }
 }
 
+// Flag to completely bypass redirect logic
+bool bypassRedirect = false;
+
+// Flag to track if we're in the process of signing out
+bool isSigningOut = false;
+
 final appRouter = GoRouter(
   initialLocation: '/landing',
   debugLogDiagnostics: true,
   redirect: (context, state) async {
     if (context == null) return null;
 
+    // If we're in the process of signing out and going to landing, allow it
+    if (isSigningOut && state.matchedLocation == '/landing') {
+      developer.log('Detected sign-out navigation to landing screen');
+      isSigningOut = false; // Reset the flag
+      return null; // Allow direct navigation to landing
+    }
+
+    // If bypass flag is set, allow direct navigation without any redirects
+    if (bypassRedirect) {
+      developer.log('Bypassing redirect logic completely');
+      bypassRedirect = false; // Reset the flag after use
+      return null;
+    }
+
     // Check if we're in Local Mode
     final storageCubit = context.read<StorageModeCubit?>();
     final isLocalMode = storageCubit != null && storageCubit.isLocalMode;
 
+    // Get the current auth state
+    final authCubit = context.read<AuthCubit?>();
+    final isAuthenticated = authCubit?.state.maybeWhen(
+          authenticated: (_, __, ___) => true,
+          orElse: () => false,
+        ) ??
+        false;
+
     // If in Local Mode, check if a local user exists
     if (isLocalMode) {
-      final localAuthService = LocalAuthService(
-        prefs: context.read<SharedPreferences>(),
-      );
-      final hasLocalUser = await localAuthService.hasLocalUser();
-
       // List of routes that require authentication
       final authenticatedRoutes = [
         '/llm',
@@ -53,7 +76,7 @@ final appRouter = GoRouter(
       ];
 
       // If user is authenticated in Local Mode
-      if (hasLocalUser) {
+      if (isAuthenticated) {
         // If currently on landing, auth or empty path, go to LLM
         if (state.matchedLocation == '/landing' ||
             state.matchedLocation == '/auth' ||
@@ -172,3 +195,13 @@ final appRouter = GoRouter(
   // Refresh when auth state changes
   refreshListenable: AuthStateChangeNotifier(),
 );
+
+// Helper function to set the bypass flag
+void setBypassRedirect() {
+  bypassRedirect = true;
+}
+
+// Helper function to set the signing out flag
+void setSigningOut() {
+  isSigningOut = true;
+}

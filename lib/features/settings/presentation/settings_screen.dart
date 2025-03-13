@@ -11,6 +11,7 @@ import 'package:devio/features/settings/widgets/storage_mode_selector.dart';
 import 'package:devio/cubits/chat/chat_cubit.dart';
 import 'package:devio/cubits/chat/chat_state.dart';
 import 'package:devio/features/storage/services/data_export_service.dart';
+import 'package:devio/router.dart'; // Import the router file
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -438,8 +439,10 @@ class SettingsScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<AuthCubit>().signOut();
-              context.go('/');
+              // Use the new method that handles both sign out and navigation
+              context.read<AuthCubit>().signOutAndNavigate(
+                    (path) => context.go(path),
+                  );
             },
             child: Text(
               'Log Out',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../blocs/auth/auth_cubit.dart';
+import 'package:devio/router.dart'; // Import the router file
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -15,7 +16,10 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              context.read<AuthCubit>().signOut();
+              // Use the new method that handles both sign out and navigation
+              context.read<AuthCubit>().signOutAndNavigate(
+                    (path) => context.go(path),
+                  );
             },
           ),
         ],

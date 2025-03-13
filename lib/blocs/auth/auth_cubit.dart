@@ -11,6 +11,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:devio/features/storage/models/storage_mode.dart';
 import 'package:devio/features/storage/services/local_auth_service.dart';
+import 'package:devio/router.dart'; // Import the router file
 
 part 'auth_state.dart';
 
@@ -315,6 +316,35 @@ class AuthCubit extends Cubit<AuthState> {
       }
       emit(const AuthState.unauthenticated());
     } catch (e) {
+      emit(AuthState.error(e.toString()));
+    }
+  }
+
+  // New method that combines sign out and navigation
+  Future<void> signOutAndNavigate(Function(String) navigate) async {
+    try {
+      developer.log('Signing out user...');
+
+      if (_storageMode == StorageMode.cloud) {
+        await _auth.signOut();
+        await _googleSignIn.signOut();
+      } else {
+        // In local mode, we don't delete the user data, just sign out
+        // This allows the user to sign back in without losing data
+        developer.log('Signing out from Local Mode');
+      }
+
+      // First emit the unauthenticated state
+      emit(const AuthState.unauthenticated());
+
+      // Set the signing out flag to bypass redirect logic
+      setSigningOut();
+
+      // Then navigate directly to landing screen
+      developer.log('Navigating to landing screen after sign out');
+      navigate('/landing');
+    } catch (e) {
+      developer.log('Error during sign out: $e');
       emit(AuthState.error(e.toString()));
     }
   }
