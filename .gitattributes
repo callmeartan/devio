@@ -1,4 +1,9 @@
-.dart_tool/flutter_build/f454b6b75628314f322cb5c8a08f9dab/app.dill filter=lfs diff=lfs merge=lfs -text
+# Flutter/Dart specific
+*.dill filter=lfs diff=lfs merge=lfs -text
+*.framework.dSYM/Contents/Resources/DWARF/* filter=lfs diff=lfs merge=lfs -text
+
+# Specific large files
 build/ios/archive/Runner.xcarchive/dSYMs/Flutter.framework.dSYM/Contents/Resources/DWARF/Flutter filter=lfs diff=lfs merge=lfs -text
 build/ios/archive/Runner.xcarchive/dSYMs/grpc.framework.dSYM/Contents/Resources/DWARF/grpc filter=lfs diff=lfs merge=lfs -text
 build/ios/archive/Runner.xcarchive/dSYMs/FirebaseFirestoreInternal.framework.dSYM/Contents/Resources/DWARF/FirebaseFirestoreInternal filter=lfs diff=lfs merge=lfs -text
+.dart_tool/flutter_build/*/app.dill filter=lfs diff=lfs merge=lfs -text
