@@ -24,6 +24,7 @@ import '../widgets/compact_model_indicator.dart';
 import '../widgets/typing_indicator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:devio/features/storage/cubit/storage_mode_cubit.dart';
 
 const String _kAiUserName = 'AI Assistant';
 
@@ -525,10 +526,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                             : Colors.black.withOpacity(0.7),
                                       ),
                                       onPressed: () {
+                                        Navigator.pop(context);
                                         context
                                             .read<ChatCubit>()
                                             .startNewChat();
-                                        Navigator.pop(context);
                                       },
                                       tooltip: 'New Chat',
                                       padding: EdgeInsets.zero,
@@ -639,212 +640,67 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                               );
                             }
 
-                            final chatCubit = context.read<ChatCubit>();
-                            final filteredChats =
-                                chatCubit.getFilteredChatHistories();
+                            // Add a check for the current storage mode
+                            final isLocalMode =
+                                context.watch<StorageModeCubit>().isLocalMode;
 
-                            if (filteredChats.isEmpty) {
-                              if (state.searchQuery.isNotEmpty) {
-                                return Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: isDark
-                                              ? Colors.white.withOpacity(0.05)
-                                              : Colors.black.withOpacity(0.05),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.search_off_rounded,
-                                          size: 32,
-                                          color: isDark
-                                              ? Colors.white.withOpacity(0.7)
-                                              : Colors.black.withOpacity(0.7),
-                                        ),
+                            // Display a visual indicator for Local Mode
+                            if (isLocalMode) {
+                              // Add a banner at the top of the drawer to indicate Local Mode
+                              return Column(
+                                children: [
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 8, horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 8, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.blue.shade900
+                                              .withOpacity(0.3)
+                                          : Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? Colors.blue.shade700
+                                            : Colors.blue.shade200,
+                                        width: 1,
                                       ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'No chats found',
-                                        style: theme.textTheme.titleMedium
-                                            ?.copyWith(
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.smartphone,
+                                          size: 16,
                                           color: isDark
-                                              ? Colors.white.withOpacity(0.9)
-                                              : Colors.black.withOpacity(0.9),
-                                          fontWeight: FontWeight.w500,
+                                              ? Colors.blue.shade300
+                                              : Colors.blue.shade700,
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Try a different search term',
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(
-                                          color: isDark
-                                              ? Colors.white.withOpacity(0.6)
-                                              : Colors.black.withOpacity(0.6),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Local Mode Active - Chats stored on device only',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isDark
+                                                  ? Colors.blue.shade300
+                                                  : Colors.blue.shade700,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
                                         ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                );
-                              }
-
-                              return Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(20),
-                                      decoration: BoxDecoration(
-                                        color: isDark
-                                            ? Colors.white.withOpacity(0.05)
-                                            : theme.colorScheme.primary
-                                                .withOpacity(0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.chat_bubble_outline_rounded,
-                                        size: 36,
-                                        color: isDark
-                                            ? Colors.white.withOpacity(0.9)
-                                            : theme.colorScheme.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                    Text(
-                                      'Welcome to DevIO Chat',
-                                      style:
-                                          theme.textTheme.titleLarge?.copyWith(
-                                        color: isDark
-                                            ? Colors.white
-                                            : Colors.black,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 32),
-                                      child: Text(
-                                        'Start your first conversation with our AI assistant',
-                                        style:
-                                            theme.textTheme.bodyLarge?.copyWith(
-                                          color: isDark
-                                              ? Colors.white.withOpacity(0.7)
-                                              : Colors.black.withOpacity(0.7),
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                    FilledButton.icon(
-                                      onPressed: () {
-                                        context
-                                            .read<ChatCubit>()
-                                            .startNewChat();
-                                        Navigator.pop(context);
-                                      },
-                                      icon: const Icon(Icons.add_circle_outline,
-                                          size: 18),
-                                      label: Text(
-                                        'New Chat',
-                                        style: TextStyle(
-                                          color: isDark
-                                              ? Colors.black
-                                              : Colors.white,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: isDark
-                                            ? Colors.white
-                                            : theme.colorScheme.primary,
-                                        foregroundColor: isDark
-                                            ? Colors.black
-                                            : Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 20,
-                                          vertical: 12,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(30),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  Expanded(
+                                    child:
+                                        _buildChatList(context, state, isDark),
+                                  ),
+                                ],
                               );
                             }
 
-                            // Separate pinned and unpinned chats
-                            final pinnedChats = filteredChats
-                                .where((chat) => chat['isPinned'] == true)
-                                .toList();
-                            final unpinnedChats = filteredChats
-                                .where((chat) => chat['isPinned'] != true)
-                                .toList();
-
-                            return ListView(
-                              controller: _chatScrollController,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              children: [
-                                if (pinnedChats.isNotEmpty) ...[
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                                    child: Text(
-                                      'Pinned',
-                                      style:
-                                          theme.textTheme.bodySmall?.copyWith(
-                                        color: isDark
-                                            ? Colors.white.withOpacity(0.5)
-                                            : Colors.black.withOpacity(0.5),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  ...pinnedChats.map((chat) => _buildChatItem(
-                                      chat,
-                                      state.currentChatId,
-                                      isDark,
-                                      context)),
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 8),
-                                    child: Divider(height: 1),
-                                  ),
-                                ],
-                                if (unpinnedChats.isNotEmpty) ...[
-                                  if (pinnedChats.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          16, 0, 16, 4),
-                                      child: Text(
-                                        'Other',
-                                        style:
-                                            theme.textTheme.bodySmall?.copyWith(
-                                          color: isDark
-                                              ? Colors.white.withOpacity(0.5)
-                                              : Colors.black.withOpacity(0.5),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ...unpinnedChats
-                                      .map(
-                                        (chat) => _buildChatItem(
-                                            chat,
-                                            state.currentChatId,
-                                            isDark,
-                                            context),
-                                      )
-                                      .toList(),
-                                ],
-                              ],
-                            );
+                            return _buildChatList(context, state, isDark);
                           },
                         ),
                       ),
@@ -1959,6 +1815,186 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildChatList(BuildContext context, ChatState state, bool isDark) {
+    final theme = Theme.of(context);
+    final chatCubit = context.read<ChatCubit>();
+    final filteredChats = chatCubit.getFilteredChatHistories();
+
+    if (filteredChats.isEmpty) {
+      if (state.searchQuery.isNotEmpty) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.search_off_rounded,
+                  size: 32,
+                  color: isDark
+                      ? Colors.white.withOpacity(0.7)
+                      : Colors.black.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No chats found',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.9)
+                      : Colors.black.withOpacity(0.9),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Try a different search term',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.6)
+                      : Colors.black.withOpacity(0.6),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      }
+
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : theme.colorScheme.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 36,
+                color: isDark
+                    ? Colors.white.withOpacity(0.9)
+                    : theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Welcome to DevIO Chat',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: isDark ? Colors.white : Colors.black,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                'Start your first conversation with our AI assistant',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.7)
+                      : Colors.black.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () {
+                context.read<ChatCubit>().startNewChat();
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.add_circle_outline, size: 18),
+              label: Text(
+                'New Chat',
+                style: TextStyle(
+                  color: isDark ? Colors.black : Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor:
+                    isDark ? Colors.white : theme.colorScheme.primary,
+                foregroundColor: isDark ? Colors.black : Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Separate pinned and unpinned chats
+    final pinnedChats =
+        filteredChats.where((chat) => chat['isPinned'] == true).toList();
+    final unpinnedChats =
+        filteredChats.where((chat) => chat['isPinned'] != true).toList();
+
+    return ListView(
+      controller: _chatScrollController,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        if (pinnedChats.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Text(
+              'Pinned',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: isDark
+                    ? Colors.white.withOpacity(0.5)
+                    : Colors.black.withOpacity(0.5),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          ...pinnedChats.map((chat) =>
+              _buildChatItem(chat, state.currentChatId, isDark, context)),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Divider(height: 1),
+          ),
+        ],
+        if (unpinnedChats.isNotEmpty) ...[
+          if (pinnedChats.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Text(
+                'Other',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.5)
+                      : Colors.black.withOpacity(0.5),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ...unpinnedChats
+              .map(
+                (chat) =>
+                    _buildChatItem(chat, state.currentChatId, isDark, context),
+              )
+              .toList(),
+        ],
+      ],
     );
   }
 }

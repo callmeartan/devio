@@ -15,13 +15,13 @@
 - [x] Fixed ChatCubit to handle different repository implementations (local vs cloud)
 - [x] Added data export functionality
 - [x] Implemented missing repository methods in LocalChatRepository
+- [x] Created testing plans for offline functionality, data isolation, and security
+- [x] Decided to keep simple implementation of StorageModeState without Freezed
 
 ## Remaining Tasks
-- [ ] Generate freezed files for the StorageModeCubit
-- [ ] Test offline functionality
-- [ ] Verify data isolation between modes
-- [ ] Create onboarding tooltips for first-time Local Mode users
-- [ ] Conduct security testing
+- [ ] Execute offline functionality tests
+- [ ] Execute data isolation verification
+- [ ] Execute security testing
 - [ ] Perform usability testing
 
 ## Implementation Notes
@@ -48,12 +48,13 @@
 
 5. **User Experience**:
    - Added clear visual distinction for Local Mode
-   - Need to add more onboarding for first-time users
-   - Need to provide feedback when attempting to access cloud-only features
    - Added data export functionality for local chats
+   - Keeping UI simple and intuitive without additional tooltips
+
+6. **Code Structure**:
+   - Using simple class implementation for StorageModeState instead of Freezed
+   - This approach reduces complexity while maintaining functionality
 
 ## Next Steps
-1. Test the implementation thoroughly, especially offline functionality
-2. Create onboarding tooltips for first-time Local Mode users
-3. Verify data isolation between modes
-4. Conduct security and usability testing 
+1. Execute the testing plans to verify functionality
+2. Fix any issues found during testing 
