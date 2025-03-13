@@ -1,7 +1,2 @@
-# Flutter-related
-**/Flutter/ephemeral/
-**/Pods/
-
-# Xcode-related
-**/dgph
-**/xcuserdata/
+# Only exclude OS-specific temporary files
+.DS_Store
