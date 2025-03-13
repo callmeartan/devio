@@ -102,27 +102,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     _loadAvailableModels();
     _chatScrollController.addListener(_scrollListener);
 
-    // Check auth state but only sign in if unauthenticated
-    final authState = context.read<AuthCubit>().state;
-    authState.maybeWhen(
-      authenticated: (uid, displayName, email) {
-        developer.log('User is already authenticated - UID: $uid');
-      },
-      unauthenticated: () {
-        developer.log('User is not authenticated, signing in anonymously...');
-        context.read<AuthCubit>().signInAnonymously().then((_) {
-          developer.log('Anonymous sign-in successful');
-        }).catchError((error) {
-          developer.log('Anonymous sign-in failed: $error');
-          context.go('/auth', extra: {'mode': 'login'});
-        });
-      },
-      error: (message) {
-        developer.log('Authentication error: $message');
-        context.go('/auth', extra: {'mode': 'login'});
-      },
-      orElse: () => null, // Do nothing for other states like initial or loading
-    );
+    // Start a new chat immediately
+    context.read<ChatCubit>().startNewChat();
+
+    // Send initial greeting since we know we're authenticated (router ensures this)
+    _sendInitialGreeting();
 
     // Schedule scroll to bottom after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -302,8 +286,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final llmCubit = context.read<LlmCubit>();
 
+    // Add logging for current auth state
+    final currentAuthState = context.read<AuthCubit>().state;
+    developer.log('Current auth state: $currentAuthState');
+
     return BlocListener<ChatCubit, ChatState>(
       listener: (context, state) {
+        // Log chat state changes
+        developer.log(
+            'Chat state changed - messages: ${state.messages.length}, currentChatId: ${state.currentChatId}');
+
         // Auto-scroll to bottom when new messages arrive if we're already near the bottom
         if (_chatScrollController.hasClients &&
             _chatScrollController.position.pixels >
@@ -313,6 +305,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       },
       child: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, authState) {
+          // Log auth state in builder
+          developer.log('Building screen for auth state: $authState');
+
           return authState.maybeWhen(
             initial: () => const Center(
               child: CircularProgressIndicator(),
@@ -1047,12 +1042,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 builder: (context, llmState) {
                                   return BlocBuilder<ChatCubit, ChatState>(
                                     builder: (context, chatState) {
-                                      if (chatState.isLoading &&
-                                          chatState.messages.isEmpty) {
-                                        return const Center(
-                                            child: CircularProgressIndicator());
-                                      }
-
                                       if (chatState.error != null) {
                                         return Center(
                                           child: SelectableText.rich(
@@ -1075,13 +1064,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                               ],
                                             ),
                                           ),
-                                        );
-                                      }
-
-                                      if (chatState.messages.isEmpty) {
-                                        return LoadingAnimation(
-                                          onTap: () => _sendInitialGreeting(),
-                                          showRefreshIndicator: true,
                                         );
                                       }
 
@@ -1240,6 +1222,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       orElse: () => 'anonymous',
     );
 
+    // Send user's message
     context.read<ChatCubit>().sendMessage(
           senderId: userId,
           content: message,
@@ -1269,6 +1252,20 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         _isWaitingForAiResponse = false;
       });
     } else {
+      // Add a placeholder message for the AI response
+      final placeholderId = DateTime.now().millisecondsSinceEpoch.toString();
+      setState(() {
+        _placeholderMessageId = placeholderId;
+      });
+
+      // Add the placeholder message to show typing indicator
+      context.read<ChatCubit>().addPlaceholderMessage(
+            id: placeholderId,
+            senderId: 'ai',
+            isAI: true,
+            senderName: _kAiUserName,
+          );
+
       // Text-only message
       context.read<LlmCubit>().generateResponse(
             prompt: message,
@@ -1352,17 +1349,25 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     final authState = context.read<AuthCubit>().state;
     final userId = authState.maybeWhen(
       authenticated: (uid, _, __) => uid,
-      orElse: () =>
-          throw Exception('User must be authenticated to send messages'),
+      orElse: () => 'anonymous',
     );
 
-    // Send initial greeting with the authenticated user's ID
-    context.read<ChatCubit>().sendMessage(
-          senderId: userId, // Using authenticated user's ID
+    // Send the greeting message directly without a placeholder
+    context
+        .read<ChatCubit>()
+        .sendMessage(
+          senderId: userId,
           content: greeting,
-          isAI: true, // Mark as AI message
-          senderName: _kAiUserName, // Still use AI name for display
-        );
+          isAI: true,
+          senderName: _kAiUserName,
+        )
+        .then((_) {
+      // Ensure we scroll to bottom after the message is sent
+      _scrollToBottom();
+    }).catchError((error) {
+      developer.log('Error sending initial greeting: $error');
+      // Handle error if needed
+    });
   }
 
   Widget _buildChatItem(Map<String, dynamic> chat, String? currentChatId,

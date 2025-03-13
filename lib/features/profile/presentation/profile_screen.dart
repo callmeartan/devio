@@ -548,7 +548,7 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () async {
               // Close the dialog first
               navigator.pop();
@@ -618,10 +618,10 @@ class ProfileScreen extends StatelessWidget {
                 }
               }
             },
-            child: Text(
-              'Clear History',
-              style: TextStyle(color: theme.colorScheme.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
             ),
+            child: const Text('Clear History'),
           ),
         ],
       ),

@@ -12,6 +12,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
 import 'package:devio/features/settings/cubit/preferences_cubit.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:developer' as developer;
 
 // Create a class to listen for auth state changes
 class AuthStateChangeNotifier extends ChangeNotifier {
@@ -52,9 +53,20 @@ final appRouter = GoRouter(
       // Otherwise, allow access to other routes for authenticated users
       return null;
     } else {
-      // If user is not authenticated and trying to access authenticated routes, redirect to landing
+      // If user is not authenticated and trying to access authenticated routes
       if (authenticatedRoutes.contains(state.matchedLocation)) {
-        return '/landing';
+        // Try anonymous sign-in first
+        try {
+          developer.log('Attempting anonymous sign-in from router...');
+          await FirebaseAuth.instance.signInAnonymously();
+          developer.log('Anonymous sign-in successful from router');
+          // After successful sign-in, allow access to the requested route
+          return state.matchedLocation;
+        } catch (e) {
+          developer.log('Anonymous sign-in failed from router: $e');
+          // If anonymous sign-in fails, redirect to landing
+          return '/landing';
+        }
       }
     }
 

@@ -63,8 +63,27 @@ class ChatCubit extends Cubit<ChatState> {
 
   void startNewChat() {
     developer.log('Starting new chat');
-    emit(state.copyWith(currentChatId: null, messages: []));
+
+    // Generate a new chat ID
+    final newChatId = DateTime.now().millisecondsSinceEpoch.toString();
+    developer.log('New chat ID: $newChatId');
+
+    // Cancel any existing subscription
+    _chatSubscription?.cancel();
+    _chatSubscription = null;
+
+    // Clear local messages for the current chat
+    if (state.currentChatId != null) {
+      _localMessages.remove(state.currentChatId);
+    }
+
+    // Initialize new chat state with the new chat ID
+    emit(ChatState(currentChatId: newChatId));
+
+    // Initialize stream for the new chat
     _initializeChatStream();
+
+    developer.log('New chat started with ID: $newChatId');
   }
 
   void _initializeChatStream() {
@@ -73,24 +92,37 @@ class ChatCubit extends Cubit<ChatState> {
     if (state.currentChatId != null) {
       developer
           .log('Initializing chat stream for chat: ${state.currentChatId}');
+
+      // Keep existing messages while waiting for stream
+      final existingMessages = _localMessages[state.currentChatId!] ?? [];
+      emit(state.copyWith(messages: existingMessages));
+
       _chatSubscription =
           _chatRepository.getChatMessagesForId(state.currentChatId!).listen(
         (messages) {
           developer.log(
               'Received ${messages.length} messages for chat: ${state.currentChatId}');
-          _localMessages[state.currentChatId!] = messages;
-          _updateMessagesState(state.currentChatId);
+
+          // Merge new messages with existing ones
+          final chatId = state.currentChatId!;
+          final existingMessages = _localMessages[chatId] ?? [];
+          final mergedMessages = {...existingMessages, ...messages}.toList();
+
+          _localMessages[chatId] = mergedMessages;
+          _updateMessagesState(chatId);
         },
         onError: (error) {
           developer.log('Error in chat stream: $error');
-          // Don't clear messages on error, keep showing local state
-          if (!error.toString().contains('index')) {
-            emit(state.copyWith(error: 'Failed to load messages: $error'));
-          }
+          // Keep existing messages on error
+          final existingMessages = _localMessages[state.currentChatId!] ?? [];
+          emit(state.copyWith(
+            messages: existingMessages,
+            error: 'Failed to load messages: $error',
+          ));
         },
       );
     } else {
-      developer.log('Clearing messages for new chat');
+      developer.log('No current chat ID, clearing messages');
       emit(state.copyWith(messages: []));
     }
   }
@@ -111,8 +143,14 @@ class ChatCubit extends Cubit<ChatState> {
   }) async {
     try {
       developer.log('Sending message for chat: ${state.currentChatId}');
+
+      // Ensure we have a valid chat ID
+      final chatId = state.currentChatId ??
+          DateTime.now().millisecondsSinceEpoch.toString();
+
+      // Create the message
       final message = ChatMessage.create(
-        chatId: state.currentChatId,
+        chatId: chatId,
         senderId: senderId,
         content: content,
         isAI: isAI,
@@ -127,34 +165,60 @@ class ChatCubit extends Cubit<ChatState> {
         evalRate: evalRate,
       );
 
+      // Update current chat ID if needed
+      if (state.currentChatId == null || state.currentChatId != chatId) {
+        developer.log('Updating current chat ID to: $chatId');
+        emit(state.copyWith(currentChatId: chatId));
+      }
+
       // Add message to local state immediately
-      final chatId = message.chatId;
-      _localMessages[chatId] = [...(_localMessages[chatId] ?? []), message];
+      final currentMessages = _localMessages[chatId] ?? [];
+      _localMessages[chatId] = [...currentMessages, message];
+
+      // Update state with new message
       _updateMessagesState(chatId);
 
+      // Send message to Firestore
       await _chatRepository.sendMessage(message);
-      developer.log('Message sent successfully, chatId: ${message.chatId}');
+      developer.log('Message sent successfully to Firestore, chatId: $chatId');
 
-      // If this is a new chat, update the chat ID and histories
-      if (state.currentChatId == null) {
-        developer.log('New chat created with ID: ${message.chatId}');
-        emit(state.copyWith(currentChatId: message.chatId));
+      // Initialize stream if needed
+      if (_chatSubscription == null) {
         _initializeChatStream();
       }
 
-      // Always refresh chat histories after sending a message
+      // Refresh chat histories after sending a message
       await _loadChatHistories();
     } catch (e) {
       developer.log('Error sending message: $e');
       emit(state.copyWith(error: 'Failed to send message: $e'));
+      rethrow;
     }
   }
 
   void _updateMessagesState(String? chatId) {
     if (chatId == null) return;
+
+    // Get messages for the chat
     final messages = _localMessages[chatId] ?? [];
-    messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-    emit(state.copyWith(messages: messages));
+
+    // Remove duplicates by message ID
+    final uniqueMessages = <String, ChatMessage>{};
+    for (var message in messages) {
+      uniqueMessages[message.id] = message;
+    }
+
+    // Sort messages by timestamp
+    final sortedMessages = uniqueMessages.values.toList()
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    // Update state with sorted unique messages
+    emit(state.copyWith(
+      messages: sortedMessages,
+      currentChatId: chatId,
+    ));
+
+    developer.log('Updated messages state - count: ${sortedMessages.length}');
   }
 
   Future<void> deleteMessage(String messageId) async {
@@ -216,103 +280,28 @@ class ChatCubit extends Cubit<ChatState> {
 
       // Clear local state immediately to reflect in UI
       _localMessages.clear();
-      emit(ChatState(isLoading: true));
+      emit(const ChatState(isLoading: true));
 
-      // Add timeout to prevent hanging operations
-      final clearOperation = _chatRepository.clearChat().timeout(
-        const Duration(
-            seconds: 60), // Increased timeout for more thorough clearing
-        onTimeout: () {
-          throw TimeoutException(
-              'Chat clear operation timed out after 60 seconds');
-        },
-      );
-
-      // Clear chats in repository with timeout
-      await clearOperation;
+      // Clear chats in repository
+      await _chatRepository.clearChat();
       developer.log('Repository clear operation completed');
 
-      // Reset state completely after repository operation completes
-      // This is important - create a fresh state object instead of modifying the existing one
-      emit(ChatState(isLoading: false));
-
-      // Force a thorough reload of chat histories to verify clearing worked
-      developer.log('Performing verification reload of chat histories');
-      try {
-        // First attempt
-        await _loadChatHistories().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            developer.log('First history reload timed out, trying again...');
-            return;
-          },
-        );
-
-        // If histories were loaded and still contain data, try to clear again
-        if (state.chatHistories.isNotEmpty) {
-          developer.log(
-              'WARNING: Still found ${state.chatHistories.length} chat histories after clearing. Attempting cleanup...');
-
-          // Sleep briefly to allow Firestore to complete any pending operations
-          await Future.delayed(const Duration(seconds: 2));
-
-          // Try one more time to clear any remaining chats
-          try {
-            await _chatRepository.clearChat().timeout(
-              const Duration(seconds: 30),
-              onTimeout: () {
-                developer.log('Second clear operation timed out');
-                return;
-              },
-            );
-
-            // Reload histories again after second clear attempt
-            await _loadChatHistories();
-          } catch (secondClearError) {
-            developer.log('Error in second clear attempt: $secondClearError');
-          }
-        }
-      } catch (historyError) {
-        developer.log('Error reloading chat histories: $historyError');
-        // Try one more time after a brief delay
-        await Future.delayed(const Duration(seconds: 1));
-        try {
-          await _loadChatHistories();
-        } catch (e) {
-          developer.log('Second attempt to reload histories failed: $e');
-        }
-      }
-
-      // Force emit a fresh state regardless of what happened above
-      final currentHistories = state.chatHistories;
-      if (currentHistories.isNotEmpty) {
-        developer.log(
-            'WARNING: Still have ${currentHistories.length} histories after all clearing attempts');
-      } else {
-        developer.log('Successfully verified all chat histories were cleared');
-      }
-
-      // Create fresh state and start new chat
+      // Reset state completely
       emit(const ChatState());
+
+      // Force a reload of chat histories to verify clearing worked
+      await _loadChatHistories();
+
+      // Start a new chat
       startNewChat();
 
       developer.log('Chat clear process completed in cubit');
     } catch (e) {
       developer.log('Error clearing chat in cubit: $e');
-
-      // Attempt to reload histories even if clear failed
-      try {
-        await _loadChatHistories();
-      } catch (_) {
-        // Ignore secondary errors
-      }
-
       emit(state.copyWith(
         isLoading: false,
         error: 'Failed to clear chat: $e',
       ));
-
-      // Rethrow to allow UI to handle the error
       rethrow;
     }
   }

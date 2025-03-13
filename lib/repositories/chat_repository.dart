@@ -43,13 +43,15 @@ class ChatRepository {
       return _firestore
           .collection(_collectionPath)
           .where('chatId', isEqualTo: chatId)
-          .orderBy('timestamp', descending: true)
-          .limit(50) // Reduce limit for faster initial load
+          .orderBy('timestamp', descending: false)
           .snapshots()
           .map((snapshot) {
         final messages = snapshot.docs
             .map((doc) => ChatMessage.fromJson(doc.data()))
             .toList();
+
+        developer
+            .log('Retrieved ${messages.length} messages for chat: $chatId');
         return messages;
       }).handleError((error) {
         developer.log('Error in getChatMessagesForId: $error');
@@ -188,13 +190,34 @@ class ChatRepository {
       _checkAuth();
       developer
           .log('Sending message: ${message.id} for chat: ${message.chatId}');
+
+      // Convert message to JSON
       final data = message.toJson();
 
       // Convert timestamp to Firestore Timestamp
       data['timestamp'] = Timestamp.fromDate(message.timestamp);
 
-      await _firestore.collection(_collectionPath).doc(message.id).set(data);
-      developer.log('Message sent successfully');
+      // Create a batch to update both message and metadata
+      final batch = _firestore.batch();
+
+      // Add message to chats collection
+      final messageRef = _firestore.collection(_collectionPath).doc(message.id);
+      batch.set(messageRef, data);
+
+      // Update chat metadata
+      final metadataRef =
+          _firestore.collection(_chatMetadataPath).doc(message.chatId);
+      batch.set(
+          metadataRef,
+          {
+            'lastMessageTime': data['timestamp'],
+            'title': _generateChatTitle(message.content),
+          },
+          SetOptions(merge: true));
+
+      // Commit the batch
+      await batch.commit();
+      developer.log('Message and metadata successfully saved to Firestore');
     } catch (e) {
       developer.log('Error sending message: $e');
       throw Exception('Failed to send message: $e');
@@ -216,122 +239,89 @@ class ChatRepository {
       final userId = _auth.currentUser!.uid;
       developer.log('Starting chat clear process for user: $userId');
 
-      // Step 1: Get all metadata first - this ensures we capture ALL chats
-      final allMetadata = await _firestore.collection(_chatMetadataPath).get();
-      developer.log('Found ${allMetadata.docs.length} total metadata records');
-
-      // Step 2: Also search for chats where the user participated (as sender or recipient)
-      final userSentMessages = await _firestore
+      // Step 1: Get all messages for this user
+      final userMessages = await _firestore
           .collection(_collectionPath)
           .where('senderId', isEqualTo: userId)
           .get();
 
-      // Get messages addressed to this user (AI responses) - if your schema supports this
-      // If you don't store recipient info, you might need a different approach
-      final messageChatIds = userSentMessages.docs
-          .map((doc) => (doc.data()['chatId'] as String))
-          .toSet()
-          .toList();
+      // Step 2: Get all metadata
+      final allMetadata = await _firestore.collection(_chatMetadataPath).get();
 
-      developer
-          .log('Found ${messageChatIds.length} chats from message queries');
-
-      // Step 3: Combine all chat IDs from metadata and messages
-      final chatIds = [
-        ...messageChatIds,
+      // Step 3: Get unique chat IDs from both messages and metadata
+      final chatIds = {
+        ...userMessages.docs.map((doc) => doc.data()['chatId'] as String),
         ...allMetadata.docs.map((doc) => doc.id),
-      ].toSet().toList(); // Use set to remove duplicates
-
-      developer.log('Combined ${chatIds.length} unique chat IDs to process');
+      };
 
       if (chatIds.isEmpty) {
-        developer.log('No chats to clear, operation completed successfully');
+        developer.log('No chats found to clear');
         return;
       }
 
-      // Step 4: Delete ALL chat records from Firestore
+      developer.log('Found ${chatIds.length} chats to clear');
 
-      // Clear chat metadata first
-      developer.log('Clearing chat metadata...');
-      final metadataBatch = _firestore.batch();
-      for (var chatId in chatIds) {
-        metadataBatch
-            .delete(_firestore.collection(_chatMetadataPath).doc(chatId));
-      }
-      await metadataBatch.commit();
-      developer.log('Cleared metadata for ${chatIds.length} chats');
+      // Step 4: Delete messages in batches
+      for (final chatId in chatIds) {
+        // Get all messages for this chat
+        final messages = await _firestore
+            .collection(_collectionPath)
+            .where('chatId', isEqualTo: chatId)
+            .get();
 
-      // Step 5: Now delete ALL messages
-      developer.log('Starting to clear chat messages...');
-      int totalMessagesDeleted = 0;
+        // Delete messages in batches of 500 (Firestore limit)
+        for (var i = 0; i < messages.docs.length; i += 500) {
+          final batch = _firestore.batch();
+          final end =
+              (i + 500 < messages.docs.length) ? i + 500 : messages.docs.length;
 
-      // Process in smaller batches to avoid transaction limits
-      final batchSize = 20;
-      for (var i = 0; i < chatIds.length; i += batchSize) {
-        final currentBatchEnd =
-            (i + batchSize < chatIds.length) ? i + batchSize : chatIds.length;
-        final currentBatch = chatIds.sublist(i, currentBatchEnd);
-
-        developer.log(
-            'Processing batch ${i ~/ batchSize + 1} with ${currentBatch.length} chats');
-
-        // For each chat in the current batch
-        for (var chatId in currentBatch) {
-          try {
-            // Get all messages for this chat (including AI responses)
-            final chatMessages = await _firestore
-                .collection(_collectionPath)
-                .where('chatId', isEqualTo: chatId)
-                .get();
-
-            if (chatMessages.docs.isEmpty) {
-              developer.log('No messages found for chat $chatId');
-              continue;
-            }
-
-            // Use batch to delete these messages
-            // Split into smaller batches if needed (Firestore has a limit of 500 ops per batch)
-            final maxBatchSize = 400; // Keep well below the 500 limit
-            for (var j = 0; j < chatMessages.docs.length; j += maxBatchSize) {
-              final end = (j + maxBatchSize < chatMessages.docs.length)
-                  ? j + maxBatchSize
-                  : chatMessages.docs.length;
-
-              final messageBatch = _firestore.batch();
-              for (var k = j; k < end; k++) {
-                messageBatch.delete(chatMessages.docs[k].reference);
-              }
-
-              await messageBatch.commit();
-              int batchCount = end - j;
-              totalMessagesDeleted += batchCount;
-              developer.log('Deleted $batchCount messages from chat $chatId');
-            }
-          } catch (e) {
-            // Log but continue with other chats
-            developer.log('Error clearing messages for chat $chatId: $e');
+          for (var j = i; j < end; j++) {
+            batch.delete(messages.docs[j].reference);
           }
+
+          await batch.commit();
+          developer.log(
+              'Deleted batch of messages for chat $chatId (${end - i} messages)');
         }
+
+        // Delete chat metadata
+        await _firestore.collection(_chatMetadataPath).doc(chatId).delete();
+        developer.log('Deleted metadata for chat $chatId');
       }
 
-      // Step 6: Verify deletion by checking for any remaining metadata
+      // Final verification
       final remainingMetadata =
           await _firestore.collection(_chatMetadataPath).get();
-      if (remainingMetadata.docs.isNotEmpty) {
-        developer.log(
-            'WARNING: ${remainingMetadata.docs.length} metadata records remain after deletion');
+      final remainingMessages = await _firestore
+          .collection(_collectionPath)
+          .where('senderId', isEqualTo: userId)
+          .get();
 
-        // Try one more time to delete any remaining metadata
-        final finalCleanupBatch = _firestore.batch();
-        for (var doc in remainingMetadata.docs) {
-          finalCleanupBatch.delete(doc.reference);
+      if (remainingMetadata.docs.isNotEmpty ||
+          remainingMessages.docs.isNotEmpty) {
+        developer.log(
+            'WARNING: Found remaining data after deletion. Cleaning up...');
+
+        // Clean up any remaining metadata
+        if (remainingMetadata.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (var doc in remainingMetadata.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
         }
-        await finalCleanupBatch.commit();
-        developer.log('Performed final cleanup of remaining metadata');
+
+        // Clean up any remaining messages
+        if (remainingMessages.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (var doc in remainingMessages.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+        }
       }
 
-      developer.log(
-          'Chat clear process completed successfully - Deleted $totalMessagesDeleted total messages');
+      developer.log('Chat clear process completed successfully');
     } catch (e) {
       developer.log('Error clearing chat: $e');
       throw Exception('Failed to clear chat: $e');

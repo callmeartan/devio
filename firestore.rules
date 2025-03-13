@@ -30,6 +30,11 @@ service cloud.firestore {
         (!('isPinned' in metadata) || metadata.isPinned is bool);
     }
 
+    function isParticipantInChat(chatId) {
+      return exists(/databases/$(database)/documents/chats/$(chatId)) &&
+        get(/databases/$(database)/documents/chats/$(chatId)).data.senderId == request.auth.uid;
+    }
+
     function isValidUserData() {
       let userData = request.resource.data;
       return 
@@ -53,7 +58,6 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidMessage();
       allow update: if false;
       allow delete: if isAuthenticated() && (
-        isOwner(resource.data.senderId) || 
         resource.data.senderId == request.auth.uid
       );
     }
