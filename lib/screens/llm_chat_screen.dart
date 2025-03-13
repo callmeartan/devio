@@ -1607,16 +1607,42 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _showPullModelDialog(context),
-                        icon: const Icon(Icons.cloud_download),
-                        label: const Text('Pull Model'),
+                        icon: Icon(
+                          Icons.cloud_download,
+                          color: theme.colorScheme.primary,
+                        ),
+                        label: Text(
+                          'Pull Model',
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: theme.colorScheme.primary.withOpacity(0.5),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _showDeleteModelDialog(context),
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('Delete Model'),
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: theme.colorScheme.error,
+                        ),
+                        label: Text(
+                          'Delete Model',
+                          style: TextStyle(
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: theme.colorScheme.error.withOpacity(0.5),
+                          ),
+                        ),
                       ),
                     ),
                   ],
