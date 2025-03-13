@@ -916,45 +916,37 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     String? quantization;
     bool hasDetails = false;
 
-    // Extract parameter size from model name for local models
-    if (model.contains('deepseek') && model.contains('14b')) {
-      paramSize = '14B';
-      family = 'deepseek';
-      format = 'GGUF';
-      quantization = 'Q4_K_M';
+    // Extract model family and details from name
+    final modelParts = model.split(':');
+    final baseName = modelParts[0].toLowerCase();
+
+    // Get model family from the first part of the name
+    family = baseName.split('-')[0];
+    family = family[0].toUpperCase() +
+        family.substring(1); // Capitalize first letter
+
+    // Check if model name contains size information
+    final sizeMatch = RegExp(r'(\d+)b').firstMatch(baseName);
+    if (sizeMatch != null) {
+      paramSize = '${sizeMatch.group(1)}B';
       hasDetails = true;
-    } else if (model.contains('llava') && model.contains('13b')) {
-      paramSize = '13B';
-      family = 'Llava';
+    }
+
+    // Set format and quantization if it's a local model (assuming GGUF format)
+    final llmCubit = context.read<LlmCubit>();
+    if (llmCubit.currentProvider == LlmProvider.local) {
       format = 'GGUF';
-      quantization = 'Q4_0';
-      hasDetails = true;
-    } else if (model.contains('mistral')) {
-      paramSize = '7B';
-      family = 'Mistral';
-      format = 'GGUF';
-      quantization = 'Q4_0';
-      hasDetails = true;
-    } else if (model.contains('llama3') && model.contains('8b')) {
-      paramSize = '8B';
-      family = 'Llama';
-      format = 'GGUF';
-      quantization = 'Q4_K_M';
-      hasDetails = true;
-    } else if (model.contains('phi3') && model.contains('14b')) {
-      paramSize = '14B';
-      family = 'Phi';
-      format = 'GGUF';
-      quantization = 'Q4_K_M';
-      hasDetails = true;
-    } else if (model.contains('gemini-1.5-pro')) {
-      paramSize = '1.7T';
-      family = 'Gemini';
-      hasDetails = false;
-    } else if (model.contains('gemini-1.0-pro')) {
-      paramSize = '1.5T';
-      family = 'Gemini';
-      hasDetails = false;
+      // Extract quantization if present in model name
+      if (baseName.contains('q4_k_m')) {
+        quantization = 'Q4_K_M';
+      } else if (baseName.contains('q4_0')) {
+        quantization = 'Q4_0';
+      } else if (baseName.contains('q5_k_m')) {
+        quantization = 'Q5_K_M';
+      }
+      if (quantization != null) {
+        hasDetails = true;
+      }
     }
 
     final description = _getModelDescription(model);
@@ -982,15 +974,12 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
   }
 
   String _getModelDescription(String model) {
-    // Provide brief descriptions of model capabilities
-    if (model.contains('ultra')) {
-      return 'Highest capability model with advanced reasoning';
-    } else if (model.contains('1.5')) {
-      return 'Latest generation with improved capabilities';
-    } else if (model.contains('1.0')) {
-      return 'Stable version with good performance and reliability';
-    } else if (model.contains('vision')) {
-      return 'Specialized for image analysis and understanding';
+    final modelLower = model.toLowerCase();
+
+    if (modelLower.contains('vision')) {
+      return 'Model capable of understanding and analyzing images';
+    } else if (modelLower.contains('chat')) {
+      return 'Optimized for conversational interactions';
     } else {
       return 'General purpose AI model for text generation';
     }
