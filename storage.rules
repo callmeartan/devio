@@ -1,0 +1,33 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Default deny all rule
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Allow users to access only their own files
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Chat uploads - allowed only for authenticated users
+    match /chat_uploads/{chatId}/{fileName} {
+      allow read: if request.auth != null;
+      // Only allow write if the file name contains the user's ID (ensuring users can only upload to their own chats)
+      allow write: if request.auth != null && fileName.matches(request.auth.uid + ".*");
+    }
+
+    // Profile pictures - users can only access their own
+    match /profile_pictures/{userId}.jpg {
+      allow read: if request.auth != null; // Anyone can see profile pictures
+      allow write: if request.auth != null && request.auth.uid == userId; // Only own user can upload
+    }
+
+    // Public assets that can be accessed by any authenticated user
+    match /public/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if false; // No writes to public folder except by admin (handled through Firebase console)
+    }
+  }
+} 

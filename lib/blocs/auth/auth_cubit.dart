@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:devio/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 part 'auth_cubit.freezed.dart';
 part 'auth_state.dart';
@@ -16,11 +17,13 @@ class AuthCubit extends Cubit<AuthState> {
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
   final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
 
   AuthCubit(
       {FirebaseAuth? auth,
       GoogleSignIn? googleSignIn,
-      FirebaseFirestore? firestore})
+      FirebaseFirestore? firestore,
+      FirebaseStorage? storage})
       : _auth = auth ?? FirebaseAuth.instance,
         _googleSignIn = googleSignIn ??
             GoogleSignIn(
@@ -30,6 +33,7 @@ class AuthCubit extends Cubit<AuthState> {
                   : null,
             ),
         _firestore = firestore ?? FirebaseFirestore.instance,
+        _storage = storage ?? FirebaseStorage.instance,
         super(const AuthState.initial()) {
     // Listen to auth state changes
     _auth.authStateChanges().listen((User? user) {
@@ -377,55 +381,176 @@ class AuthCubit extends Cubit<AuthState> {
 
   // Helper method to delete all user data
   Future<void> _deleteAllUserData(String userId) async {
-    // Create a batch for efficient writes
-    final batch = _firestore.batch();
+    try {
+      developer.log('Starting deletion of all user data for user: $userId');
 
-    // 1. Delete user document
-    batch.delete(_firestore.collection('users').doc(userId));
+      // Create a batch for efficient writes
+      final batch = _firestore.batch();
 
-    // 2. Delete user's chats - all messages sent by this user
-    final userChats = await _firestore
-        .collection('chats')
-        .where('senderId', isEqualTo: userId)
-        .get();
+      // 1. Delete user document
+      batch.delete(_firestore.collection('users').doc(userId));
 
-    for (var doc in userChats.docs) {
-      batch.delete(doc.reference);
-    }
+      // 2. Delete user's chats - all messages sent by this user
+      final userChats = await _firestore
+          .collection('chats')
+          .where('senderId', isEqualTo: userId)
+          .get();
 
-    // 3. Delete user's chat metadata
-    final userChatMetadata = await _firestore
-        .collection('chat_metadata')
-        .where('userId', isEqualTo: userId)
-        .get();
-
-    for (var doc in userChatMetadata.docs) {
-      batch.delete(doc.reference);
-    }
-
-    // 4. Get all chat IDs where the user participated
-    final chatIds = userChats.docs
-        .map((doc) => doc.data()['chatId'] as String?)
-        .where((id) => id != null)
-        .toSet()
-        .cast<String>();
-
-    // 5. Delete chat metadata for those chats
-    for (var chatId in chatIds) {
-      final chatMetadata =
-          await _firestore.collection('chat_metadata').doc(chatId).get();
-
-      if (chatMetadata.exists) {
-        batch.delete(chatMetadata.reference);
+      for (var doc in userChats.docs) {
+        batch.delete(doc.reference);
       }
+
+      // 3. Delete user's chat metadata
+      final userChatMetadata = await _firestore
+          .collection('chat_metadata')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      for (var doc in userChatMetadata.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 4. Get all chat IDs where the user participated
+      final chatIds = userChats.docs
+          .map((doc) => doc.data()['chatId'] as String?)
+          .where((id) => id != null)
+          .toSet()
+          .cast<String>();
+
+      // 5. Delete chat metadata for those chats
+      for (var chatId in chatIds) {
+        final chatMetadata =
+            await _firestore.collection('chat_metadata').doc(chatId).get();
+
+        if (chatMetadata.exists) {
+          batch.delete(chatMetadata.reference);
+        }
+      }
+
+      // 6. Delete any other collections that might contain user data
+      // If you add more collections in the future, add deletion logic here
+
+      // 7. Commit all Firestore deletions
+      await batch.commit();
+      developer
+          .log('Successfully deleted all Firestore data for user: $userId');
+
+      // 8. Delete user files from Firebase Storage
+      await _deleteUserStorageFiles(userId);
+
+      developer.log('Successfully deleted all user data for user: $userId');
+    } catch (e) {
+      developer.log('Error in _deleteAllUserData: $e');
+      rethrow;
     }
+  }
 
-    // 6. Check for any other collections that might contain user data
-    // If you add more collections in the future, add deletion logic here
+  // Helper method to delete all user files from Firebase Storage
+  Future<void> _deleteUserStorageFiles(String userId) async {
+    try {
+      developer.log(
+          'Starting deletion of user files from Firebase Storage for user: $userId');
 
-    // Commit all deletions
-    await batch.commit();
+      // Main user folder - typically where user-specific files are stored
+      final userStorageRef = _storage.ref().child('users/$userId');
 
-    developer.log('Successfully deleted all user data for user: $userId');
+      // List all items in the user's directory
+      try {
+        final ListResult result = await userStorageRef.listAll();
+
+        // Delete all files in the user's directory
+        for (var item in result.items) {
+          await item.delete();
+          developer.log('Deleted file: ${item.fullPath}');
+        }
+
+        // Recursively delete all subdirectories and their contents
+        for (var prefix in result.prefixes) {
+          await _deleteStorageDirectory(prefix);
+        }
+
+        developer.log(
+            'Successfully deleted all user files from Storage for user: $userId');
+      } catch (e) {
+        // If the directory doesn't exist, this is fine - just log and continue
+        if (e.toString().contains('object-not-found')) {
+          developer.log('No user files found in Storage for user: $userId');
+        } else {
+          // For other errors, we should log but not fail the entire deletion process
+          developer.log('Error listing user files in Storage: $e');
+        }
+      }
+
+      // Check for user uploads in other potential directories
+      // For example, if uploads are stored by chat ID but with user prefixes
+      final chatUploadsRef = _storage.ref().child('chat_uploads');
+      try {
+        final ListResult chatUploads = await chatUploadsRef.listAll();
+
+        // Delete files that contain the user ID in their path
+        for (var item in chatUploads.items) {
+          if (item.fullPath.contains(userId)) {
+            await item.delete();
+            developer.log('Deleted chat upload: ${item.fullPath}');
+          }
+        }
+
+        // Process prefixes that might contain user data
+        for (var prefix in chatUploads.prefixes) {
+          if (prefix.fullPath.contains(userId)) {
+            await _deleteStorageDirectory(prefix);
+          }
+        }
+      } catch (e) {
+        // If the directory doesn't exist, this is fine
+        if (e.toString().contains('object-not-found')) {
+          developer.log('No chat uploads directory found');
+        } else {
+          developer.log('Error checking chat uploads: $e');
+        }
+      }
+
+      // 9. Delete user's profile picture if it exists
+      try {
+        final profilePicRef =
+            _storage.ref().child('profile_pictures/$userId.jpg');
+        await profilePicRef.delete();
+        developer.log('Deleted user profile picture');
+      } catch (e) {
+        // If the file doesn't exist, this is fine
+        if (e.toString().contains('object-not-found')) {
+          developer.log('No profile picture found for user: $userId');
+        } else {
+          developer.log('Error deleting profile picture: $e');
+        }
+      }
+    } catch (e) {
+      developer.log('Error in _deleteUserStorageFiles: $e');
+      // We don't rethrow here to ensure the account deletion continues
+      // even if there's an issue with Storage deletion
+    }
+  }
+
+  // Helper method to recursively delete a directory in Firebase Storage
+  Future<void> _deleteStorageDirectory(Reference directoryRef) async {
+    try {
+      final ListResult contents = await directoryRef.listAll();
+
+      // Delete all files in this directory
+      for (var item in contents.items) {
+        await item.delete();
+        developer.log('Deleted file: ${item.fullPath}');
+      }
+
+      // Recursively delete all subdirectories
+      for (var prefix in contents.prefixes) {
+        await _deleteStorageDirectory(prefix);
+      }
+
+      // Note: Firebase Storage doesn't allow deleting empty directories,
+      // they are automatically removed when all contained files are deleted
+    } catch (e) {
+      developer.log('Error deleting directory ${directoryRef.fullPath}: $e');
+    }
   }
 }
