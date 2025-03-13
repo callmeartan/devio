@@ -46,16 +46,16 @@ class LlmCubit extends Cubit<LlmState> {
 
       // If no custom IP is set, use default
       if (_customOllamaIp == null || _customOllamaIp!.isEmpty) {
-        _customOllamaIp = _defaultOllamaIp;
-        await _llmService.setCustomOllamaIp(_customOllamaIp);
+        await setCustomOllamaIp(
+            _defaultOllamaIp); // Use setCustomOllamaIp to ensure it's saved
         dev.log('Set default Ollama IP to $_defaultOllamaIp');
       } else {
         dev.log('Loaded custom Ollama IP from preferences: $_customOllamaIp');
       }
     } catch (e) {
       dev.log('Error loading Ollama IP: $e');
-      // Set default IP if there's an error
-      _customOllamaIp = _defaultOllamaIp;
+      // Set and save default IP if there's an error
+      await setCustomOllamaIp(_defaultOllamaIp);
     }
   }
 

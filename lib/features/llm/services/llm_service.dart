@@ -309,26 +309,61 @@ class LlmService {
         };
       }
 
-      // Get memory info using nvidia-smi or ps depending on platform
+      // Get Ollama process info
       double memoryUsage = 0;
       double cpuUsage = 0;
 
       try {
-        // Get process info using ps command
-        final result = await Process.run('ps', ['-p', '1', '-o', '%cpu,%mem']);
-        if (result.exitCode == 0) {
-          final lines = (result.stdout as String).split('\n');
-          if (lines.length > 1) {
-            final values = lines[1].trim().split(RegExp(r'\s+'));
-            if (values.length >= 2) {
-              cpuUsage = double.tryParse(values[0]) ?? 0;
-              memoryUsage = double.tryParse(values[1]) ?? 0;
+        // Find Ollama process ID
+        final psResult = await Process.run('pgrep', ['ollama']);
+        if (psResult.exitCode == 0 && psResult.stdout.toString().isNotEmpty) {
+          final pid = psResult.stdout.toString().trim();
+
+          // Get detailed process info using ps
+          final result =
+              await Process.run('ps', ['-p', pid, '-o', '%cpu,%mem']);
+
+          if (result.exitCode == 0) {
+            final lines = (result.stdout as String).split('\n');
+            if (lines.length > 1) {
+              final values = lines[1].trim().split(RegExp(r'\s+'));
+              if (values.length >= 2) {
+                cpuUsage = double.tryParse(values[0]) ?? 0;
+                memoryUsage = double.tryParse(values[1]) ?? 0;
+              }
             }
+          }
+
+          // Get GPU usage if available (for M-series Macs)
+          try {
+            final gpuResult = await Process.run('powermetrics',
+                ['--samplers', 'gpu_power', '-n', '1', '-i', '1000']);
+
+            if (gpuResult.exitCode == 0) {
+              final gpuOutput = gpuResult.stdout.toString();
+              // Parse GPU utilization
+              final gpuMatch = RegExp(r'GPU Active residency:\s*([\d.]+)%')
+                  .firstMatch(gpuOutput);
+              if (gpuMatch != null) {
+                final gpuUsage = double.tryParse(gpuMatch.group(1) ?? '0') ?? 0;
+                return {
+                  'status': 'ok',
+                  'data': {
+                    'version': jsonDecode(versionResponse.body)['version'],
+                    'memory_usage': memoryUsage,
+                    'cpu_usage': cpuUsage,
+                    'gpu_usage': gpuUsage,
+                  },
+                };
+              }
+            }
+          } catch (e) {
+            dev.log('Error getting GPU metrics: $e');
+            // Continue without GPU metrics
           }
         }
       } catch (e) {
         dev.log('Error getting process info: $e');
-        // Continue with default values if process info fails
       }
 
       final versionJson = jsonDecode(versionResponse.body);

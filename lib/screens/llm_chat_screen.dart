@@ -1664,9 +1664,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                   : 'Unknown'),
                           if (status['data'] != null) ...[
                             _buildStatusItem(theme, 'Memory Usage',
-                                '${(status['data']['memory_usage'] ?? 0).toStringAsFixed(1)} MB'),
+                                '${(status['data']['memory_usage'] ?? 0).toStringAsFixed(1)}%'),
                             _buildStatusItem(theme, 'CPU Usage',
                                 '${(status['data']['cpu_usage'] ?? 0).toStringAsFixed(1)}%'),
+                            if (status['data']['gpu_usage'] != null)
+                              _buildStatusItem(theme, 'GPU Usage',
+                                  '${(status['data']['gpu_usage'] ?? 0).toStringAsFixed(1)}%'),
+                            _buildStatusItem(theme, 'Version',
+                                status['data']['version'] ?? 'Unknown'),
                           ],
                         ],
                       ),
