@@ -1,12 +1,15 @@
-# DevIO - Mobile Interface for Local LLMs
+# DevIO - Desktop & Mobile Interface for Local LLMs
 
-DevIO is a professional Flutter application designed to connect to local LLM (Large Language Model) servers from your mobile device. It features a clean, modern, and minimal UI that prioritizes ease of use while providing powerful functionality.
+DevIO is a professional Flutter application designed to connect to local LLM (Large Language Model) servers from your macOS desktop or mobile device. It features a clean, modern, and minimal UI that prioritizes ease of use while providing powerful functionality.
 
 ## 🔍 Overview
 
-DevIO transforms your mobile device into a powerful interface for interacting with locally hosted large language models. Connect to Ollama or other LLM servers to leverage the power of AI while keeping your data private and secure.
+DevIO transforms your device into a powerful interface for interacting with locally hosted large language models. Connect to Ollama or other LLM servers to leverage the power of AI while keeping your data private and secure.
 
-
+## 🖥️ Supported Platforms
+- macOS (Universal)
+- iOS
+- Android (coming soon)
 
 ## ✨ Key Features
 
@@ -41,6 +44,8 @@ DevIO transforms your mobile device into a powerful interface for interacting wi
 - Flutter SDK (>=3.0.0)
 - Dart SDK (>=3.0.0)
 - A running Ollama server (local or remote)
+- macOS 12.0 or later (for desktop version)
+- iOS 18.0 or later (for mobile version)
 - (Optional) Firebase project for cloud features
 
 ### Installation
@@ -117,8 +122,14 @@ lib/
 
 ### Building for Production
 ```bash
-flutter build apk --release  # Android
-flutter build ios --release  # iOS
+# macOS
+flutter build macos --release
+
+# iOS
+flutter build ios --release
+
+# Android (coming soon)
+flutter build apk --release
 ```
 
 ### Environment Configuration
@@ -129,10 +140,10 @@ OLLAMA_HOST=your_ollama_server:port
 
 ## 🔮 Future Roadmap
 
+- Windows and Linux support
 - Audio input and output capabilities
 - Document analysis and summarization
 - Plugin support for extending functionality
-- Desktop platform support
 - Advanced prompt templating system
 - Model fine-tuning interface
 
