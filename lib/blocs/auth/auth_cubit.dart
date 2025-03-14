@@ -9,6 +9,9 @@ import 'package:flutter/foundation.dart'
 import 'package:devio/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 
 part 'auth_cubit.freezed.dart';
 part 'auth_state.dart';
@@ -168,22 +171,45 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> signInWithApple() async {
     emit(const AuthState.loading());
     try {
+      developer.log('Starting Apple Sign In process...');
+
+      // Generate a nonce for Apple Sign In
+      final rawNonce = _generateNonce();
+      // Convert the nonce to a SHA256 hash
+      final hashedNonce = _sha256ofString(rawNonce);
+
+      developer.log('Getting Apple ID credentials with hashed nonce...');
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
+        // Pass the hashed nonce to Apple
+        nonce: hashedNonce,
       );
 
+      developer
+          .log('Apple credential obtained, creating Firebase credential...');
+      // Make sure we have the identity token
+      if (appleCredential.identityToken == null) {
+        throw Exception('Apple Sign In failed - no identity token returned');
+      }
+
+      // Pass the raw nonce to Firebase, not the hashed one
       final oauthCredential = OAuthProvider('apple.com').credential(
-        idToken: appleCredential.identityToken,
+        idToken: appleCredential.identityToken!,
+        // Use the original raw nonce here
+        rawNonce: rawNonce,
         accessToken: appleCredential.authorizationCode,
       );
 
+      developer.log('Signing in to Firebase with Apple credential...');
       final userCredential = await _auth.signInWithCredential(oauthCredential);
       final user = userCredential.user;
 
       if (user != null) {
+        developer.log('Successfully signed in with Apple: ${user.email}');
+
         // Store name from Apple Sign In if it's the first time (when name is provided)
         if (appleCredential.givenName != null ||
             appleCredential.familyName != null) {
@@ -191,6 +217,7 @@ class AuthCubit extends Cubit<AuthState> {
               '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'
                   .trim();
 
+          developer.log('Updating user display name: $displayName');
           // Store in Firebase Auth
           await user.updateDisplayName(displayName);
 
@@ -202,6 +229,7 @@ class AuthCubit extends Cubit<AuthState> {
             'provider': 'apple.com',
           }, SetOptions(merge: true));
         } else {
+          developer.log('No name provided by Apple, checking Firestore...');
           // Try to get the stored name from Firestore if not provided by Apple
           final userDoc =
               await _firestore.collection('users').doc(user.uid).get();
@@ -218,7 +246,22 @@ class AuthCubit extends Cubit<AuthState> {
           displayName: user.displayName,
           email: user.email,
         ));
+      } else {
+        developer.log('Failed to get user after Apple Sign In');
+        emit(const AuthState.error('Failed to get user information'));
       }
+    } on SignInWithAppleAuthorizationException catch (e) {
+      developer
+          .log('Apple sign in authorization error: ${e.code} - ${e.message}');
+      if (e.code == AuthorizationErrorCode.canceled) {
+        emit(const AuthState.error('Sign in was canceled'));
+      } else {
+        emit(AuthState.error('Apple sign in failed: ${e.message}'));
+      }
+    } on FirebaseAuthException catch (e) {
+      developer.log(
+          'Firebase Auth Error with Apple Sign In: ${e.code} - ${e.message}');
+      emit(AuthState.error('Firebase authentication failed: ${e.message}'));
     } catch (e) {
       developer.log('Apple sign in error: $e');
       emit(AuthState.error(e.toString()));
@@ -339,15 +382,31 @@ class AuthCubit extends Cubit<AuthState> {
 
     if (providers.contains('apple.com')) {
       // Reauthenticate with Apple
+      developer.log('Reauthenticating with Apple...');
+
+      // Generate a nonce for Apple Sign In
+      final rawNonce = _generateNonce();
+      // Convert the nonce to a SHA256 hash
+      final hashedNonce = _sha256ofString(rawNonce);
+
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
+        // Pass the hashed nonce to Apple
+        nonce: hashedNonce,
       );
 
+      if (appleCredential.identityToken == null) {
+        throw Exception('Apple Sign In failed - no identity token returned');
+      }
+
+      // Pass the raw nonce to Firebase, not the hashed one
       final oauthCredential = OAuthProvider('apple.com').credential(
-        idToken: appleCredential.identityToken,
+        idToken: appleCredential.identityToken!,
+        // Use the original raw nonce here
+        rawNonce: rawNonce,
         accessToken: appleCredential.authorizationCode,
       );
 
@@ -552,5 +611,17 @@ class AuthCubit extends Cubit<AuthState> {
     } catch (e) {
       developer.log('Error deleting directory ${directoryRef.fullPath}: $e');
     }
+  }
+
+  String _generateNonce() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return base64Url.encode(bytes);
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString(); // Return the hex string representation
   }
 }

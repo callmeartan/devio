@@ -68,6 +68,11 @@ app.*.map.json
 **/macos/Flutter/GeneratedPluginRegistrant.swift
 **/macos/Flutter/ephemeral
 
+# macOS Pods files
+macos/Pods/
+macos/Flutter/ephemeral/
+macos/.symlinks/
+
 # Coverage
 coverage/
 

@@ -1,6 +1,6 @@
 {
   "name": "firebase_storage",
-  "version": "12.4.2",
+  "version": "12.4.4",
   "summary": "Flutter plugin for Firebase Cloud Storage, a powerful, simple, and cost-effective object storage service for Android and iOS.",
   "description": "Flutter plugin for Firebase Cloud Storage, a powerful, simple, and cost-effective object storage service for Android and iOS.",
   "homepage": "https://firebase.google.com/docs/storage/flutter/start",
@@ -17,22 +17,18 @@
     "osx": "10.13"
   },
   "dependencies": {
-    "FlutterMacOS": [
-
-    ],
-    "firebase_core": [
-
-    ],
+    "FlutterMacOS": [],
+    "firebase_core": [],
     "Firebase/CoreOnly": [
-      "~> 11.7.0"
+      "~> 11.8.0"
     ],
     "Firebase/Storage": [
-      "~> 11.7.0"
+      "~> 11.8.0"
     ]
   },
   "static_framework": true,
   "pod_target_xcconfig": {
-    "GCC_PREPROCESSOR_DEFINITIONS": "LIBRARY_VERSION=\\\"12.4.2\\\" LIBRARY_NAME=\\\"flutter-fire-gcs\\\"",
+    "GCC_PREPROCESSOR_DEFINITIONS": "LIBRARY_VERSION=\\\"12.4.4\\\" LIBRARY_NAME=\\\"flutter-fire-gcs\\\"",
     "DEFINES_MODULE": "YES"
   }
 }

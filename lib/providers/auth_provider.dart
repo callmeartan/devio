@@ -25,10 +25,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  void signInOffline() {
-    _authService.signInOffline();
-  }
-
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
