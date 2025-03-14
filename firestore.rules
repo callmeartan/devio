@@ -58,7 +58,8 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidMessage();
       allow update: if false;
       allow delete: if isAuthenticated() && (
-        resource.data.senderId == request.auth.uid
+        resource.data.senderId == request.auth.uid || 
+        request.auth != null // Allow any authenticated user to delete messages for clearing chat history
       );
     }
 
