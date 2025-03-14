@@ -33,6 +33,147 @@ A: Navigate to Settings > AI Providers > Local LLM, then enter the API endpoint 
 **Q: What are the minimum system requirements for local LLM integration?**  
 A: Your device should be on the same network as the machine running the LLM. The specific hardware requirements depend on the LLM you're running locally.
 
+## Comprehensive Guide to Connecting Devio with Ollama
+
+Devio is designed to work seamlessly with Ollama, allowing you to leverage powerful AI models locally. This guide will walk you through the setup process on different operating systems.
+
+### 1. Installing Ollama
+
+#### macOS
+1. Visit [ollama.ai](https://ollama.ai) and download the macOS installer
+2. Open the downloaded file and follow the installation instructions
+3. Once installed, Ollama will be available in your Applications folder and as a menu bar item
+
+#### Windows
+1. Visit [ollama.ai](https://ollama.ai) and download the Windows installer
+2. Run the installer and follow the on-screen instructions
+3. After installation, Ollama will be available in your Start menu
+
+#### Linux
+1. Open a terminal and run the following command:
+   ```bash
+   curl -fsSL https://ollama.ai/install.sh | sh
+   ```
+2. Follow any additional prompts to complete the installation
+
+### 2. Starting Ollama Server
+
+For Devio to connect to Ollama, you need to start the Ollama server with the correct network configuration.
+
+#### macOS
+1. Open Terminal
+2. Run the following command to make Ollama accessible on your network:
+   ```bash
+   OLLAMA_HOST=0.0.0.0:11434 ollama serve
+   ```
+3. Keep this terminal window open while using Devio
+
+#### Windows
+1. Open Command Prompt or PowerShell as Administrator
+2. Run the following command:
+   ```
+   set OLLAMA_HOST=0.0.0.0:11434 && ollama serve
+   ```
+3. Keep this window open while using Devio
+
+#### Linux
+1. Open a terminal
+2. Run the following command:
+   ```bash
+   OLLAMA_HOST=0.0.0.0:11434 ollama serve
+   ```
+3. Keep this terminal window open while using Devio
+
+### 3. Finding Your Computer's IP Address
+
+You'll need your computer's local IP address to connect Devio to Ollama.
+
+#### macOS
+1. Open Terminal
+2. Run the following command:
+   ```bash
+   ifconfig | grep "inet " | grep -v 127.0.0.1
+   ```
+3. Look for an IP address that starts with `192.168.` or `10.` (e.g., `192.168.1.5`)
+
+#### Windows
+1. Open Command Prompt
+2. Run the following command:
+   ```
+   ipconfig
+   ```
+3. Look for the "IPv4 Address" under your active network adapter (usually starts with `192.168.` or `10.`)
+
+#### Linux
+1. Open a terminal
+2. Run the following command:
+   ```bash
+   ip addr show | grep "inet " | grep -v 127.0.0.1
+   ```
+3. Look for an IP address that starts with `192.168.` or `10.`
+
+### 4. Downloading AI Models
+
+Before using Ollama with Devio, you need to download at least one AI model.
+
+1. Open a new terminal or command prompt window (keep the Ollama server running in the original window)
+2. Run one of the following commands to download a model:
+   ```bash
+   # For a smaller, faster model
+   ollama pull mistral
+   
+   # For a more powerful model
+   ollama pull llama3
+   
+   # For a model with image capabilities
+   ollama pull llava
+   ```
+3. Wait for the download to complete (this may take several minutes depending on your internet speed)
+
+### 5. Connecting Devio to Ollama
+
+1. Open the Devio app on your iOS device
+2. Tap on the settings icon or navigate to the AI Assistant screen
+3. Look for the Ollama connection settings (gear icon in the AI chat interface)
+4. Enter your computer's IP address followed by `:11434` (e.g., `192.168.1.5:11434`)
+5. Tap "Test Connection"
+6. If successful, you'll see a confirmation message: "Connected to Ollama v[version]"
+7. Save the connection settings
+
+### 6. Using Ollama with Devio
+
+1. Once connected, you'll see a list of available models in the model selector
+2. Select your preferred model
+3. Start chatting with your locally hosted AI!
+
+### Troubleshooting Connection Issues
+
+If you're having trouble connecting Devio to Ollama, try these solutions:
+
+1. **Connection Refused Error**
+   - Ensure Ollama server is running with `OLLAMA_HOST=0.0.0.0:11434`
+   - Check that both devices are on the same network
+   - Verify no firewall is blocking port 11434
+
+2. **Models Not Showing**
+   - Make sure you've downloaded at least one model using `ollama pull [model_name]`
+   - Restart the Ollama server and reconnect from Devio
+
+3. **Slow Responses**
+   - Some models require significant computational resources
+   - Try using a smaller model like `mistral` or `phi3:mini`
+   - Adjust the context size in advanced settings to a smaller value
+
+4. **Network Restrictions**
+   - Some networks (especially public Wi-Fi) may block the required ports
+   - Try using a personal hotspot or home network instead
+
+5. **Verify Ollama is Running Properly**
+   - In a browser on your computer, visit `http://localhost:11434/api/version`
+   - You should see a JSON response with version information
+
+For additional assistance, please contact our support team.
+
 ### Account & Billing
 
 **Q: Do I need an account to use Devio?**  
