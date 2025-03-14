@@ -1412,6 +1412,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 : Colors.black.withOpacity(0.7)),
       ),
       title: chat['title'] as String,
+      chatId: chatId,
       onTap: () {
         Navigator.pop(context);
         context.read<ChatCubit>().selectChat(chatId);
