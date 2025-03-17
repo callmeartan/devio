@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,208 +10,34 @@ part of 'preferences_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
-PreferencesState _$PreferencesStateFromJson(Map<String, dynamic> json) {
-  return _PreferencesState.fromJson(json);
-}
 
 /// @nodoc
 mixin _$PreferencesState {
-  ThemeMode get themeMode => throw _privateConstructorUsedError;
-  bool get isNotificationsEnabled => throw _privateConstructorUsedError;
-  bool get isPushNotificationsEnabled => throw _privateConstructorUsedError;
-  bool get isEmailNotificationsEnabled => throw _privateConstructorUsedError;
-  bool get isLoading => throw _privateConstructorUsedError;
-  String? get error => throw _privateConstructorUsedError;
-
-  /// Serializes this PreferencesState to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  ThemeMode get themeMode;
+  bool get isNotificationsEnabled;
+  bool get isPushNotificationsEnabled;
+  bool get isEmailNotificationsEnabled;
+  bool get isLoading;
+  String? get error;
 
   /// Create a copy of PreferencesState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
   $PreferencesStateCopyWith<PreferencesState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
+      _$PreferencesStateCopyWithImpl<PreferencesState>(
+          this as PreferencesState, _$identity);
 
-/// @nodoc
-abstract class $PreferencesStateCopyWith<$Res> {
-  factory $PreferencesStateCopyWith(
-          PreferencesState value, $Res Function(PreferencesState) then) =
-      _$PreferencesStateCopyWithImpl<$Res, PreferencesState>;
-  @useResult
-  $Res call(
-      {ThemeMode themeMode,
-      bool isNotificationsEnabled,
-      bool isPushNotificationsEnabled,
-      bool isEmailNotificationsEnabled,
-      bool isLoading,
-      String? error});
-}
-
-/// @nodoc
-class _$PreferencesStateCopyWithImpl<$Res, $Val extends PreferencesState>
-    implements $PreferencesStateCopyWith<$Res> {
-  _$PreferencesStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of PreferencesState
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? themeMode = null,
-    Object? isNotificationsEnabled = null,
-    Object? isPushNotificationsEnabled = null,
-    Object? isEmailNotificationsEnabled = null,
-    Object? isLoading = null,
-    Object? error = freezed,
-  }) {
-    return _then(_value.copyWith(
-      themeMode: null == themeMode
-          ? _value.themeMode
-          : themeMode // ignore: cast_nullable_to_non_nullable
-              as ThemeMode,
-      isNotificationsEnabled: null == isNotificationsEnabled
-          ? _value.isNotificationsEnabled
-          : isNotificationsEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isPushNotificationsEnabled: null == isPushNotificationsEnabled
-          ? _value.isPushNotificationsEnabled
-          : isPushNotificationsEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isEmailNotificationsEnabled: null == isEmailNotificationsEnabled
-          ? _value.isEmailNotificationsEnabled
-          : isEmailNotificationsEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isLoading: null == isLoading
-          ? _value.isLoading
-          : isLoading // ignore: cast_nullable_to_non_nullable
-              as bool,
-      error: freezed == error
-          ? _value.error
-          : error // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$PreferencesStateImplCopyWith<$Res>
-    implements $PreferencesStateCopyWith<$Res> {
-  factory _$$PreferencesStateImplCopyWith(_$PreferencesStateImpl value,
-          $Res Function(_$PreferencesStateImpl) then) =
-      __$$PreferencesStateImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {ThemeMode themeMode,
-      bool isNotificationsEnabled,
-      bool isPushNotificationsEnabled,
-      bool isEmailNotificationsEnabled,
-      bool isLoading,
-      String? error});
-}
-
-/// @nodoc
-class __$$PreferencesStateImplCopyWithImpl<$Res>
-    extends _$PreferencesStateCopyWithImpl<$Res, _$PreferencesStateImpl>
-    implements _$$PreferencesStateImplCopyWith<$Res> {
-  __$$PreferencesStateImplCopyWithImpl(_$PreferencesStateImpl _value,
-      $Res Function(_$PreferencesStateImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of PreferencesState
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? themeMode = null,
-    Object? isNotificationsEnabled = null,
-    Object? isPushNotificationsEnabled = null,
-    Object? isEmailNotificationsEnabled = null,
-    Object? isLoading = null,
-    Object? error = freezed,
-  }) {
-    return _then(_$PreferencesStateImpl(
-      themeMode: null == themeMode
-          ? _value.themeMode
-          : themeMode // ignore: cast_nullable_to_non_nullable
-              as ThemeMode,
-      isNotificationsEnabled: null == isNotificationsEnabled
-          ? _value.isNotificationsEnabled
-          : isNotificationsEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isPushNotificationsEnabled: null == isPushNotificationsEnabled
-          ? _value.isPushNotificationsEnabled
-          : isPushNotificationsEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isEmailNotificationsEnabled: null == isEmailNotificationsEnabled
-          ? _value.isEmailNotificationsEnabled
-          : isEmailNotificationsEnabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isLoading: null == isLoading
-          ? _value.isLoading
-          : isLoading // ignore: cast_nullable_to_non_nullable
-              as bool,
-      error: freezed == error
-          ? _value.error
-          : error // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
-  }
-}
-
-/// @nodoc
-@JsonSerializable()
-class _$PreferencesStateImpl implements _PreferencesState {
-  const _$PreferencesStateImpl(
-      {this.themeMode = ThemeMode.system,
-      this.isNotificationsEnabled = true,
-      this.isPushNotificationsEnabled = true,
-      this.isEmailNotificationsEnabled = true,
-      this.isLoading = false,
-      this.error});
-
-  factory _$PreferencesStateImpl.fromJson(Map<String, dynamic> json) =>
-      _$$PreferencesStateImplFromJson(json);
-
-  @override
-  @JsonKey()
-  final ThemeMode themeMode;
-  @override
-  @JsonKey()
-  final bool isNotificationsEnabled;
-  @override
-  @JsonKey()
-  final bool isPushNotificationsEnabled;
-  @override
-  @JsonKey()
-  final bool isEmailNotificationsEnabled;
-  @override
-  @JsonKey()
-  final bool isLoading;
-  @override
-  final String? error;
-
-  @override
-  String toString() {
-    return 'PreferencesState(themeMode: $themeMode, isNotificationsEnabled: $isNotificationsEnabled, isPushNotificationsEnabled: $isPushNotificationsEnabled, isEmailNotificationsEnabled: $isEmailNotificationsEnabled, isLoading: $isLoading, error: $error)';
-  }
+  /// Serializes this PreferencesState to a JSON map.
+  Map<String, dynamic> toJson();
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$PreferencesStateImpl &&
+            other is PreferencesState &&
             (identical(other.themeMode, themeMode) ||
                 other.themeMode == themeMode) &&
             (identical(other.isNotificationsEnabled, isNotificationsEnabled) ||
@@ -239,52 +66,225 @@ class _$PreferencesStateImpl implements _PreferencesState {
       isLoading,
       error);
 
-  /// Create a copy of PreferencesState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  @pragma('vm:prefer-inline')
-  _$$PreferencesStateImplCopyWith<_$PreferencesStateImpl> get copyWith =>
-      __$$PreferencesStateImplCopyWithImpl<_$PreferencesStateImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$PreferencesStateImplToJson(
-      this,
-    );
+  String toString() {
+    return 'PreferencesState(themeMode: $themeMode, isNotificationsEnabled: $isNotificationsEnabled, isPushNotificationsEnabled: $isPushNotificationsEnabled, isEmailNotificationsEnabled: $isEmailNotificationsEnabled, isLoading: $isLoading, error: $error)';
   }
 }
 
-abstract class _PreferencesState implements PreferencesState {
-  const factory _PreferencesState(
-      {final ThemeMode themeMode,
-      final bool isNotificationsEnabled,
-      final bool isPushNotificationsEnabled,
-      final bool isEmailNotificationsEnabled,
-      final bool isLoading,
-      final String? error}) = _$PreferencesStateImpl;
+/// @nodoc
+abstract mixin class $PreferencesStateCopyWith<$Res> {
+  factory $PreferencesStateCopyWith(
+          PreferencesState value, $Res Function(PreferencesState) _then) =
+      _$PreferencesStateCopyWithImpl;
+  @useResult
+  $Res call(
+      {ThemeMode themeMode,
+      bool isNotificationsEnabled,
+      bool isPushNotificationsEnabled,
+      bool isEmailNotificationsEnabled,
+      bool isLoading,
+      String? error});
+}
 
-  factory _PreferencesState.fromJson(Map<String, dynamic> json) =
-      _$PreferencesStateImpl.fromJson;
+/// @nodoc
+class _$PreferencesStateCopyWithImpl<$Res>
+    implements $PreferencesStateCopyWith<$Res> {
+  _$PreferencesStateCopyWithImpl(this._self, this._then);
+
+  final PreferencesState _self;
+  final $Res Function(PreferencesState) _then;
+
+  /// Create a copy of PreferencesState
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? themeMode = null,
+    Object? isNotificationsEnabled = null,
+    Object? isPushNotificationsEnabled = null,
+    Object? isEmailNotificationsEnabled = null,
+    Object? isLoading = null,
+    Object? error = freezed,
+  }) {
+    return _then(_self.copyWith(
+      themeMode: null == themeMode
+          ? _self.themeMode
+          : themeMode // ignore: cast_nullable_to_non_nullable
+              as ThemeMode,
+      isNotificationsEnabled: null == isNotificationsEnabled
+          ? _self.isNotificationsEnabled
+          : isNotificationsEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isPushNotificationsEnabled: null == isPushNotificationsEnabled
+          ? _self.isPushNotificationsEnabled
+          : isPushNotificationsEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isEmailNotificationsEnabled: null == isEmailNotificationsEnabled
+          ? _self.isEmailNotificationsEnabled
+          : isEmailNotificationsEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      error: freezed == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _PreferencesState implements PreferencesState {
+  const _PreferencesState(
+      {this.themeMode = ThemeMode.dark,
+      this.isNotificationsEnabled = true,
+      this.isPushNotificationsEnabled = true,
+      this.isEmailNotificationsEnabled = true,
+      this.isLoading = false,
+      this.error});
+  factory _PreferencesState.fromJson(Map<String, dynamic> json) =>
+      _$PreferencesStateFromJson(json);
 
   @override
-  ThemeMode get themeMode;
+  @JsonKey()
+  final ThemeMode themeMode;
   @override
-  bool get isNotificationsEnabled;
+  @JsonKey()
+  final bool isNotificationsEnabled;
   @override
-  bool get isPushNotificationsEnabled;
+  @JsonKey()
+  final bool isPushNotificationsEnabled;
   @override
-  bool get isEmailNotificationsEnabled;
+  @JsonKey()
+  final bool isEmailNotificationsEnabled;
   @override
-  bool get isLoading;
+  @JsonKey()
+  final bool isLoading;
   @override
-  String? get error;
+  final String? error;
 
   /// Create a copy of PreferencesState
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$PreferencesStateImplCopyWith<_$PreferencesStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  @pragma('vm:prefer-inline')
+  _$PreferencesStateCopyWith<_PreferencesState> get copyWith =>
+      __$PreferencesStateCopyWithImpl<_PreferencesState>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$PreferencesStateToJson(
+      this,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _PreferencesState &&
+            (identical(other.themeMode, themeMode) ||
+                other.themeMode == themeMode) &&
+            (identical(other.isNotificationsEnabled, isNotificationsEnabled) ||
+                other.isNotificationsEnabled == isNotificationsEnabled) &&
+            (identical(other.isPushNotificationsEnabled,
+                    isPushNotificationsEnabled) ||
+                other.isPushNotificationsEnabled ==
+                    isPushNotificationsEnabled) &&
+            (identical(other.isEmailNotificationsEnabled,
+                    isEmailNotificationsEnabled) ||
+                other.isEmailNotificationsEnabled ==
+                    isEmailNotificationsEnabled) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
+            (identical(other.error, error) || other.error == error));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      themeMode,
+      isNotificationsEnabled,
+      isPushNotificationsEnabled,
+      isEmailNotificationsEnabled,
+      isLoading,
+      error);
+
+  @override
+  String toString() {
+    return 'PreferencesState(themeMode: $themeMode, isNotificationsEnabled: $isNotificationsEnabled, isPushNotificationsEnabled: $isPushNotificationsEnabled, isEmailNotificationsEnabled: $isEmailNotificationsEnabled, isLoading: $isLoading, error: $error)';
+  }
 }
+
+/// @nodoc
+abstract mixin class _$PreferencesStateCopyWith<$Res>
+    implements $PreferencesStateCopyWith<$Res> {
+  factory _$PreferencesStateCopyWith(
+          _PreferencesState value, $Res Function(_PreferencesState) _then) =
+      __$PreferencesStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {ThemeMode themeMode,
+      bool isNotificationsEnabled,
+      bool isPushNotificationsEnabled,
+      bool isEmailNotificationsEnabled,
+      bool isLoading,
+      String? error});
+}
+
+/// @nodoc
+class __$PreferencesStateCopyWithImpl<$Res>
+    implements _$PreferencesStateCopyWith<$Res> {
+  __$PreferencesStateCopyWithImpl(this._self, this._then);
+
+  final _PreferencesState _self;
+  final $Res Function(_PreferencesState) _then;
+
+  /// Create a copy of PreferencesState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? themeMode = null,
+    Object? isNotificationsEnabled = null,
+    Object? isPushNotificationsEnabled = null,
+    Object? isEmailNotificationsEnabled = null,
+    Object? isLoading = null,
+    Object? error = freezed,
+  }) {
+    return _then(_PreferencesState(
+      themeMode: null == themeMode
+          ? _self.themeMode
+          : themeMode // ignore: cast_nullable_to_non_nullable
+              as ThemeMode,
+      isNotificationsEnabled: null == isNotificationsEnabled
+          ? _self.isNotificationsEnabled
+          : isNotificationsEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isPushNotificationsEnabled: null == isPushNotificationsEnabled
+          ? _self.isPushNotificationsEnabled
+          : isPushNotificationsEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isEmailNotificationsEnabled: null == isEmailNotificationsEnabled
+          ? _self.isEmailNotificationsEnabled
+          : isEmailNotificationsEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      error: freezed == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+// dart format on

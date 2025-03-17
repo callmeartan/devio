@@ -6,8 +6,7 @@ part of 'chat_message.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ChatMessageImpl _$$ChatMessageImplFromJson(Map<String, dynamic> json) =>
-    _$ChatMessageImpl(
+_ChatMessage _$ChatMessageFromJson(Map<String, dynamic> json) => _ChatMessage(
       id: json['id'] as String,
       chatId: json['chatId'] as String,
       senderId: json['senderId'] as String,
@@ -26,7 +25,7 @@ _$ChatMessageImpl _$$ChatMessageImplFromJson(Map<String, dynamic> json) =>
       isPlaceholder: json['isPlaceholder'] as bool? ?? false,
     );
 
-Map<String, dynamic> _$$ChatMessageImplToJson(_$ChatMessageImpl instance) =>
+Map<String, dynamic> _$ChatMessageToJson(_ChatMessage instance) =>
     <String, dynamic>{
       'id': instance.id,
       'chatId': instance.chatId,

@@ -6,8 +6,7 @@ part of 'llm_response.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$LlmResponseImpl _$$LlmResponseImplFromJson(Map<String, dynamic> json) =>
-    _$LlmResponseImpl(
+_LlmResponse _$LlmResponseFromJson(Map<String, dynamic> json) => _LlmResponse(
       text: json['text'] as String,
       isError: json['isError'] as bool? ?? false,
       errorMessage: json['errorMessage'] as String?,
@@ -24,7 +23,7 @@ _$LlmResponseImpl _$$LlmResponseImplFromJson(Map<String, dynamic> json) =>
       totalTokens: (json['total_tokens'] as num?)?.toInt(),
     );
 
-Map<String, dynamic> _$$LlmResponseImplToJson(_$LlmResponseImpl instance) =>
+Map<String, dynamic> _$LlmResponseToJson(_LlmResponse instance) =>
     <String, dynamic>{
       'text': instance.text,
       'isError': instance.isError,

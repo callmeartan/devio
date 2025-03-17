@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,351 +10,108 @@ part of 'llm_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
 mixin _$LlmState {
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() initial,
-    required TResult Function() loading,
-    required TResult Function(LlmResponse response) success,
-    required TResult Function(String message) error,
-    required TResult Function(String fromModel, String toModel, int attempt)
-        modelSwitching,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? initial,
-    TResult? Function()? loading,
-    TResult? Function(LlmResponse response)? success,
-    TResult? Function(String message)? error,
-    TResult? Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? initial,
-    TResult Function()? loading,
-    TResult Function(LlmResponse response)? success,
-    TResult Function(String message)? error,
-    TResult Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(_Initial value) initial,
-    required TResult Function(_Loading value) loading,
-    required TResult Function(_Success value) success,
-    required TResult Function(_Error value) error,
-    required TResult Function(_ModelSwitching value) modelSwitching,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(_Initial value)? initial,
-    TResult? Function(_Loading value)? loading,
-    TResult? Function(_Success value)? success,
-    TResult? Function(_Error value)? error,
-    TResult? Function(_ModelSwitching value)? modelSwitching,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(_Initial value)? initial,
-    TResult Function(_Loading value)? loading,
-    TResult Function(_Success value)? success,
-    TResult Function(_Error value)? error,
-    TResult Function(_ModelSwitching value)? modelSwitching,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is LlmState);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  String toString() {
+    return 'LlmState()';
+  }
 }
 
 /// @nodoc
-abstract class $LlmStateCopyWith<$Res> {
-  factory $LlmStateCopyWith(LlmState value, $Res Function(LlmState) then) =
-      _$LlmStateCopyWithImpl<$Res, LlmState>;
-}
-
-/// @nodoc
-class _$LlmStateCopyWithImpl<$Res, $Val extends LlmState>
-    implements $LlmStateCopyWith<$Res> {
-  _$LlmStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of LlmState
-  /// with the given fields replaced by the non-null parameter values.
-}
-
-/// @nodoc
-abstract class _$$InitialImplCopyWith<$Res> {
-  factory _$$InitialImplCopyWith(
-          _$InitialImpl value, $Res Function(_$InitialImpl) then) =
-      __$$InitialImplCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$InitialImplCopyWithImpl<$Res>
-    extends _$LlmStateCopyWithImpl<$Res, _$InitialImpl>
-    implements _$$InitialImplCopyWith<$Res> {
-  __$$InitialImplCopyWithImpl(
-      _$InitialImpl _value, $Res Function(_$InitialImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of LlmState
-  /// with the given fields replaced by the non-null parameter values.
+class $LlmStateCopyWith<$Res> {
+  $LlmStateCopyWith(LlmState _, $Res Function(LlmState) __);
 }
 
 /// @nodoc
 
-class _$InitialImpl implements _Initial {
-  const _$InitialImpl();
+class _Initial implements LlmState {
+  const _Initial();
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _Initial);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
 
   @override
   String toString() {
     return 'LlmState.initial()';
   }
+}
+
+/// @nodoc
+
+class _Loading implements LlmState {
+  const _Loading();
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$InitialImpl);
+        (other.runtimeType == runtimeType && other is _Loading);
   }
 
   @override
   int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() initial,
-    required TResult Function() loading,
-    required TResult Function(LlmResponse response) success,
-    required TResult Function(String message) error,
-    required TResult Function(String fromModel, String toModel, int attempt)
-        modelSwitching,
-  }) {
-    return initial();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? initial,
-    TResult? Function()? loading,
-    TResult? Function(LlmResponse response)? success,
-    TResult? Function(String message)? error,
-    TResult? Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-  }) {
-    return initial?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? initial,
-    TResult Function()? loading,
-    TResult Function(LlmResponse response)? success,
-    TResult Function(String message)? error,
-    TResult Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (initial != null) {
-      return initial();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(_Initial value) initial,
-    required TResult Function(_Loading value) loading,
-    required TResult Function(_Success value) success,
-    required TResult Function(_Error value) error,
-    required TResult Function(_ModelSwitching value) modelSwitching,
-  }) {
-    return initial(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(_Initial value)? initial,
-    TResult? Function(_Loading value)? loading,
-    TResult? Function(_Success value)? success,
-    TResult? Function(_Error value)? error,
-    TResult? Function(_ModelSwitching value)? modelSwitching,
-  }) {
-    return initial?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(_Initial value)? initial,
-    TResult Function(_Loading value)? loading,
-    TResult Function(_Success value)? success,
-    TResult Function(_Error value)? error,
-    TResult Function(_ModelSwitching value)? modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (initial != null) {
-      return initial(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class _Initial implements LlmState {
-  const factory _Initial() = _$InitialImpl;
-}
-
-/// @nodoc
-abstract class _$$LoadingImplCopyWith<$Res> {
-  factory _$$LoadingImplCopyWith(
-          _$LoadingImpl value, $Res Function(_$LoadingImpl) then) =
-      __$$LoadingImplCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$LoadingImplCopyWithImpl<$Res>
-    extends _$LlmStateCopyWithImpl<$Res, _$LoadingImpl>
-    implements _$$LoadingImplCopyWith<$Res> {
-  __$$LoadingImplCopyWithImpl(
-      _$LoadingImpl _value, $Res Function(_$LoadingImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of LlmState
-  /// with the given fields replaced by the non-null parameter values.
-}
-
-/// @nodoc
-
-class _$LoadingImpl implements _Loading {
-  const _$LoadingImpl();
 
   @override
   String toString() {
     return 'LlmState.loading()';
   }
+}
+
+/// @nodoc
+
+class _Success implements LlmState {
+  const _Success(this.response);
+
+  final LlmResponse response;
+
+  /// Create a copy of LlmState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$SuccessCopyWith<_Success> get copyWith =>
+      __$SuccessCopyWithImpl<_Success>(this, _$identity);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$LoadingImpl);
+        (other.runtimeType == runtimeType &&
+            other is _Success &&
+            (identical(other.response, response) ||
+                other.response == response));
   }
 
   @override
-  int get hashCode => runtimeType.hashCode;
+  int get hashCode => Object.hash(runtimeType, response);
 
   @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() initial,
-    required TResult Function() loading,
-    required TResult Function(LlmResponse response) success,
-    required TResult Function(String message) error,
-    required TResult Function(String fromModel, String toModel, int attempt)
-        modelSwitching,
-  }) {
-    return loading();
+  String toString() {
+    return 'LlmState.success(response: $response)';
   }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? initial,
-    TResult? Function()? loading,
-    TResult? Function(LlmResponse response)? success,
-    TResult? Function(String message)? error,
-    TResult? Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-  }) {
-    return loading?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? initial,
-    TResult Function()? loading,
-    TResult Function(LlmResponse response)? success,
-    TResult Function(String message)? error,
-    TResult Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (loading != null) {
-      return loading();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(_Initial value) initial,
-    required TResult Function(_Loading value) loading,
-    required TResult Function(_Success value) success,
-    required TResult Function(_Error value) error,
-    required TResult Function(_ModelSwitching value) modelSwitching,
-  }) {
-    return loading(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(_Initial value)? initial,
-    TResult? Function(_Loading value)? loading,
-    TResult? Function(_Success value)? success,
-    TResult? Function(_Error value)? error,
-    TResult? Function(_ModelSwitching value)? modelSwitching,
-  }) {
-    return loading?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(_Initial value)? initial,
-    TResult Function(_Loading value)? loading,
-    TResult Function(_Success value)? success,
-    TResult Function(_Error value)? error,
-    TResult Function(_ModelSwitching value)? modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (loading != null) {
-      return loading(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class _Loading implements LlmState {
-  const factory _Loading() = _$LoadingImpl;
 }
 
 /// @nodoc
-abstract class _$$SuccessImplCopyWith<$Res> {
-  factory _$$SuccessImplCopyWith(
-          _$SuccessImpl value, $Res Function(_$SuccessImpl) then) =
-      __$$SuccessImplCopyWithImpl<$Res>;
+abstract mixin class _$SuccessCopyWith<$Res>
+    implements $LlmStateCopyWith<$Res> {
+  factory _$SuccessCopyWith(_Success value, $Res Function(_Success) _then) =
+      __$SuccessCopyWithImpl;
   @useResult
   $Res call({LlmResponse response});
 
@@ -361,23 +119,21 @@ abstract class _$$SuccessImplCopyWith<$Res> {
 }
 
 /// @nodoc
-class __$$SuccessImplCopyWithImpl<$Res>
-    extends _$LlmStateCopyWithImpl<$Res, _$SuccessImpl>
-    implements _$$SuccessImplCopyWith<$Res> {
-  __$$SuccessImplCopyWithImpl(
-      _$SuccessImpl _value, $Res Function(_$SuccessImpl) _then)
-      : super(_value, _then);
+class __$SuccessCopyWithImpl<$Res> implements _$SuccessCopyWith<$Res> {
+  __$SuccessCopyWithImpl(this._self, this._then);
+
+  final _Success _self;
+  final $Res Function(_Success) _then;
 
   /// Create a copy of LlmState
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
-  @override
   $Res call({
     Object? response = null,
   }) {
-    return _then(_$SuccessImpl(
+    return _then(_Success(
       null == response
-          ? _value.response
+          ? _self.response
           : response // ignore: cast_nullable_to_non_nullable
               as LlmResponse,
     ));
@@ -388,168 +144,67 @@ class __$$SuccessImplCopyWithImpl<$Res>
   @override
   @pragma('vm:prefer-inline')
   $LlmResponseCopyWith<$Res> get response {
-    return $LlmResponseCopyWith<$Res>(_value.response, (value) {
-      return _then(_value.copyWith(response: value));
+    return $LlmResponseCopyWith<$Res>(_self.response, (value) {
+      return _then(_self.copyWith(response: value));
     });
   }
 }
 
 /// @nodoc
 
-class _$SuccessImpl implements _Success {
-  const _$SuccessImpl(this.response);
+class _Error implements LlmState {
+  const _Error(this.message);
 
-  @override
-  final LlmResponse response;
+  final String message;
 
-  @override
-  String toString() {
-    return 'LlmState.success(response: $response)';
-  }
+  /// Create a copy of LlmState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$ErrorCopyWith<_Error> get copyWith =>
+      __$ErrorCopyWithImpl<_Error>(this, _$identity);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$SuccessImpl &&
-            (identical(other.response, response) ||
-                other.response == response));
+            other is _Error &&
+            (identical(other.message, message) || other.message == message));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, response);
-
-  /// Create a copy of LlmState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$SuccessImplCopyWith<_$SuccessImpl> get copyWith =>
-      __$$SuccessImplCopyWithImpl<_$SuccessImpl>(this, _$identity);
+  int get hashCode => Object.hash(runtimeType, message);
 
   @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() initial,
-    required TResult Function() loading,
-    required TResult Function(LlmResponse response) success,
-    required TResult Function(String message) error,
-    required TResult Function(String fromModel, String toModel, int attempt)
-        modelSwitching,
-  }) {
-    return success(response);
+  String toString() {
+    return 'LlmState.error(message: $message)';
   }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? initial,
-    TResult? Function()? loading,
-    TResult? Function(LlmResponse response)? success,
-    TResult? Function(String message)? error,
-    TResult? Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-  }) {
-    return success?.call(response);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? initial,
-    TResult Function()? loading,
-    TResult Function(LlmResponse response)? success,
-    TResult Function(String message)? error,
-    TResult Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (success != null) {
-      return success(response);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(_Initial value) initial,
-    required TResult Function(_Loading value) loading,
-    required TResult Function(_Success value) success,
-    required TResult Function(_Error value) error,
-    required TResult Function(_ModelSwitching value) modelSwitching,
-  }) {
-    return success(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(_Initial value)? initial,
-    TResult? Function(_Loading value)? loading,
-    TResult? Function(_Success value)? success,
-    TResult? Function(_Error value)? error,
-    TResult? Function(_ModelSwitching value)? modelSwitching,
-  }) {
-    return success?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(_Initial value)? initial,
-    TResult Function(_Loading value)? loading,
-    TResult Function(_Success value)? success,
-    TResult Function(_Error value)? error,
-    TResult Function(_ModelSwitching value)? modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (success != null) {
-      return success(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class _Success implements LlmState {
-  const factory _Success(final LlmResponse response) = _$SuccessImpl;
-
-  LlmResponse get response;
-
-  /// Create a copy of LlmState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$SuccessImplCopyWith<_$SuccessImpl> get copyWith =>
-      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$ErrorImplCopyWith<$Res> {
-  factory _$$ErrorImplCopyWith(
-          _$ErrorImpl value, $Res Function(_$ErrorImpl) then) =
-      __$$ErrorImplCopyWithImpl<$Res>;
+abstract mixin class _$ErrorCopyWith<$Res> implements $LlmStateCopyWith<$Res> {
+  factory _$ErrorCopyWith(_Error value, $Res Function(_Error) _then) =
+      __$ErrorCopyWithImpl;
   @useResult
   $Res call({String message});
 }
 
 /// @nodoc
-class __$$ErrorImplCopyWithImpl<$Res>
-    extends _$LlmStateCopyWithImpl<$Res, _$ErrorImpl>
-    implements _$$ErrorImplCopyWith<$Res> {
-  __$$ErrorImplCopyWithImpl(
-      _$ErrorImpl _value, $Res Function(_$ErrorImpl) _then)
-      : super(_value, _then);
+class __$ErrorCopyWithImpl<$Res> implements _$ErrorCopyWith<$Res> {
+  __$ErrorCopyWithImpl(this._self, this._then);
+
+  final _Error _self;
+  final $Res Function(_Error) _then;
 
   /// Create a copy of LlmState
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
-  @override
   $Res call({
     Object? message = null,
   }) {
-    return _then(_$ErrorImpl(
+    return _then(_Error(
       null == message
-          ? _value.message
+          ? _self.message
           : message // ignore: cast_nullable_to_non_nullable
               as String,
     ));
@@ -558,198 +213,26 @@ class __$$ErrorImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$ErrorImpl implements _Error {
-  const _$ErrorImpl(this.message);
-
-  @override
-  final String message;
-
-  @override
-  String toString() {
-    return 'LlmState.error(message: $message)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ErrorImpl &&
-            (identical(other.message, message) || other.message == message));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, message);
-
-  /// Create a copy of LlmState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ErrorImplCopyWith<_$ErrorImpl> get copyWith =>
-      __$$ErrorImplCopyWithImpl<_$ErrorImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() initial,
-    required TResult Function() loading,
-    required TResult Function(LlmResponse response) success,
-    required TResult Function(String message) error,
-    required TResult Function(String fromModel, String toModel, int attempt)
-        modelSwitching,
-  }) {
-    return error(message);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? initial,
-    TResult? Function()? loading,
-    TResult? Function(LlmResponse response)? success,
-    TResult? Function(String message)? error,
-    TResult? Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-  }) {
-    return error?.call(message);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? initial,
-    TResult Function()? loading,
-    TResult Function(LlmResponse response)? success,
-    TResult Function(String message)? error,
-    TResult Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (error != null) {
-      return error(message);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(_Initial value) initial,
-    required TResult Function(_Loading value) loading,
-    required TResult Function(_Success value) success,
-    required TResult Function(_Error value) error,
-    required TResult Function(_ModelSwitching value) modelSwitching,
-  }) {
-    return error(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(_Initial value)? initial,
-    TResult? Function(_Loading value)? loading,
-    TResult? Function(_Success value)? success,
-    TResult? Function(_Error value)? error,
-    TResult? Function(_ModelSwitching value)? modelSwitching,
-  }) {
-    return error?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(_Initial value)? initial,
-    TResult Function(_Loading value)? loading,
-    TResult Function(_Success value)? success,
-    TResult Function(_Error value)? error,
-    TResult Function(_ModelSwitching value)? modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (error != null) {
-      return error(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class _Error implements LlmState {
-  const factory _Error(final String message) = _$ErrorImpl;
-
-  String get message;
-
-  /// Create a copy of LlmState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ErrorImplCopyWith<_$ErrorImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$ModelSwitchingImplCopyWith<$Res> {
-  factory _$$ModelSwitchingImplCopyWith(_$ModelSwitchingImpl value,
-          $Res Function(_$ModelSwitchingImpl) then) =
-      __$$ModelSwitchingImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({String fromModel, String toModel, int attempt});
-}
-
-/// @nodoc
-class __$$ModelSwitchingImplCopyWithImpl<$Res>
-    extends _$LlmStateCopyWithImpl<$Res, _$ModelSwitchingImpl>
-    implements _$$ModelSwitchingImplCopyWith<$Res> {
-  __$$ModelSwitchingImplCopyWithImpl(
-      _$ModelSwitchingImpl _value, $Res Function(_$ModelSwitchingImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of LlmState
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? fromModel = null,
-    Object? toModel = null,
-    Object? attempt = null,
-  }) {
-    return _then(_$ModelSwitchingImpl(
-      fromModel: null == fromModel
-          ? _value.fromModel
-          : fromModel // ignore: cast_nullable_to_non_nullable
-              as String,
-      toModel: null == toModel
-          ? _value.toModel
-          : toModel // ignore: cast_nullable_to_non_nullable
-              as String,
-      attempt: null == attempt
-          ? _value.attempt
-          : attempt // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$ModelSwitchingImpl implements _ModelSwitching {
-  const _$ModelSwitchingImpl(
+class _ModelSwitching implements LlmState {
+  const _ModelSwitching(
       {required this.fromModel, required this.toModel, required this.attempt});
 
-  @override
   final String fromModel;
-  @override
   final String toModel;
-  @override
   final int attempt;
 
-  @override
-  String toString() {
-    return 'LlmState.modelSwitching(fromModel: $fromModel, toModel: $toModel, attempt: $attempt)';
-  }
+  /// Create a copy of LlmState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$ModelSwitchingCopyWith<_ModelSwitching> get copyWith =>
+      __$ModelSwitchingCopyWithImpl<_ModelSwitching>(this, _$identity);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ModelSwitchingImpl &&
+            other is _ModelSwitching &&
             (identical(other.fromModel, fromModel) ||
                 other.fromModel == fromModel) &&
             (identical(other.toModel, toModel) || other.toModel == toModel) &&
@@ -759,112 +242,53 @@ class _$ModelSwitchingImpl implements _ModelSwitching {
   @override
   int get hashCode => Object.hash(runtimeType, fromModel, toModel, attempt);
 
+  @override
+  String toString() {
+    return 'LlmState.modelSwitching(fromModel: $fromModel, toModel: $toModel, attempt: $attempt)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$ModelSwitchingCopyWith<$Res>
+    implements $LlmStateCopyWith<$Res> {
+  factory _$ModelSwitchingCopyWith(
+          _ModelSwitching value, $Res Function(_ModelSwitching) _then) =
+      __$ModelSwitchingCopyWithImpl;
+  @useResult
+  $Res call({String fromModel, String toModel, int attempt});
+}
+
+/// @nodoc
+class __$ModelSwitchingCopyWithImpl<$Res>
+    implements _$ModelSwitchingCopyWith<$Res> {
+  __$ModelSwitchingCopyWithImpl(this._self, this._then);
+
+  final _ModelSwitching _self;
+  final $Res Function(_ModelSwitching) _then;
+
   /// Create a copy of LlmState
   /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
   @pragma('vm:prefer-inline')
-  _$$ModelSwitchingImplCopyWith<_$ModelSwitchingImpl> get copyWith =>
-      __$$ModelSwitchingImplCopyWithImpl<_$ModelSwitchingImpl>(
-          this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() initial,
-    required TResult Function() loading,
-    required TResult Function(LlmResponse response) success,
-    required TResult Function(String message) error,
-    required TResult Function(String fromModel, String toModel, int attempt)
-        modelSwitching,
+  $Res call({
+    Object? fromModel = null,
+    Object? toModel = null,
+    Object? attempt = null,
   }) {
-    return modelSwitching(fromModel, toModel, attempt);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? initial,
-    TResult? Function()? loading,
-    TResult? Function(LlmResponse response)? success,
-    TResult? Function(String message)? error,
-    TResult? Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-  }) {
-    return modelSwitching?.call(fromModel, toModel, attempt);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? initial,
-    TResult Function()? loading,
-    TResult Function(LlmResponse response)? success,
-    TResult Function(String message)? error,
-    TResult Function(String fromModel, String toModel, int attempt)?
-        modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (modelSwitching != null) {
-      return modelSwitching(fromModel, toModel, attempt);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(_Initial value) initial,
-    required TResult Function(_Loading value) loading,
-    required TResult Function(_Success value) success,
-    required TResult Function(_Error value) error,
-    required TResult Function(_ModelSwitching value) modelSwitching,
-  }) {
-    return modelSwitching(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(_Initial value)? initial,
-    TResult? Function(_Loading value)? loading,
-    TResult? Function(_Success value)? success,
-    TResult? Function(_Error value)? error,
-    TResult? Function(_ModelSwitching value)? modelSwitching,
-  }) {
-    return modelSwitching?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(_Initial value)? initial,
-    TResult Function(_Loading value)? loading,
-    TResult Function(_Success value)? success,
-    TResult Function(_Error value)? error,
-    TResult Function(_ModelSwitching value)? modelSwitching,
-    required TResult orElse(),
-  }) {
-    if (modelSwitching != null) {
-      return modelSwitching(this);
-    }
-    return orElse();
+    return _then(_ModelSwitching(
+      fromModel: null == fromModel
+          ? _self.fromModel
+          : fromModel // ignore: cast_nullable_to_non_nullable
+              as String,
+      toModel: null == toModel
+          ? _self.toModel
+          : toModel // ignore: cast_nullable_to_non_nullable
+              as String,
+      attempt: null == attempt
+          ? _self.attempt
+          : attempt // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
   }
 }
 
-abstract class _ModelSwitching implements LlmState {
-  const factory _ModelSwitching(
-      {required final String fromModel,
-      required final String toModel,
-      required final int attempt}) = _$ModelSwitchingImpl;
-
-  String get fromModel;
-  String get toModel;
-  int get attempt;
-
-  /// Create a copy of LlmState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ModelSwitchingImplCopyWith<_$ModelSwitchingImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
+// dart format on
