@@ -1,29 +1,37 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+import '../blocs/auth/auth_cubit.dart';
+import '../constants/assets.dart';
+import '../cubits/chat/chat_cubit.dart';
+import '../cubits/chat/chat_state.dart';
 import '../features/llm/cubit/llm_cubit.dart';
 import '../features/llm/cubit/llm_state.dart';
 import '../features/llm/models/llm_response.dart';
-import 'package:go_router/go_router.dart';
-import '../blocs/auth/auth_cubit.dart';
-import '../cubits/chat/chat_cubit.dart';
-import '../cubits/chat/chat_state.dart';
-import '../widgets/drawer_menu_item.dart';
-import '../widgets/simple_drawer_menu_item.dart' as simple;
-import '../constants/assets.dart';
-import 'dart:developer' as developer;
-import 'package:image_picker/image_picker.dart';
-import 'dart:typed_data';
-import 'package:path/path.dart' as path;
-import 'dart:io';
+import '../models/chat_message.dart';
+import '../services/demo_response_service.dart';
+import '../widgets/chat_input_field.dart';
 import '../widgets/chat_message_widget.dart';
+import '../widgets/compact_model_indicator.dart';
+import '../widgets/connection_status_banner.dart';
+import '../widgets/demo_mode_banner.dart';
+import '../widgets/drawer_menu_item.dart';
 import '../widgets/loading_animation.dart';
 import '../widgets/model_selection_ui.dart';
-import '../widgets/chat_input_field.dart';
 import '../widgets/performance_metrics.dart';
-import '../widgets/compact_model_indicator.dart';
+import '../widgets/setup_required_view.dart';
+import '../widgets/simple_drawer_menu_item.dart' as simple;
 import '../widgets/typing_indicator.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 const String _kAiUserName = 'AI Assistant';
 
@@ -94,6 +102,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   bool _isLoadingModels = false;
   bool _showModelSelection = false;
 
+  // Connection status variables
+  bool _hasConnectionError = false;
+  String? _connectionErrorMessage;
+  bool _isDemoMode = false;
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +117,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     // Start a new chat immediately
     context.read<ChatCubit>().startNewChat();
+
+    // Check connection status
+    _checkConnectionStatus();
 
     // Send initial greeting since we know we're authenticated (router ensures this)
     _sendInitialGreeting();
@@ -984,6 +1000,26 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   children: [
                     Column(
                       children: [
+                        // Connection status banner
+                        if (_hasConnectionError)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ConnectionStatusBanner(
+                              status: ConnectionStatus.error,
+                              message: _connectionErrorMessage,
+                              onTap: _showOllamaConfigDialog,
+                            ),
+                          ),
+
+                        // Demo mode banner
+                        if (_isDemoMode && !_hasConnectionError)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: DemoModeBanner(
+                              onSetupTap: _showOllamaConfigDialog,
+                            ),
+                          ),
+
                         // Chat Messages with constrained width
                         Expanded(
                           child: Center(
@@ -1290,11 +1326,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             senderName: _kAiUserName,
           );
 
-      // Text-only message
-      context.read<LlmCubit>().generateResponse(
-            prompt: message,
-            modelName: _selectedModel,
-          );
+      // Check if we're in demo mode
+      if (_isDemoMode) {
+        _handleDemoResponse(message);
+      } else {
+        // Text-only message with real LLM
+        context.read<LlmCubit>().generateResponse(
+              prompt: message,
+              modelName: _selectedModel,
+            );
+      }
     }
   }
 
@@ -1307,59 +1348,86 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             .removePlaceholderMessage(_placeholderMessageId!);
         _placeholderMessageId = null;
       }
+
+      // Set connection error state
+      _hasConnectionError = true;
+      _connectionErrorMessage = error.toString();
+
+      // Enable demo mode when connection error occurs
+      _isDemoMode = true;
     });
 
-    String errorMessage = 'Failed to generate response';
+    // Add a system message about the connection error
+    final chatCubit = context.read<ChatCubit>();
 
-    // Show a simple error dialog
-    showDialog(
+    // Send the error message
+    chatCubit.sendMessage(
+      senderId: 'system',
+      content:
+          'Connection error: Unable to reach Ollama server. Please check your connection settings.',
+      isAI: false,
+      senderName: 'System',
+    );
+
+    // Show the setup required view as a bottom sheet
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'There was an error connecting to the local AI model.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Suggestions:',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            Text('• Make sure Ollama is running on your machine'),
-            Text('• Check the Ollama IP configuration'),
-            Text('• Verify that the selected model is installed'),
-            const SizedBox(height: 16),
-            Text(
-              'Error details: ${error.toString()}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-            ),
-          ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Dismiss'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showOllamaConfigDialog();
-            },
-            child: const Text('Configure Ollama'),
-          ),
-        ],
+        child: SetupRequiredView.fromError(
+          context,
+          errorMessage: error.toString(),
+          onSetupComplete: () {
+            Navigator.pop(context);
+            setState(() {
+              _hasConnectionError = false;
+              _connectionErrorMessage = null;
+              _isDemoMode =
+                  false; // Disable demo mode when connection is restored
+            });
+            _loadAvailableModels();
+          },
+          onDismiss: () => Navigator.pop(context),
+        ),
       ),
     );
   }
 
   void _sendInitialGreeting() {
+    // Get the authenticated user's ID
+    final authState = context.read<AuthCubit>().state;
+    final userId = authState.maybeWhen(
+      authenticated: (uid, _, __) => uid,
+      orElse: () => 'anonymous',
+    );
+
+    if (_isDemoMode) {
+      // Use demo greeting in demo mode
+      final demoGreeting = DemoResponseService().getInitialGreeting();
+
+      context
+          .read<ChatCubit>()
+          .sendMessage(
+            senderId: userId,
+            content: demoGreeting,
+            isAI: true,
+            senderName: _kAiUserName,
+          )
+          .then((_) {
+        // Ensure we scroll to bottom after the message is sent
+        _scrollToBottom();
+      }).catchError((error) {
+        developer.log('Error sending initial greeting: $error');
+        // Handle error if needed
+      });
+      return;
+    }
+
+    // Standard greeting for normal mode
     final greeting =
         'Hello! I\'m DevIO, your mobile interface for Local LLMs. I can help you with:\n\n'
         '• Connecting to local LLM servers\n'
@@ -1368,13 +1436,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         '• Text and image processing\n'
         '• Maintaining data privacy and security\n\n'
         'How can I assist you today?';
-
-    // Get the authenticated user's ID
-    final authState = context.read<AuthCubit>().state;
-    final userId = authState.maybeWhen(
-      authenticated: (uid, _, __) => uid,
-      orElse: () => 'anonymous',
-    );
 
     // Send the greeting message directly without a placeholder
     context
@@ -1961,6 +2022,71 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _checkConnectionStatus() async {
+    try {
+      final llmCubit = context.read<LlmCubit>();
+      final result = await llmCubit.testConnection();
+
+      if (result['status'] != 'connected') {
+        setState(() {
+          _hasConnectionError = true;
+          _connectionErrorMessage =
+              result['error'] ?? 'Failed to connect to Ollama server';
+          _isDemoMode = true;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _hasConnectionError = true;
+        _connectionErrorMessage = e.toString();
+        _isDemoMode = true;
+      });
+    }
+  }
+
+  Future<void> _handleDemoResponse(String prompt) async {
+    try {
+      final demoService = DemoResponseService();
+      final response = await demoService.getDemoResponse(prompt);
+
+      // Remove placeholder message
+      if (_placeholderMessageId != null) {
+        context
+            .read<ChatCubit>()
+            .removePlaceholderMessage(_placeholderMessageId!);
+        _placeholderMessageId = null;
+      }
+
+      // Add AI response
+      final authState = context.read<AuthCubit>().state;
+      final userId = authState.maybeWhen(
+        authenticated: (uid, _, __) => uid,
+        orElse: () => 'anonymous',
+      );
+
+      context.read<ChatCubit>().sendMessage(
+            senderId: 'ai',
+            content: response.text,
+            isAI: true,
+            senderName: _kAiUserName,
+            totalDuration: response.totalDuration,
+            loadDuration: response.loadDuration,
+            promptEvalCount: response.promptEvalCount,
+            promptEvalDuration: response.promptEvalDuration,
+            promptEvalRate: response.promptEvalRate,
+            evalCount: response.evalCount,
+            evalDuration: response.evalDuration,
+            evalRate: response.evalRate,
+          );
+
+      setState(() {
+        _isWaitingForAiResponse = false;
+      });
+    } catch (e) {
+      _handleApiError(e);
+    }
   }
 }
 
