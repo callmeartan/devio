@@ -288,7 +288,8 @@ class LlmService {
       } catch (e) {
         return {
           'status': 'error',
-          'error': 'Cannot connect to server: Connection refused',
+          'error':
+              'Please configure your Ollama server IP address in settings. Unable to connect to $ollamaUrl',
         };
       }
 

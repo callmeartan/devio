@@ -158,15 +158,16 @@ class SetupRequiredView extends StatelessWidget {
     // Extract the most relevant part of the error message
     String simplifiedError = errorMessage;
 
-    if (errorMessage.contains('Connection refused')) {
+    if (errorMessage.contains('Connection refused') ||
+        errorMessage.contains('Unable to connect')) {
       simplifiedError =
-          'Connection refused. Ollama server is not running or not accessible.';
+          'Please configure your Ollama server IP address in settings. Make sure Ollama is running on your computer.';
     } else if (errorMessage.contains('SocketException')) {
       simplifiedError =
-          'Network error. Check if Ollama is running and accessible.';
+          'Network error. Please check your Ollama IP configuration and ensure Ollama is running.';
     } else if (errorMessage.contains('timed out')) {
       simplifiedError =
-          'Connection timed out. Ollama server might be busy or unreachable.';
+          'Connection timed out. Please verify your Ollama IP address and ensure the server is running.';
     }
 
     return SetupRequiredView(

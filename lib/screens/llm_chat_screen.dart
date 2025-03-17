@@ -174,15 +174,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             _isLoadingModels = false;
             _availableModels = [];
             _selectedModel = null;
-          });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  'Not connected to Ollama server: ${connectionTest['error']}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+            // Set connection error state instead of showing snackbar
+            _hasConnectionError = true;
+            _connectionErrorMessage = connectionTest['error'];
+            _isDemoMode = true;
+          });
         }
         return;
       }

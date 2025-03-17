@@ -124,7 +124,8 @@ class ConnectionStatusBanner extends StatelessWidget {
     } else {
       return ConnectionStatusBanner(
         status: ConnectionStatus.error,
-        message: result['error'] ?? 'Failed to connect to Ollama server',
+        message: result['error'] ??
+            'Please configure your Ollama server IP address in settings',
         onTap: onTap,
       );
     }

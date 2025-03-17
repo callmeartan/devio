@@ -57,8 +57,8 @@ class _OllamaConnectionGuideState extends State<OllamaConnectionGuide> {
         }
       } else {
         setState(() {
-          _connectionError =
-              result['error'] ?? 'Failed to connect to Ollama server';
+          _connectionError = result['error'] ??
+              'Please configure your Ollama server IP address in settings';
         });
       }
     } catch (e) {
