@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 import '../blocs/auth/auth_cubit.dart';
 import '../constants/assets.dart';
@@ -17,7 +16,6 @@ import '../cubits/chat/chat_cubit.dart';
 import '../cubits/chat/chat_state.dart';
 import '../features/llm/cubit/llm_cubit.dart';
 import '../features/llm/cubit/llm_state.dart';
-import '../features/llm/models/llm_response.dart';
 import '../models/chat_message.dart';
 import '../services/demo_response_service.dart';
 import '../widgets/chat_input_field.dart';
@@ -26,9 +24,7 @@ import '../widgets/compact_model_indicator.dart';
 import '../widgets/connection_status_banner.dart';
 import '../widgets/demo_mode_banner.dart';
 import '../widgets/drawer_menu_item.dart';
-import '../widgets/loading_animation.dart';
 import '../widgets/model_selection_ui.dart';
-import '../widgets/performance_metrics.dart';
 import '../widgets/setup_required_view.dart';
 import '../widgets/simple_drawer_menu_item.dart' as simple;
 import '../widgets/typing_indicator.dart';
@@ -174,12 +170,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             _isLoadingModels = false;
             _availableModels = [];
             _selectedModel = null;
-
-            // Set connection error state instead of showing snackbar
-            _hasConnectionError = true;
-            _connectionErrorMessage = connectionTest['error'];
-            _isDemoMode = true;
           });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Not connected to Ollama server: ${connectionTest['error']}'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
         return;
       }
