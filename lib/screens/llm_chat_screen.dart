@@ -1342,20 +1342,19 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
       // Set connection error state
       _hasConnectionError = true;
-      _connectionErrorMessage = error.toString();
-
-      // Enable demo mode when connection error occurs
+      _connectionErrorMessage =
+          "Configure Ollama server connection to continue";
       _isDemoMode = true;
     });
 
-    // Add a system message about the connection error
+    // Add a system message about the connection configuration
     final chatCubit = context.read<ChatCubit>();
 
-    // Send the error message
+    // Send the configuration message
     chatCubit.sendMessage(
       senderId: 'system',
       content:
-          'Connection error: Unable to reach Ollama server. Please check your connection settings.',
+          'Please configure your Ollama server connection to continue using local models.',
       isAI: false,
       senderName: 'System',
     );
@@ -1371,21 +1370,49 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ),
         child: SetupRequiredView.fromError(
           context,
-          errorMessage: error.toString(),
+          errorMessage: "Configure your Ollama server connection to continue",
           onSetupComplete: () {
             Navigator.pop(context);
-            setState(() {
-              _hasConnectionError = false;
-              _connectionErrorMessage = null;
-              _isDemoMode =
-                  false; // Disable demo mode when connection is restored
-            });
-            _loadAvailableModels();
+            // Test connection again after setup
+            _testAndUpdateConnectionStatus();
           },
           onDismiss: () => Navigator.pop(context),
         ),
       ),
     );
+  }
+
+  // Add a new method to test connection and update status
+  Future<void> _testAndUpdateConnectionStatus() async {
+    try {
+      final llmCubit = context.read<LlmCubit>();
+      final result = await llmCubit.testConnection();
+
+      if (result['status'] == 'connected') {
+        setState(() {
+          _hasConnectionError = false;
+          _connectionErrorMessage = null;
+          _isDemoMode = false;
+        });
+
+        // Load models since we're connected
+        _loadAvailableModels();
+      } else {
+        setState(() {
+          _hasConnectionError = true;
+          _connectionErrorMessage =
+              "Configure Ollama server connection to continue";
+          _isDemoMode = true;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _hasConnectionError = true;
+        _connectionErrorMessage =
+            "Configure Ollama server connection to continue";
+        _isDemoMode = true;
+      });
+    }
   }
 
   void _sendInitialGreeting() {
@@ -1589,6 +1616,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         // Load models after successful connection
                         _loadAvailableModels();
 
+                        // Update connection status
+                        if (mounted) {
+                          this.setState(() {
+                            _hasConnectionError = false;
+                            _connectionErrorMessage = null;
+                            _isDemoMode = false;
+                          });
+                        }
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
@@ -1599,9 +1635,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content:
-                                Text('Connection failed: ${result['error']}'),
-                            backgroundColor: Colors.red,
+                            content: Text('Connection needs configuration'),
+                            backgroundColor: Colors.blue,
                           ),
                         );
                       }
@@ -1720,35 +1755,59 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     if (snapshot.hasError ||
                         !snapshot.hasData ||
                         snapshot.data?['status'] == 'error') {
-                      return Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color:
-                              theme.colorScheme.errorContainer.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: theme.colorScheme.errorContainer,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: theme.colorScheme.error,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                snapshot.data?['error'] ??
-                                    'Failed to connect to Ollama server. Please check your connection settings.',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.error,
-                                ),
+                      return Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer
+                                  .withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.3),
                               ),
                             ),
-                          ],
-                        ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: theme.colorScheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "Configure your Ollama server connection to continue",
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: () => _showOllamaGuideDialog(context),
+                            icon: Icon(
+                              Icons.computer_outlined,
+                              color: theme.colorScheme.primary,
+                            ),
+                            label: Text(
+                              'How to Run Ollama?',
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.5),
+                              ),
+                            ),
+                          ),
+                        ],
                       );
                     }
 
@@ -1817,7 +1876,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
-                _loadAvailableModels();
+
+                // Test connection after saving settings
+                _testAndUpdateConnectionStatus();
               },
               icon: const Icon(Icons.save, size: 16),
               label: const Text('Save & Connect'),
@@ -2020,18 +2081,24 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       final llmCubit = context.read<LlmCubit>();
       final result = await llmCubit.testConnection();
 
-      if (result['status'] != 'connected') {
-        setState(() {
+      setState(() {
+        if (result['status'] == 'connected') {
+          // Connection successful, ensure we're not in demo mode
+          _hasConnectionError = false;
+          _connectionErrorMessage = null;
+          _isDemoMode = false;
+        } else {
           _hasConnectionError = true;
           _connectionErrorMessage =
-              result['error'] ?? 'Failed to connect to Ollama server';
+              "Configure Ollama server connection to continue";
           _isDemoMode = true;
-        });
-      }
+        }
+      });
     } catch (e) {
       setState(() {
         _hasConnectionError = true;
-        _connectionErrorMessage = e.toString();
+        _connectionErrorMessage =
+            "Configure Ollama server connection to continue";
         _isDemoMode = true;
       });
     }
@@ -2078,6 +2145,340 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     } catch (e) {
       _handleApiError(e);
     }
+  }
+
+  void _showOllamaGuideDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF202123) : Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: Row(
+          children: [
+            Icon(
+              Icons.computer_outlined,
+              color: theme.colorScheme.primary,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'How to Run Ollama',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Step 1: Install Ollama
+              _buildOllamaStep(
+                context,
+                stepNumber: '1',
+                title: 'Install Ollama',
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Visit ollama.ai and download the installer for your operating system.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.8)
+                            : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Step 2: Run Ollama Server
+              _buildOllamaStep(
+                context,
+                stepNumber: '2',
+                title: 'Run Ollama Server',
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Open terminal and run:',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.8)
+                            : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.black
+                            : theme.colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : theme.colorScheme.outline.withOpacity(0.2),
+                        ),
+                      ),
+                      child: SelectableText(
+                        'OLLAMA_HOST=0.0.0.0:11434 ollama serve',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'monospace',
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Step 3: Find IP Address
+              _buildOllamaStep(
+                context,
+                stepNumber: '3',
+                title: 'Find Your IP Address',
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Run the appropriate command for your OS:',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.8)
+                            : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.black
+                            : theme.colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : theme.colorScheme.outline.withOpacity(0.2),
+                        ),
+                      ),
+                      child: SelectableText.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '# macOS/Linux:\n',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color:
+                                    isDark ? Colors.grey : Colors.grey.shade700,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            TextSpan(
+                              text:
+                                  'ifconfig | grep "inet " | grep -v 127.0.0.1\n\n',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            TextSpan(
+                              text: '# Windows:\n',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color:
+                                    isDark ? Colors.grey : Colors.grey.shade700,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'ipconfig',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Step 4: Connect in App
+              _buildOllamaStep(
+                context,
+                stepNumber: '4',
+                title: 'Connect in App',
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Enter your IP address with port in the app:',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.8)
+                            : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.black
+                            : theme.colorScheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : theme.colorScheme.outline.withOpacity(0.2),
+                        ),
+                      ),
+                      child: SelectableText(
+                        '192.168.1.x:11434',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'monospace',
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Replace 192.168.1.x with your actual IP address',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Important Notes
+              Container(
+                margin: const EdgeInsets.only(top: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.2),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Important Notes',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '• Do NOT use 0.0.0.0 as the connection address\n'
+                      '• Ensure port 11434 is allowed in your firewall\n'
+                      '• Both devices must be on the same network\n'
+                      '• Pull a model first using: ollama pull mistral',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Close',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOllamaStep(
+    BuildContext context, {
+    required String stepNumber,
+    required String title,
+    required Widget content,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            margin: const EdgeInsets.only(top: 2),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                stepNumber,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                content,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
