@@ -172,13 +172,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             _selectedModel = null;
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  'Not connected to Ollama server: ${connectionTest['error']}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          // Prompt user to configure Ollama IP instead of showing error
+          _showOllamaConfigDialog();
         }
         return;
       }

@@ -47,10 +47,10 @@ class ConnectionStatusBanner extends StatelessWidget {
         icon = Icons.cloud_off;
         statusText = 'Disconnected';
       case ConnectionStatus.error:
-        backgroundColor = Colors.red.withOpacity(0.1);
-        textColor = Colors.red;
-        icon = Icons.error_outline;
-        statusText = 'Connection Error';
+        backgroundColor = Colors.blue.withOpacity(0.1);
+        textColor = Colors.blue;
+        icon = Icons.settings;
+        statusText = 'Configure Connection';
     }
 
     return Material(

@@ -15,22 +15,22 @@ class DemoModeBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.secondaryContainer.withOpacity(0.7),
+        color: theme.colorScheme.primaryContainer.withOpacity(0.5),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
           Icon(
-            Icons.science_outlined,
+            Icons.info_outline,
             size: 20,
-            color: theme.colorScheme.onSecondaryContainer,
+            color: theme.colorScheme.onPrimaryContainer,
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Demo Mode - Limited AI Functionality',
+              'Connect to Ollama for full AI capabilities',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSecondaryContainer,
+                color: theme.colorScheme.onPrimaryContainer,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -43,7 +43,7 @@ class DemoModeBanner extends StatelessWidget {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(
-              'Setup',
+              'Configure',
               style: theme.textTheme.labelLarge?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,

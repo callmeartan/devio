@@ -41,14 +41,14 @@ class SetupRequiredView extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.info_outline,
+                Icons.settings,
                 color: theme.colorScheme.primary,
                 size: 24,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Ollama Setup Required',
+                  'Ollama Connection Setup',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -67,15 +67,15 @@ class SetupRequiredView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.errorContainer.withOpacity(0.5),
+                color: theme.colorScheme.primaryContainer.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
-                    Icons.error_outline,
-                    color: theme.colorScheme.error,
+                    Icons.info_outline,
+                    color: theme.colorScheme.primary,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -83,7 +83,7 @@ class SetupRequiredView extends StatelessWidget {
                     child: Text(
                       errorMessage!,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onErrorContainer,
+                        color: theme.colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),
@@ -110,7 +110,7 @@ class SetupRequiredView extends StatelessWidget {
                   _showSetupGuide(context);
                 },
                 icon: const Icon(Icons.settings),
-                label: const Text('Setup Now'),
+                label: const Text('Configure Now'),
               ),
             ],
           ),
@@ -128,7 +128,7 @@ class SetupRequiredView extends StatelessWidget {
         height: MediaQuery.of(context).size.height * 0.9,
         child: Scaffold(
           appBar: AppBar(
-            title: const Text('Ollama Setup Guide'),
+            title: const Text('Ollama Connection Setup'),
             leading: IconButton(
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.of(context).pop(),
@@ -155,22 +155,12 @@ class SetupRequiredView extends StatelessWidget {
     VoidCallback? onDismiss,
     bool showDismissButton = true,
   }) {
-    // Extract the most relevant part of the error message
-    String simplifiedError = errorMessage;
-
-    if (errorMessage.contains('Connection refused')) {
-      simplifiedError =
-          'Connection refused. Ollama server is not running or not accessible.';
-    } else if (errorMessage.contains('SocketException')) {
-      simplifiedError =
-          'Network error. Check if Ollama is running and accessible.';
-    } else if (errorMessage.contains('timed out')) {
-      simplifiedError =
-          'Connection timed out. Ollama server might be busy or unreachable.';
-    }
+    // Use more positive messaging regardless of the error
+    String setupMessage =
+        'Configure your Ollama connection to start using local AI models';
 
     return SetupRequiredView(
-      errorMessage: simplifiedError,
+      errorMessage: setupMessage,
       onSetupComplete: onSetupComplete,
       onDismiss: onDismiss,
       showDismissButton: showDismissButton,

@@ -37,23 +37,13 @@ class _ReconnectionPromptState extends State<ReconnectionPrompt> {
           widget.onRetrySuccess!();
         }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Connection failed: ${result['error']}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        if (widget.onSetupTap != null && mounted) {
+          widget.onSetupTap!();
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (widget.onSetupTap != null && mounted) {
+        widget.onSetupTap!();
       }
     } finally {
       if (mounted) {
@@ -71,10 +61,10 @@ class _ReconnectionPromptState extends State<ReconnectionPrompt> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer.withOpacity(0.2),
+        color: theme.colorScheme.primaryContainer.withOpacity(0.2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.error.withOpacity(0.3),
+          color: theme.colorScheme.primary.withOpacity(0.3),
         ),
       ),
       child: Column(
@@ -84,16 +74,16 @@ class _ReconnectionPromptState extends State<ReconnectionPrompt> {
           Row(
             children: [
               Icon(
-                Icons.error_outline,
-                color: theme.colorScheme.error,
+                Icons.settings,
+                color: theme.colorScheme.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Connection Lost',
+                  'Connection Setup',
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.error,
+                    color: theme.colorScheme.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -103,9 +93,9 @@ class _ReconnectionPromptState extends State<ReconnectionPrompt> {
           const SizedBox(height: 8),
           Text(
             widget.errorMessage ??
-                'Unable to connect to Ollama. Please check your connection settings.',
+                'Configure your Ollama connection to start using local AI models',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onErrorContainer,
+              color: theme.colorScheme.onPrimaryContainer,
             ),
           ),
           const SizedBox(height: 16),
@@ -115,10 +105,10 @@ class _ReconnectionPromptState extends State<ReconnectionPrompt> {
               OutlinedButton(
                 onPressed: widget.onSetupTap,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.colorScheme.error,
-                  side: BorderSide(color: theme.colorScheme.error),
+                  foregroundColor: theme.colorScheme.primary,
+                  side: BorderSide(color: theme.colorScheme.primary),
                 ),
-                child: const Text('Setup'),
+                child: const Text('Configure'),
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
@@ -133,7 +123,7 @@ class _ReconnectionPromptState extends State<ReconnectionPrompt> {
                         ),
                       )
                     : const Icon(Icons.refresh),
-                label: Text(_isRetrying ? 'Retrying...' : 'Retry'),
+                label: Text(_isRetrying ? 'Checking...' : 'Check Connection'),
               ),
             ],
           ),
