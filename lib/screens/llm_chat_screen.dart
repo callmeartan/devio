@@ -172,8 +172,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             _selectedModel = null;
           });
 
-          // Prompt user to configure Ollama IP instead of showing error
-          _showOllamaConfigDialog();
+          // Don't automatically show the dialog
+          // _showOllamaConfigDialog();
         }
         return;
       }
@@ -639,7 +639,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                             ? Colors.white.withOpacity(0.6)
                                             : Colors.black.withOpacity(0.6),
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
                                   ],
                                 ),
@@ -692,7 +691,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                               ? Colors.white.withOpacity(0.6)
                                               : Colors.black.withOpacity(0.6),
                                         ),
-                                        textAlign: TextAlign.center,
                                       ),
                                     ],
                                   ),
@@ -722,28 +720,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     ),
                                     const SizedBox(height: 24),
                                     Text(
-                                      'Welcome to DevIO Chat',
+                                      'Start your first conversation with our AI assistant',
+                                      textAlign: TextAlign.center,
                                       style:
-                                          theme.textTheme.titleLarge?.copyWith(
+                                          theme.textTheme.bodyLarge?.copyWith(
                                         color: isDark
-                                            ? Colors.white
-                                            : Colors.black,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 32),
-                                      child: Text(
-                                        'Start your first conversation with our AI assistant',
-                                        style:
-                                            theme.textTheme.bodyLarge?.copyWith(
-                                          color: isDark
-                                              ? Colors.white.withOpacity(0.7)
-                                              : Colors.black.withOpacity(0.7),
-                                        ),
-                                        textAlign: TextAlign.center,
+                                            ? Colors.white.withOpacity(0.7)
+                                            : Colors.black.withOpacity(0.7),
                                       ),
                                     ),
                                     const SizedBox(height: 24),
@@ -1226,16 +1209,16 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'Authentication Error',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: Colors.grey.shade800,
-                    ),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.grey.shade800,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     message,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade800,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade800,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -1539,10 +1522,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     final llmCubit = context.read<LlmCubit>();
     final customIp = llmCubit.customOllamaIp;
 
-    // If no custom IP is set, show the configuration dialog
-    if (customIp == null || customIp.isEmpty) {
-      _showOllamaConfigDialog();
-    }
+    // Don't automatically show the configuration dialog
+    // if (customIp == null || customIp.isEmpty) {
+    //   _showOllamaConfigDialog();
+    // }
   }
 
   void _showOllamaConfigDialog() {
