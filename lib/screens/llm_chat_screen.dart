@@ -584,22 +584,35 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                       const SizedBox(height: 8),
 
                       // Chats Section
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Chats',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: isDark
-                                    ? Colors.white.withOpacity(0.5)
-                                    : Colors.black.withOpacity(0.5),
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.5,
-                              ),
+                      BlocBuilder<ChatCubit, ChatState>(
+                        builder: (context, state) {
+                          final chatCubit = context.read<ChatCubit>();
+                          final filteredChats =
+                              chatCubit.getFilteredChatHistories();
+
+                          if (filteredChats.isEmpty &&
+                              state.searchQuery.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                            child: Row(
+                              children: [
+                                Text(
+                                  'Chats',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: isDark
+                                        ? Colors.white.withOpacity(0.5)
+                                        : Colors.black.withOpacity(0.5),
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
 
                       // Chat List
@@ -697,9 +710,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 );
                               }
 
-                              return Center(
+                              return Container(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.6,
+                                alignment: Alignment.center,
                                 child: Column(
-                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.all(20),
@@ -720,13 +736,28 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     ),
                                     const SizedBox(height: 24),
                                     Text(
-                                      'Start your first conversation with our AI assistant',
-                                      textAlign: TextAlign.center,
+                                      'Welcome To Devio',
                                       style:
-                                          theme.textTheme.bodyLarge?.copyWith(
+                                          theme.textTheme.titleMedium?.copyWith(
                                         color: isDark
-                                            ? Colors.white.withOpacity(0.7)
-                                            : Colors.black.withOpacity(0.7),
+                                            ? Colors.white.withOpacity(0.9)
+                                            : Colors.black.withOpacity(0.9),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 32),
+                                      child: Text(
+                                        'Start your first conversation with our AI assistant',
+                                        textAlign: TextAlign.center,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.7)
+                                              : Colors.black.withOpacity(0.7),
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(height: 24),
