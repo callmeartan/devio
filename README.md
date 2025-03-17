@@ -18,12 +18,16 @@ DevIO transforms your device into a powerful interface for interacting with loca
 - Customize server IP and port configurations
 - Compatible with popular open-source models (llama3, deepseek, mistral, phi3, etc.)
 - Performance metrics tracking and optimization
+- Improved connection handling with automatic reconnection
+- Interactive setup guide for Ollama configuration
 
 ### 📱 Modern Mobile Interface
 - Clean, minimal design focused on content
 - Dark and light theme support
 - Responsive layout optimized for various screen sizes
 - Intuitive navigation and interactions
+- User-friendly connection status indicators
+- Helpful onboarding experience for new users
 
 ### 💬 Advanced Chat Capabilities
 - Multi-session chat management
@@ -31,6 +35,7 @@ DevIO transforms your device into a powerful interface for interacting with loca
 - Code highlighting and formatting
 - Image analysis capabilities with multimodal models
 - Message organization with pinning and labeling
+- Demo mode for offline exploration of features
 
 ### 🔐 Privacy-Focused
 - Local processing keeps data on your device
@@ -84,16 +89,24 @@ ollama pull llama3
 ollama pull deepseek-r1:8b
 ollama pull mistral:7b
 ```
-3. Start the Ollama server:
+3. Start the Ollama server with network access:
 ```bash
-ollama serve
+OLLAMA_HOST=0.0.0.0:11434 ollama serve
 ```
 
 ### Remote Connections
 To connect to a remote Ollama instance:
 1. Ensure the remote server is accessible
-2. Update the OLLAMA_HOST in .env or in the app settings
-3. For security, consider using SSH tunneling or a VPN
+2. Update the server address in the app settings
+3. Use the built-in connection test to verify connectivity
+4. For security, consider using SSH tunneling or a VPN
+
+### Connection Troubleshooting
+If you're having trouble connecting:
+1. Check that Ollama is running with the correct host configuration
+2. Verify your network allows connections to the Ollama port (11434)
+3. Use the "How to Run Ollama" guide in the app for detailed setup instructions
+4. Ensure both devices are on the same network
 
 ## 🏗️ Architecture
 
@@ -146,6 +159,8 @@ OLLAMA_HOST=your_ollama_server:port
 - Plugin support for extending functionality
 - Advanced prompt templating system
 - Model fine-tuning interface
+- Enhanced offline capabilities
+- Improved multimodal support
 
 ## 🤝 Contributing
 
