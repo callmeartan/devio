@@ -152,24 +152,69 @@ class _AuthScreenState extends State<AuthScreen> {
     required VoidCallback onPressed,
     required bool isLoading,
     Color? color,
+    bool isApple = false,
   }) {
+    // Special styling for Apple sign-in button to meet Apple's guidelines
+    if (isApple) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: ElevatedButton.icon(
+          onPressed: isLoading ? null : onPressed,
+          icon: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(icon, color: Colors.white),
+          label: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            elevation: 1,
+          ),
+        ),
+      );
+    }
+
+    // Google button styling for visual consistency with Apple button
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: OutlinedButton.icon(
+      child: ElevatedButton.icon(
         onPressed: isLoading ? null : onPressed,
         icon: isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
               )
-            : Icon(icon, color: color),
-        label: Text(label),
-        style: OutlinedButton.styleFrom(
+            : Icon(icon, color: Colors.white),
+        label: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red.shade700,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
+          elevation: 1,
         ),
       ),
     );
@@ -341,6 +386,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             onPressed: _signInWithApple,
                             isLoading: _socialLoading == 'apple',
                             color: Colors.black,
+                            isApple: true,
                           ),
                           const SizedBox(height: 16),
                           TextButton(
