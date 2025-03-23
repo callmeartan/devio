@@ -10,38 +10,35 @@ DevIO transforms your device into a powerful interface for interacting with loca
 - macOS (Universal)
 - iOS
 - Android (coming soon)
+- Web (experimental)
 
 ## ✨ Key Features
 
 ### 🤖 Local LLM Integration
-- Connect to locally hosted Ollama instances
-- Customize server IP and port configurations
-- Compatible with popular open-source models (llama3, deepseek, mistral, phi3, etc.)
-- Performance metrics tracking and optimization
-- Improved connection handling with automatic reconnection
-- Interactive setup guide for Ollama configuration
+- Connect to locally hosted Ollama instances with customizable server configuration
+- Supports various open-source models (llama3, deepseek, mistral, phi3, etc.)
+- Performance metrics tracking and real-time monitoring
+- Automatic reconnection and connection status indicators
+- Advanced settings for context size, timeout, and thread configuration
 
-### 📱 Modern Mobile Interface
-- Clean, minimal design focused on content
-- Dark and light theme support
+### 📱 Modern Flutter Interface
+- Clean, minimal design with both dark and light theme support
 - Responsive layout optimized for various screen sizes
-- Intuitive navigation and interactions
-- User-friendly connection status indicators
-- Helpful onboarding experience for new users
+- Integrated with Flutter Bloc/Cubit for robust state management
+- Onboarding screens for new users with interactive setup guide
 
 ### 💬 Advanced Chat Capabilities
-- Multi-session chat management
-- Conversation history with search functionality
-- Code highlighting and formatting
-- Image analysis capabilities with multimodal models
-- Message organization with pinning and labeling
-- Demo mode for offline exploration of features
+- Multi-session chat management with conversation history
+- Code highlighting and formatting for code snippets
+- Image analysis with multimodal model support
+- Document handling with PDF support
+- Real-time typing indicators and message status
 
-### 🔐 Privacy-Focused
-- Local processing keeps data on your device
-- Optional cloud synchronization with Firebase
-- Flexible authentication options
-- Control over data retention and usage
+### 🔐 Privacy & Authentication
+- Firebase authentication with multiple sign-in options
+- Optional cloud synchronization for chat history
+- Local processing keeps sensitive data on your device
+- Demo mode for exploring features without a connection
 
 ## 🚀 Getting Started
 
@@ -50,7 +47,7 @@ DevIO transforms your device into a powerful interface for interacting with loca
 - Dart SDK (>=3.0.0)
 - A running Ollama server (local or remote)
 - macOS 12.0 or later (for desktop version)
-- iOS 18.0 or later (for mobile version)
+- iOS 15.0 or later (for mobile version)
 - (Optional) Firebase project for cloud features
 
 ### Installation
@@ -88,6 +85,7 @@ DevIO is designed to work seamlessly with locally hosted LLM servers. By default
 ollama pull llama3
 ollama pull deepseek-r1:8b
 ollama pull mistral:7b
+ollama pull phi3:14b
 ```
 3. Start the Ollama server with network access:
 ```bash
@@ -99,36 +97,45 @@ To connect to a remote Ollama instance:
 1. Ensure the remote server is accessible
 2. Update the server address in the app settings
 3. Use the built-in connection test to verify connectivity
-4. For security, consider using SSH tunneling or a VPN
-
-### Connection Troubleshooting
-If you're having trouble connecting:
-1. Check that Ollama is running with the correct host configuration
-2. Verify your network allows connections to the Ollama port (11434)
-3. Use the "How to Run Ollama" guide in the app for detailed setup instructions
-4. Ensure both devices are on the same network
 
 ## 🏗️ Architecture
 
 DevIO follows modern Flutter architecture patterns:
 
-- **Clean Architecture**: Separation of concerns with presentation, domain, and data layers
-- **BLoC/Cubit Pattern**: Predictable state management
-- **Feature-first Structure**: Organized by functionality rather than technical concerns
-- **Service-Repository Pattern**: Abstract data access and external services
+- **Clean Architecture** with separation of concerns
+- **BLoC/Cubit Pattern** for state management
+- **Feature-first Structure** organized by functionality
+- **Repository Pattern** for data access abstraction
+
+### Key Technologies
+
+- **Flutter 3.x** for cross-platform UI development
+- **Firebase** for authentication, storage, and cloud features
+- **go_router** for navigation
+- **flutter_bloc** for state management
+- **freezed** for immutable state classes
+- **http** for API communication with LLM servers
+- **shared_preferences** for local settings storage
 
 ### Directory Structure
 ```
 lib/
+├── blocs/          # Bloc state management
+├── constants/      # App constants and configurations
+├── cubits/         # Cubit state management
 ├── features/       # Feature modules
 │   ├── llm/        # Core LLM functionality
-│   ├── settings/   # App configuration
-│   └── ...         # Other features
-├── screens/        # Main UI screens
+│   └── settings/   # App configuration
+├── models/         # Data models
+├── providers/      # Provider implementations
+├── repositories/   # Data repositories
+├── screens/        # UI screens
+├── services/       # Service implementations
+├── theme/          # Theming and styling
+├── utils/          # Utility functions
 ├── widgets/        # Reusable UI components
-├── services/       # External service integrations
-├── theme/          # App theming and styling
-└── ...
+├── main.dart       # Application entry point
+└── router.dart     # Navigation configuration
 ```
 
 ## 🛠️ Development
@@ -141,26 +148,24 @@ flutter build macos --release
 # iOS
 flutter build ios --release
 
-# Android (coming soon)
+# Android
 flutter build apk --release
 ```
 
-### Environment Configuration
-Create a `.env` file in the project root with:
-```
-OLLAMA_HOST=your_ollama_server:port
+### Running Code Generation
+```bash
+flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
 ## 🔮 Future Roadmap
 
 - Windows and Linux support
 - Audio input and output capabilities
-- Document analysis and summarization
+- Advanced document analysis and summarization
 - Plugin support for extending functionality
-- Advanced prompt templating system
-- Model fine-tuning interface
-- Enhanced offline capabilities
-- Improved multimodal support
+- Local model management interface
+- Multi-user collaborative features
+- Enhanced multimodal support
 
 ## 🤝 Contributing
 
