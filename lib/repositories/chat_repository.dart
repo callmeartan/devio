@@ -15,11 +15,46 @@ class ChatRepository {
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance;
 
-  void _checkAuth() {
+  Future<User?> _checkAuth() async {
     final user = _auth.currentUser;
     developer.log('Current auth state - User: ${user?.uid ?? 'null'}');
+
     if (user == null) {
-      throw Exception('User must be authenticated to access chat data');
+      developer.log('User is null, attempting to refresh auth state');
+      // Try to refresh the auth state
+      try {
+        await _auth.authStateChanges().first;
+        final refreshedUser = _auth.currentUser;
+
+        if (refreshedUser == null) {
+          developer.log('Still no authenticated user after refresh');
+          throw FirebaseException(
+              plugin: 'firebase_auth',
+              code: 'user-not-authenticated',
+              message: 'User must be authenticated to access chat data');
+        }
+
+        return refreshedUser;
+      } catch (e) {
+        developer.log('Error refreshing auth state: $e');
+        throw FirebaseException(
+            plugin: 'firebase_auth',
+            code: 'user-not-authenticated',
+            message: 'User must be authenticated to access chat data');
+      }
+    }
+
+    // Verify the token isn't expired by getting the ID token
+    try {
+      // Just check token without force refreshing to avoid token renewal issues
+      await user.getIdToken();
+      return user;
+    } catch (e) {
+      developer.log('Error getting token: $e');
+      throw FirebaseException(
+          plugin: 'firebase_auth',
+          code: 'token-expired',
+          message: 'Authentication token expired, please sign in again');
     }
   }
 
@@ -187,7 +222,20 @@ class ChatRepository {
 
   Future<void> sendMessage(ChatMessage message) async {
     try {
-      _checkAuth();
+      // Check authentication
+      final user = await _checkAuth();
+
+      // If this is an AI message, don't check the sender ID
+      if (!message.isAI && user?.uid != message.senderId) {
+        // Only verify sender ID for non-AI messages
+        developer.log(
+            'User auth mismatch: ${user?.uid} trying to send message as ${message.senderId}');
+        throw FirebaseException(
+            plugin: 'firebase_auth',
+            code: 'permission-denied',
+            message: 'User not authorized to send this message');
+      }
+
       developer
           .log('Sending message: ${message.id} for chat: ${message.chatId}');
 
@@ -212,12 +260,19 @@ class ChatRepository {
           {
             'lastMessageTime': data['timestamp'],
             'title': _generateChatTitle(message.content),
+            'userId': user?.uid, // Store the user ID who owns this chat
           },
           SetOptions(merge: true));
 
       // Commit the batch
       await batch.commit();
       developer.log('Message and metadata successfully saved to Firestore');
+    } on FirebaseException catch (e) {
+      developer.log('Firebase error sending message: ${e.code} - ${e.message}');
+
+      // Don't sign out the user - just report the error
+      // This allows the UI to handle the error appropriately
+      throw Exception('Failed to send message: ${e.message}');
     } catch (e) {
       developer.log('Error sending message: $e');
       throw Exception('Failed to send message: $e');
@@ -230,6 +285,114 @@ class ChatRepository {
       await _firestore.collection(_collectionPath).doc(messageId).delete();
     } catch (e) {
       throw Exception('Failed to delete message: $e');
+    }
+  }
+
+  // Update message content
+  Future<void> updateMessageContent(String messageId, String newContent) async {
+    try {
+      _checkAuth();
+      developer.log('Updating message content for message: $messageId');
+
+      // Get the message to update
+      final messageRef = _firestore.collection(_collectionPath).doc(messageId);
+      final messageDoc = await messageRef.get();
+
+      if (!messageDoc.exists) {
+        throw Exception('Message not found: $messageId');
+      }
+
+      // Update the message content
+      await messageRef.update({
+        'content': newContent,
+      });
+
+      // Get the updated message to update the chat metadata
+      final updatedMessage = await messageRef.get();
+      final messageData = updatedMessage.data() as Map<String, dynamic>;
+      final chatId = messageData['chatId'] as String;
+
+      // Update chat metadata with the potentially new title
+      final metadataRef = _firestore.collection(_chatMetadataPath).doc(chatId);
+      await metadataRef.update({
+        'title': _generateChatTitle(newContent),
+      });
+
+      developer.log('Message content and metadata updated successfully');
+    } catch (e) {
+      developer.log('Error updating message content: $e');
+      throw Exception('Failed to update message content: $e');
+    }
+  }
+
+  // Update message metrics with better error handling
+  Future<void> updateMessageMetrics(
+    String messageId, {
+    double? totalDuration,
+    double? loadDuration,
+    int? promptEvalCount,
+    double? promptEvalDuration,
+    double? promptEvalRate,
+    int? evalCount,
+    double? evalDuration,
+    double? evalRate,
+  }) async {
+    try {
+      final user = await _checkAuth();
+      if (user == null) {
+        developer.log('No authenticated user, skipping metrics update');
+        return; // Silently skip updating metrics if not authenticated
+      }
+
+      developer.log('Updating metrics for message: $messageId');
+
+      // First, check if message exists
+      final messageRef = _firestore.collection(_collectionPath).doc(messageId);
+      final messageDoc = await messageRef.get();
+
+      if (!messageDoc.exists) {
+        developer
+            .log('Message does not exist, skipping metrics update: $messageId');
+        return; // Silently skip if message doesn't exist
+      }
+
+      // Prepare the updates - only include non-null values
+      final updates = <String, dynamic>{};
+
+      if (totalDuration != null) updates['totalDuration'] = totalDuration;
+      if (loadDuration != null) updates['loadDuration'] = loadDuration;
+      if (promptEvalCount != null) updates['promptEvalCount'] = promptEvalCount;
+      if (promptEvalDuration != null)
+        updates['promptEvalDuration'] = promptEvalDuration;
+      if (promptEvalRate != null) updates['promptEvalRate'] = promptEvalRate;
+      if (evalCount != null) updates['evalCount'] = evalCount;
+      if (evalDuration != null) updates['evalDuration'] = evalDuration;
+      if (evalRate != null) updates['evalRate'] = evalRate;
+
+      if (updates.isEmpty) {
+        developer.log('No metrics to update');
+        return;
+      }
+
+      // Update the message metrics
+      await messageRef.update(updates);
+      developer.log('Message metrics updated successfully');
+    } on FirebaseException catch (e) {
+      developer
+          .log('Firebase error updating metrics: ${e.code} - ${e.message}');
+      if (e.code == 'permission-denied') {
+        // Special handling for permission errors - log but don't throw
+        developer.log(
+            'Permission denied when updating metrics - this is expected for some message types');
+        // We're intentionally not throwing here to avoid disrupting the user experience
+      } else {
+        // For other Firebase errors, we still throw
+        throw Exception('Failed to update message metrics: ${e.message}');
+      }
+    } catch (e) {
+      developer.log('Error updating message metrics: $e');
+      // For general errors, we log but don't throw to avoid disrupting the user experience
+      // This makes the metrics update "best-effort" rather than required
     }
   }
 

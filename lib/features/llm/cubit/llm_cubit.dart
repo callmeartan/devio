@@ -249,12 +249,52 @@ class LlmCubit extends Cubit<LlmState> {
         dev.log('Error in response: ${response.errorMessage}');
         emit(LlmState.error(response.errorMessage ?? 'Unknown error occurred'));
       } else {
-        dev.log('Response generated successfully');
         emit(LlmState.success(response));
       }
     } catch (e) {
       dev.log('Error generating response: $e');
-      emit(LlmState.error('Failed to generate response: $e'));
+      emit(LlmState.error(e.toString()));
+    }
+  }
+
+  // New method for streaming responses
+  Stream<LlmState> streamResponse({
+    required String prompt,
+    String? modelName,
+    int? maxTokens,
+    double? temperature,
+  }) async* {
+    dev.log('Streaming response');
+    dev.log('Model name: $modelName');
+
+    yield const LlmState.loading();
+
+    try {
+      final stream = _llmService.streamResponse(
+        prompt: prompt,
+        modelName: modelName ?? 'deepseek-r1:8b',
+        maxTokens: maxTokens ?? 1000,
+        temperature: temperature ?? 0.7,
+      );
+
+      await for (final response in stream) {
+        if (response.isError) {
+          dev.log('Error in streamed response: ${response.errorMessage}');
+          yield LlmState.error(
+              response.errorMessage ?? 'Unknown error occurred');
+          break;
+        } else {
+          yield LlmState.success(response);
+
+          // If this is the final response with metrics, we're done
+          if (response.totalDuration != null || response.evalCount != null) {
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      dev.log('Error streaming response: $e');
+      yield LlmState.error(e.toString());
     }
   }
 

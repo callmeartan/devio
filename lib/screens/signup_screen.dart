@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/auth/auth_cubit.dart';
 import 'package:go_router/go_router.dart';
+import 'package:devio/utils/state_extension_helpers.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});

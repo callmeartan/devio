@@ -5,6 +5,7 @@ import '../cubit/preferences_cubit.dart';
 import '../cubit/preferences_state.dart';
 import '../../../blocs/auth/auth_cubit.dart';
 import 'dart:ui';
+import 'package:devio/utils/state_extension_helpers.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});

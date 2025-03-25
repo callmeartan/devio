@@ -4,7 +4,7 @@ import '../../models/chat_message.dart';
 part 'chat_state.freezed.dart';
 
 @freezed
-class ChatState with _$ChatState {
+abstract class ChatState with _$ChatState {
   const factory ChatState({
     @Default([]) List<ChatMessage> messages,
     @Default([]) List<Map<String, dynamic>> chatHistories,

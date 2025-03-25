@@ -4,6 +4,9 @@ import 'package:http/http.dart' as http;
 import '../models/llm_response.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 class LlmService {
   final http.Client _client;
@@ -176,6 +179,118 @@ class LlmService {
     } catch (e) {
       dev.log('Error in generateResponse: $e');
       return LlmResponse(
+        text: '',
+        isError: true,
+        errorMessage: 'Error connecting to Ollama server: $e',
+      );
+    }
+  }
+
+  // Create a method for streaming responses from Ollama
+  Stream<LlmResponse> streamResponse({
+    required String prompt,
+    String? modelName,
+    int maxTokens = 1000,
+    double temperature = 0.7,
+  }) async* {
+    try {
+      final ollamaUrl = await getOllamaServerUrl();
+
+      // Ensure model name has the correct format
+      final formattedModelName =
+          modelName?.contains(':') == true ? modelName : '$modelName:latest';
+
+      dev.log('Streaming response with model: $formattedModelName');
+
+      final requestBody = {
+        'model': formattedModelName,
+        'prompt': prompt,
+        'stream': true, // Enable streaming
+        'options': {
+          'num_predict': maxTokens,
+          'temperature': temperature,
+        }
+      };
+
+      final request =
+          http.Request('POST', Uri.parse('$ollamaUrl/api/generate'));
+      request.headers['Content-Type'] = 'application/json';
+      request.headers['Accept'] = 'application/json';
+      request.body = jsonEncode(requestBody);
+
+      final streamedResponse = await _client.send(request).timeout(_timeout);
+
+      if (streamedResponse.statusCode == 200) {
+        // Process the stream line by line
+        final stream = streamedResponse.stream
+            .transform(utf8.decoder)
+            .transform(const LineSplitter());
+
+        String accumulatedText = '';
+        Map<String, dynamic> finalMetrics = {};
+        bool isDone = false;
+
+        await for (final chunk in stream) {
+          // Skip empty lines
+          if (chunk.trim().isEmpty) continue;
+
+          try {
+            final jsonChunk = jsonDecode(chunk);
+
+            // Check if this is the final response with metrics
+            if (jsonChunk['done'] == true) {
+              isDone = true;
+              // Extract metrics if present
+              finalMetrics = _extractMetrics(jsonChunk);
+
+              // Yield final response with accumulated text and metrics
+              if (accumulatedText.isNotEmpty) {
+                yield LlmResponse.fromJson({
+                  'text': accumulatedText,
+                  'model_name': modelName,
+                  ...finalMetrics,
+                });
+              }
+              break;
+            }
+
+            // Get text from the chunk
+            final responseText = jsonChunk['response'] as String? ?? '';
+
+            // Update accumulated text
+            accumulatedText += responseText;
+
+            // Yield incremental response
+            yield LlmResponse.fromJson({
+              'text': responseText,
+              'model_name': modelName,
+            });
+          } catch (e) {
+            dev.log('Error parsing JSON chunk: $e, chunk: $chunk');
+            continue;
+          }
+        }
+
+        // If we didn't get a done message, yield one last time with what we have
+        if (!isDone && accumulatedText.isNotEmpty) {
+          yield LlmResponse.fromJson({
+            'text': accumulatedText,
+            'model_name': modelName,
+          });
+        }
+      } else {
+        // Handle error response
+        final responseBody = await streamedResponse.stream.bytesToString();
+        yield LlmResponse(
+          text: '',
+          isError: true,
+          errorMessage:
+              'Failed to generate response: ${streamedResponse.statusCode} - $responseBody',
+        );
+      }
+    } catch (e) {
+      dev.log('Error in streamResponse: $e');
+      yield LlmResponse(
         text: '',
         isError: true,
         errorMessage: 'Error connecting to Ollama server: $e',

@@ -17,17 +17,30 @@ service cloud.firestore {
         message.senderId is string &&
         message.chatId is string &&
         message.content is string &&
-        message.content.size() <= 10000 && // Limit message size
         message.timestamp is timestamp &&
-        message.isAI is bool &&
-        (message.senderName == null || message.senderName is string);
+        (('isAI' in message && message.isAI is bool) || !('isAI' in message));
+    }
+
+    function isAiMessage() {
+      return request.resource.data.isAI == true && 
+             request.resource.data.senderId == 'ai';
+    }
+    
+    function isMetricsUpdate() {
+      let affectedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return affectedFields.hasAny(['totalDuration', 'loadDuration', 'promptEvalCount', 
+                                   'promptEvalDuration', 'promptEvalRate', 'evalCount', 
+                                   'evalDuration', 'evalRate']) &&
+             !affectedFields.hasAny(['id', 'chatId', 'senderId', 'isAI', 'timestamp']);
     }
 
     function isValidChatMetadata() {
       let metadata = request.resource.data;
       return 
         (!('title' in metadata) || metadata.title is string) &&
-        (!('isPinned' in metadata) || metadata.isPinned is bool);
+        (!('isPinned' in metadata) || metadata.isPinned is bool) &&
+        (!('userId' in metadata) || metadata.userId is string) &&
+        (!('lastMessageTime' in metadata) || metadata.lastMessageTime is timestamp);
     }
 
     function isParticipantInChat(chatId) {
@@ -54,18 +67,46 @@ service cloud.firestore {
     }
 
     match /chats/{messageId} {
+      // Allow reading messages to any authenticated user
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidMessage();
-      allow update: if false;
-      allow delete: if isAuthenticated() && (
-        resource.data.senderId == request.auth.uid || 
-        request.auth != null // Allow any authenticated user to delete messages for clearing chat history
+      
+      // Allow creating messages if:
+      // 1. User is authenticated AND
+      // 2. Message is valid AND
+      // 3. Either:
+      //    a. It's a user message (senderId matches auth.uid) OR
+      //    b. It's an AI message (isAI is true and senderId is 'ai')
+      allow create: if isAuthenticated() && 
+        isValidMessage() && 
+        (
+          request.resource.data.senderId == request.auth.uid || 
+          isAiMessage()
+        );
+      
+      // Allow updating for:
+      // 1. AI message content updates OR
+      // 2. Metrics updates on any message
+      allow update: if isAuthenticated() && (
+        // AI message content updates
+        (isValidMessage() && isAiMessage() && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content']))
+        ||
+        // Metrics updates for any message
+        (isMetricsUpdate())
       );
+      
+      // Allow deletion of messages
+      allow delete: if isAuthenticated();
     }
 
     match /chat_metadata/{chatId} {
+      // Allow reading metadata to any authenticated user
       allow read: if isAuthenticated();
+      
+      // Allow creating/updating metadata
       allow create, update: if isAuthenticated() && isValidChatMetadata();
+      
+      // Allow deletion of chat metadata
       allow delete: if isAuthenticated();
     }
   }

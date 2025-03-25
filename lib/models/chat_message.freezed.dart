@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,384 +10,46 @@ part of 'chat_message.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
-ChatMessage _$ChatMessageFromJson(Map<String, dynamic> json) {
-  return _ChatMessage.fromJson(json);
-}
 
 /// @nodoc
 mixin _$ChatMessage {
-  String get id => throw _privateConstructorUsedError;
-  String get chatId => throw _privateConstructorUsedError;
-  String get senderId => throw _privateConstructorUsedError;
-  String get content => throw _privateConstructorUsedError;
+  String get id;
+  String get chatId;
+  String get senderId;
+  String get content;
   @JsonKey(
       fromJson: ChatMessage._timestampFromJson,
       toJson: ChatMessage._timestampToJson)
-  DateTime get timestamp => throw _privateConstructorUsedError;
-  bool get isAI => throw _privateConstructorUsedError;
-  String? get senderName =>
-      throw _privateConstructorUsedError; // Performance metrics
-  double? get totalDuration => throw _privateConstructorUsedError;
-  double? get loadDuration => throw _privateConstructorUsedError;
-  int? get promptEvalCount => throw _privateConstructorUsedError;
-  double? get promptEvalDuration => throw _privateConstructorUsedError;
-  double? get promptEvalRate => throw _privateConstructorUsedError;
-  int? get evalCount => throw _privateConstructorUsedError;
-  double? get evalDuration => throw _privateConstructorUsedError;
-  double? get evalRate => throw _privateConstructorUsedError;
-  bool get isPlaceholder => throw _privateConstructorUsedError;
-
-  /// Serializes this ChatMessage to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  DateTime get timestamp;
+  bool get isAI;
+  String? get senderName; // Performance metrics
+  double? get totalDuration;
+  double? get loadDuration;
+  int? get promptEvalCount;
+  double? get promptEvalDuration;
+  double? get promptEvalRate;
+  int? get evalCount;
+  double? get evalDuration;
+  double? get evalRate;
+  bool get isPlaceholder;
 
   /// Create a copy of ChatMessage
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
   $ChatMessageCopyWith<ChatMessage> get copyWith =>
-      throw _privateConstructorUsedError;
-}
+      _$ChatMessageCopyWithImpl<ChatMessage>(this as ChatMessage, _$identity);
 
-/// @nodoc
-abstract class $ChatMessageCopyWith<$Res> {
-  factory $ChatMessageCopyWith(
-          ChatMessage value, $Res Function(ChatMessage) then) =
-      _$ChatMessageCopyWithImpl<$Res, ChatMessage>;
-  @useResult
-  $Res call(
-      {String id,
-      String chatId,
-      String senderId,
-      String content,
-      @JsonKey(
-          fromJson: ChatMessage._timestampFromJson,
-          toJson: ChatMessage._timestampToJson)
-      DateTime timestamp,
-      bool isAI,
-      String? senderName,
-      double? totalDuration,
-      double? loadDuration,
-      int? promptEvalCount,
-      double? promptEvalDuration,
-      double? promptEvalRate,
-      int? evalCount,
-      double? evalDuration,
-      double? evalRate,
-      bool isPlaceholder});
-}
-
-/// @nodoc
-class _$ChatMessageCopyWithImpl<$Res, $Val extends ChatMessage>
-    implements $ChatMessageCopyWith<$Res> {
-  _$ChatMessageCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of ChatMessage
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? chatId = null,
-    Object? senderId = null,
-    Object? content = null,
-    Object? timestamp = null,
-    Object? isAI = null,
-    Object? senderName = freezed,
-    Object? totalDuration = freezed,
-    Object? loadDuration = freezed,
-    Object? promptEvalCount = freezed,
-    Object? promptEvalDuration = freezed,
-    Object? promptEvalRate = freezed,
-    Object? evalCount = freezed,
-    Object? evalDuration = freezed,
-    Object? evalRate = freezed,
-    Object? isPlaceholder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chatId: null == chatId
-          ? _value.chatId
-          : chatId // ignore: cast_nullable_to_non_nullable
-              as String,
-      senderId: null == senderId
-          ? _value.senderId
-          : senderId // ignore: cast_nullable_to_non_nullable
-              as String,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      timestamp: null == timestamp
-          ? _value.timestamp
-          : timestamp // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      isAI: null == isAI
-          ? _value.isAI
-          : isAI // ignore: cast_nullable_to_non_nullable
-              as bool,
-      senderName: freezed == senderName
-          ? _value.senderName
-          : senderName // ignore: cast_nullable_to_non_nullable
-              as String?,
-      totalDuration: freezed == totalDuration
-          ? _value.totalDuration
-          : totalDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      loadDuration: freezed == loadDuration
-          ? _value.loadDuration
-          : loadDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      promptEvalCount: freezed == promptEvalCount
-          ? _value.promptEvalCount
-          : promptEvalCount // ignore: cast_nullable_to_non_nullable
-              as int?,
-      promptEvalDuration: freezed == promptEvalDuration
-          ? _value.promptEvalDuration
-          : promptEvalDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      promptEvalRate: freezed == promptEvalRate
-          ? _value.promptEvalRate
-          : promptEvalRate // ignore: cast_nullable_to_non_nullable
-              as double?,
-      evalCount: freezed == evalCount
-          ? _value.evalCount
-          : evalCount // ignore: cast_nullable_to_non_nullable
-              as int?,
-      evalDuration: freezed == evalDuration
-          ? _value.evalDuration
-          : evalDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      evalRate: freezed == evalRate
-          ? _value.evalRate
-          : evalRate // ignore: cast_nullable_to_non_nullable
-              as double?,
-      isPlaceholder: null == isPlaceholder
-          ? _value.isPlaceholder
-          : isPlaceholder // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$ChatMessageImplCopyWith<$Res>
-    implements $ChatMessageCopyWith<$Res> {
-  factory _$$ChatMessageImplCopyWith(
-          _$ChatMessageImpl value, $Res Function(_$ChatMessageImpl) then) =
-      __$$ChatMessageImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String chatId,
-      String senderId,
-      String content,
-      @JsonKey(
-          fromJson: ChatMessage._timestampFromJson,
-          toJson: ChatMessage._timestampToJson)
-      DateTime timestamp,
-      bool isAI,
-      String? senderName,
-      double? totalDuration,
-      double? loadDuration,
-      int? promptEvalCount,
-      double? promptEvalDuration,
-      double? promptEvalRate,
-      int? evalCount,
-      double? evalDuration,
-      double? evalRate,
-      bool isPlaceholder});
-}
-
-/// @nodoc
-class __$$ChatMessageImplCopyWithImpl<$Res>
-    extends _$ChatMessageCopyWithImpl<$Res, _$ChatMessageImpl>
-    implements _$$ChatMessageImplCopyWith<$Res> {
-  __$$ChatMessageImplCopyWithImpl(
-      _$ChatMessageImpl _value, $Res Function(_$ChatMessageImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of ChatMessage
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? chatId = null,
-    Object? senderId = null,
-    Object? content = null,
-    Object? timestamp = null,
-    Object? isAI = null,
-    Object? senderName = freezed,
-    Object? totalDuration = freezed,
-    Object? loadDuration = freezed,
-    Object? promptEvalCount = freezed,
-    Object? promptEvalDuration = freezed,
-    Object? promptEvalRate = freezed,
-    Object? evalCount = freezed,
-    Object? evalDuration = freezed,
-    Object? evalRate = freezed,
-    Object? isPlaceholder = null,
-  }) {
-    return _then(_$ChatMessageImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      chatId: null == chatId
-          ? _value.chatId
-          : chatId // ignore: cast_nullable_to_non_nullable
-              as String,
-      senderId: null == senderId
-          ? _value.senderId
-          : senderId // ignore: cast_nullable_to_non_nullable
-              as String,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as String,
-      timestamp: null == timestamp
-          ? _value.timestamp
-          : timestamp // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      isAI: null == isAI
-          ? _value.isAI
-          : isAI // ignore: cast_nullable_to_non_nullable
-              as bool,
-      senderName: freezed == senderName
-          ? _value.senderName
-          : senderName // ignore: cast_nullable_to_non_nullable
-              as String?,
-      totalDuration: freezed == totalDuration
-          ? _value.totalDuration
-          : totalDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      loadDuration: freezed == loadDuration
-          ? _value.loadDuration
-          : loadDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      promptEvalCount: freezed == promptEvalCount
-          ? _value.promptEvalCount
-          : promptEvalCount // ignore: cast_nullable_to_non_nullable
-              as int?,
-      promptEvalDuration: freezed == promptEvalDuration
-          ? _value.promptEvalDuration
-          : promptEvalDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      promptEvalRate: freezed == promptEvalRate
-          ? _value.promptEvalRate
-          : promptEvalRate // ignore: cast_nullable_to_non_nullable
-              as double?,
-      evalCount: freezed == evalCount
-          ? _value.evalCount
-          : evalCount // ignore: cast_nullable_to_non_nullable
-              as int?,
-      evalDuration: freezed == evalDuration
-          ? _value.evalDuration
-          : evalDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      evalRate: freezed == evalRate
-          ? _value.evalRate
-          : evalRate // ignore: cast_nullable_to_non_nullable
-              as double?,
-      isPlaceholder: null == isPlaceholder
-          ? _value.isPlaceholder
-          : isPlaceholder // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ));
-  }
-}
-
-/// @nodoc
-
-@JsonSerializable(explicitToJson: true)
-class _$ChatMessageImpl extends _ChatMessage {
-  const _$ChatMessageImpl(
-      {required this.id,
-      required this.chatId,
-      required this.senderId,
-      required this.content,
-      @JsonKey(
-          fromJson: ChatMessage._timestampFromJson,
-          toJson: ChatMessage._timestampToJson)
-      required this.timestamp,
-      this.isAI = false,
-      this.senderName,
-      this.totalDuration,
-      this.loadDuration,
-      this.promptEvalCount,
-      this.promptEvalDuration,
-      this.promptEvalRate,
-      this.evalCount,
-      this.evalDuration,
-      this.evalRate,
-      this.isPlaceholder = false})
-      : super._();
-
-  factory _$ChatMessageImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ChatMessageImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String chatId;
-  @override
-  final String senderId;
-  @override
-  final String content;
-  @override
-  @JsonKey(
-      fromJson: ChatMessage._timestampFromJson,
-      toJson: ChatMessage._timestampToJson)
-  final DateTime timestamp;
-  @override
-  @JsonKey()
-  final bool isAI;
-  @override
-  final String? senderName;
-// Performance metrics
-  @override
-  final double? totalDuration;
-  @override
-  final double? loadDuration;
-  @override
-  final int? promptEvalCount;
-  @override
-  final double? promptEvalDuration;
-  @override
-  final double? promptEvalRate;
-  @override
-  final int? evalCount;
-  @override
-  final double? evalDuration;
-  @override
-  final double? evalRate;
-  @override
-  @JsonKey()
-  final bool isPlaceholder;
-
-  @override
-  String toString() {
-    return 'ChatMessage(id: $id, chatId: $chatId, senderId: $senderId, content: $content, timestamp: $timestamp, isAI: $isAI, senderName: $senderName, totalDuration: $totalDuration, loadDuration: $loadDuration, promptEvalCount: $promptEvalCount, promptEvalDuration: $promptEvalDuration, promptEvalRate: $promptEvalRate, evalCount: $evalCount, evalDuration: $evalDuration, evalRate: $evalRate, isPlaceholder: $isPlaceholder)';
-  }
+  /// Serializes this ChatMessage to a JSON map.
+  Map<String, dynamic> toJson();
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ChatMessageImpl &&
+            other is ChatMessage &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.chatId, chatId) || other.chatId == chatId) &&
             (identical(other.senderId, senderId) ||
@@ -438,88 +101,408 @@ class _$ChatMessageImpl extends _ChatMessage {
       evalRate,
       isPlaceholder);
 
-  /// Create a copy of ChatMessage
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  @pragma('vm:prefer-inline')
-  _$$ChatMessageImplCopyWith<_$ChatMessageImpl> get copyWith =>
-      __$$ChatMessageImplCopyWithImpl<_$ChatMessageImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ChatMessageImplToJson(
-      this,
-    );
+  String toString() {
+    return 'ChatMessage(id: $id, chatId: $chatId, senderId: $senderId, content: $content, timestamp: $timestamp, isAI: $isAI, senderName: $senderName, totalDuration: $totalDuration, loadDuration: $loadDuration, promptEvalCount: $promptEvalCount, promptEvalDuration: $promptEvalDuration, promptEvalRate: $promptEvalRate, evalCount: $evalCount, evalDuration: $evalDuration, evalRate: $evalRate, isPlaceholder: $isPlaceholder)';
   }
 }
 
-abstract class _ChatMessage extends ChatMessage {
-  const factory _ChatMessage(
-      {required final String id,
-      required final String chatId,
-      required final String senderId,
-      required final String content,
+/// @nodoc
+abstract mixin class $ChatMessageCopyWith<$Res> {
+  factory $ChatMessageCopyWith(
+          ChatMessage value, $Res Function(ChatMessage) _then) =
+      _$ChatMessageCopyWithImpl;
+  @useResult
+  $Res call(
+      {String id,
+      String chatId,
+      String senderId,
+      String content,
       @JsonKey(
           fromJson: ChatMessage._timestampFromJson,
           toJson: ChatMessage._timestampToJson)
-      required final DateTime timestamp,
-      final bool isAI,
-      final String? senderName,
-      final double? totalDuration,
-      final double? loadDuration,
-      final int? promptEvalCount,
-      final double? promptEvalDuration,
-      final double? promptEvalRate,
-      final int? evalCount,
-      final double? evalDuration,
-      final double? evalRate,
-      final bool isPlaceholder}) = _$ChatMessageImpl;
-  const _ChatMessage._() : super._();
+      DateTime timestamp,
+      bool isAI,
+      String? senderName,
+      double? totalDuration,
+      double? loadDuration,
+      int? promptEvalCount,
+      double? promptEvalDuration,
+      double? promptEvalRate,
+      int? evalCount,
+      double? evalDuration,
+      double? evalRate,
+      bool isPlaceholder});
+}
 
-  factory _ChatMessage.fromJson(Map<String, dynamic> json) =
-      _$ChatMessageImpl.fromJson;
+/// @nodoc
+class _$ChatMessageCopyWithImpl<$Res> implements $ChatMessageCopyWith<$Res> {
+  _$ChatMessageCopyWithImpl(this._self, this._then);
+
+  final ChatMessage _self;
+  final $Res Function(ChatMessage) _then;
+
+  /// Create a copy of ChatMessage
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? chatId = null,
+    Object? senderId = null,
+    Object? content = null,
+    Object? timestamp = null,
+    Object? isAI = null,
+    Object? senderName = freezed,
+    Object? totalDuration = freezed,
+    Object? loadDuration = freezed,
+    Object? promptEvalCount = freezed,
+    Object? promptEvalDuration = freezed,
+    Object? promptEvalRate = freezed,
+    Object? evalCount = freezed,
+    Object? evalDuration = freezed,
+    Object? evalRate = freezed,
+    Object? isPlaceholder = null,
+  }) {
+    return _then(_self.copyWith(
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      chatId: null == chatId
+          ? _self.chatId
+          : chatId // ignore: cast_nullable_to_non_nullable
+              as String,
+      senderId: null == senderId
+          ? _self.senderId
+          : senderId // ignore: cast_nullable_to_non_nullable
+              as String,
+      content: null == content
+          ? _self.content
+          : content // ignore: cast_nullable_to_non_nullable
+              as String,
+      timestamp: null == timestamp
+          ? _self.timestamp
+          : timestamp // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      isAI: null == isAI
+          ? _self.isAI
+          : isAI // ignore: cast_nullable_to_non_nullable
+              as bool,
+      senderName: freezed == senderName
+          ? _self.senderName
+          : senderName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      totalDuration: freezed == totalDuration
+          ? _self.totalDuration
+          : totalDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      loadDuration: freezed == loadDuration
+          ? _self.loadDuration
+          : loadDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      promptEvalCount: freezed == promptEvalCount
+          ? _self.promptEvalCount
+          : promptEvalCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      promptEvalDuration: freezed == promptEvalDuration
+          ? _self.promptEvalDuration
+          : promptEvalDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      promptEvalRate: freezed == promptEvalRate
+          ? _self.promptEvalRate
+          : promptEvalRate // ignore: cast_nullable_to_non_nullable
+              as double?,
+      evalCount: freezed == evalCount
+          ? _self.evalCount
+          : evalCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      evalDuration: freezed == evalDuration
+          ? _self.evalDuration
+          : evalDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      evalRate: freezed == evalRate
+          ? _self.evalRate
+          : evalRate // ignore: cast_nullable_to_non_nullable
+              as double?,
+      isPlaceholder: null == isPlaceholder
+          ? _self.isPlaceholder
+          : isPlaceholder // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _ChatMessage extends ChatMessage {
+  const _ChatMessage(
+      {required this.id,
+      required this.chatId,
+      required this.senderId,
+      required this.content,
+      @JsonKey(
+          fromJson: ChatMessage._timestampFromJson,
+          toJson: ChatMessage._timestampToJson)
+      required this.timestamp,
+      this.isAI = false,
+      this.senderName,
+      this.totalDuration,
+      this.loadDuration,
+      this.promptEvalCount,
+      this.promptEvalDuration,
+      this.promptEvalRate,
+      this.evalCount,
+      this.evalDuration,
+      this.evalRate,
+      this.isPlaceholder = false})
+      : super._();
+  factory _ChatMessage.fromJson(Map<String, dynamic> json) =>
+      _$ChatMessageFromJson(json);
 
   @override
-  String get id;
+  final String id;
   @override
-  String get chatId;
+  final String chatId;
   @override
-  String get senderId;
+  final String senderId;
   @override
-  String get content;
+  final String content;
   @override
   @JsonKey(
       fromJson: ChatMessage._timestampFromJson,
       toJson: ChatMessage._timestampToJson)
-  DateTime get timestamp;
+  final DateTime timestamp;
   @override
-  bool get isAI;
+  @JsonKey()
+  final bool isAI;
   @override
-  String? get senderName; // Performance metrics
+  final String? senderName;
+// Performance metrics
   @override
-  double? get totalDuration;
+  final double? totalDuration;
   @override
-  double? get loadDuration;
+  final double? loadDuration;
   @override
-  int? get promptEvalCount;
+  final int? promptEvalCount;
   @override
-  double? get promptEvalDuration;
+  final double? promptEvalDuration;
   @override
-  double? get promptEvalRate;
+  final double? promptEvalRate;
   @override
-  int? get evalCount;
+  final int? evalCount;
   @override
-  double? get evalDuration;
+  final double? evalDuration;
   @override
-  double? get evalRate;
+  final double? evalRate;
   @override
-  bool get isPlaceholder;
+  @JsonKey()
+  final bool isPlaceholder;
 
   /// Create a copy of ChatMessage
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ChatMessageImplCopyWith<_$ChatMessageImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  @pragma('vm:prefer-inline')
+  _$ChatMessageCopyWith<_ChatMessage> get copyWith =>
+      __$ChatMessageCopyWithImpl<_ChatMessage>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$ChatMessageToJson(
+      this,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _ChatMessage &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.chatId, chatId) || other.chatId == chatId) &&
+            (identical(other.senderId, senderId) ||
+                other.senderId == senderId) &&
+            (identical(other.content, content) || other.content == content) &&
+            (identical(other.timestamp, timestamp) ||
+                other.timestamp == timestamp) &&
+            (identical(other.isAI, isAI) || other.isAI == isAI) &&
+            (identical(other.senderName, senderName) ||
+                other.senderName == senderName) &&
+            (identical(other.totalDuration, totalDuration) ||
+                other.totalDuration == totalDuration) &&
+            (identical(other.loadDuration, loadDuration) ||
+                other.loadDuration == loadDuration) &&
+            (identical(other.promptEvalCount, promptEvalCount) ||
+                other.promptEvalCount == promptEvalCount) &&
+            (identical(other.promptEvalDuration, promptEvalDuration) ||
+                other.promptEvalDuration == promptEvalDuration) &&
+            (identical(other.promptEvalRate, promptEvalRate) ||
+                other.promptEvalRate == promptEvalRate) &&
+            (identical(other.evalCount, evalCount) ||
+                other.evalCount == evalCount) &&
+            (identical(other.evalDuration, evalDuration) ||
+                other.evalDuration == evalDuration) &&
+            (identical(other.evalRate, evalRate) ||
+                other.evalRate == evalRate) &&
+            (identical(other.isPlaceholder, isPlaceholder) ||
+                other.isPlaceholder == isPlaceholder));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      chatId,
+      senderId,
+      content,
+      timestamp,
+      isAI,
+      senderName,
+      totalDuration,
+      loadDuration,
+      promptEvalCount,
+      promptEvalDuration,
+      promptEvalRate,
+      evalCount,
+      evalDuration,
+      evalRate,
+      isPlaceholder);
+
+  @override
+  String toString() {
+    return 'ChatMessage(id: $id, chatId: $chatId, senderId: $senderId, content: $content, timestamp: $timestamp, isAI: $isAI, senderName: $senderName, totalDuration: $totalDuration, loadDuration: $loadDuration, promptEvalCount: $promptEvalCount, promptEvalDuration: $promptEvalDuration, promptEvalRate: $promptEvalRate, evalCount: $evalCount, evalDuration: $evalDuration, evalRate: $evalRate, isPlaceholder: $isPlaceholder)';
+  }
 }
+
+/// @nodoc
+abstract mixin class _$ChatMessageCopyWith<$Res>
+    implements $ChatMessageCopyWith<$Res> {
+  factory _$ChatMessageCopyWith(
+          _ChatMessage value, $Res Function(_ChatMessage) _then) =
+      __$ChatMessageCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String chatId,
+      String senderId,
+      String content,
+      @JsonKey(
+          fromJson: ChatMessage._timestampFromJson,
+          toJson: ChatMessage._timestampToJson)
+      DateTime timestamp,
+      bool isAI,
+      String? senderName,
+      double? totalDuration,
+      double? loadDuration,
+      int? promptEvalCount,
+      double? promptEvalDuration,
+      double? promptEvalRate,
+      int? evalCount,
+      double? evalDuration,
+      double? evalRate,
+      bool isPlaceholder});
+}
+
+/// @nodoc
+class __$ChatMessageCopyWithImpl<$Res> implements _$ChatMessageCopyWith<$Res> {
+  __$ChatMessageCopyWithImpl(this._self, this._then);
+
+  final _ChatMessage _self;
+  final $Res Function(_ChatMessage) _then;
+
+  /// Create a copy of ChatMessage
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? id = null,
+    Object? chatId = null,
+    Object? senderId = null,
+    Object? content = null,
+    Object? timestamp = null,
+    Object? isAI = null,
+    Object? senderName = freezed,
+    Object? totalDuration = freezed,
+    Object? loadDuration = freezed,
+    Object? promptEvalCount = freezed,
+    Object? promptEvalDuration = freezed,
+    Object? promptEvalRate = freezed,
+    Object? evalCount = freezed,
+    Object? evalDuration = freezed,
+    Object? evalRate = freezed,
+    Object? isPlaceholder = null,
+  }) {
+    return _then(_ChatMessage(
+      id: null == id
+          ? _self.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      chatId: null == chatId
+          ? _self.chatId
+          : chatId // ignore: cast_nullable_to_non_nullable
+              as String,
+      senderId: null == senderId
+          ? _self.senderId
+          : senderId // ignore: cast_nullable_to_non_nullable
+              as String,
+      content: null == content
+          ? _self.content
+          : content // ignore: cast_nullable_to_non_nullable
+              as String,
+      timestamp: null == timestamp
+          ? _self.timestamp
+          : timestamp // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      isAI: null == isAI
+          ? _self.isAI
+          : isAI // ignore: cast_nullable_to_non_nullable
+              as bool,
+      senderName: freezed == senderName
+          ? _self.senderName
+          : senderName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      totalDuration: freezed == totalDuration
+          ? _self.totalDuration
+          : totalDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      loadDuration: freezed == loadDuration
+          ? _self.loadDuration
+          : loadDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      promptEvalCount: freezed == promptEvalCount
+          ? _self.promptEvalCount
+          : promptEvalCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      promptEvalDuration: freezed == promptEvalDuration
+          ? _self.promptEvalDuration
+          : promptEvalDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      promptEvalRate: freezed == promptEvalRate
+          ? _self.promptEvalRate
+          : promptEvalRate // ignore: cast_nullable_to_non_nullable
+              as double?,
+      evalCount: freezed == evalCount
+          ? _self.evalCount
+          : evalCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      evalDuration: freezed == evalDuration
+          ? _self.evalDuration
+          : evalDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      evalRate: freezed == evalRate
+          ? _self.evalRate
+          : evalRate // ignore: cast_nullable_to_non_nullable
+              as double?,
+      isPlaceholder: null == isPlaceholder
+          ? _self.isPlaceholder
+          : isPlaceholder // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+// dart format on

@@ -6,11 +6,10 @@ part of 'preferences_state.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$PreferencesStateImpl _$$PreferencesStateImplFromJson(
-        Map<String, dynamic> json) =>
-    _$PreferencesStateImpl(
+_PreferencesState _$PreferencesStateFromJson(Map<String, dynamic> json) =>
+    _PreferencesState(
       themeMode: $enumDecodeNullable(_$ThemeModeEnumMap, json['themeMode']) ??
-          ThemeMode.system,
+          ThemeMode.dark,
       isNotificationsEnabled: json['isNotificationsEnabled'] as bool? ?? true,
       isPushNotificationsEnabled:
           json['isPushNotificationsEnabled'] as bool? ?? true,
@@ -20,8 +19,7 @@ _$PreferencesStateImpl _$$PreferencesStateImplFromJson(
       error: json['error'] as String?,
     );
 
-Map<String, dynamic> _$$PreferencesStateImplToJson(
-        _$PreferencesStateImpl instance) =>
+Map<String, dynamic> _$PreferencesStateToJson(_PreferencesState instance) =>
     <String, dynamic>{
       'themeMode': _$ThemeModeEnumMap[instance.themeMode]!,
       'isNotificationsEnabled': instance.isNotificationsEnabled,

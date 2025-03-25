@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,107 +10,66 @@ part of 'chat_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
 mixin _$ChatState {
-  List<ChatMessage> get messages => throw _privateConstructorUsedError;
-  List<Map<String, dynamic>> get chatHistories =>
-      throw _privateConstructorUsedError;
-  List<String> get pinnedChatIds => throw _privateConstructorUsedError;
-  String? get currentChatId => throw _privateConstructorUsedError;
-  bool get isLoading => throw _privateConstructorUsedError;
-  String? get error => throw _privateConstructorUsedError;
-  String get searchQuery => throw _privateConstructorUsedError;
+  List<ChatMessage> get messages;
+  List<Map<String, dynamic>> get chatHistories;
+  List<String> get pinnedChatIds;
+  String? get currentChatId;
+  bool get isLoading;
+  String? get error;
+  String get searchQuery;
 
   /// Create a copy of ChatState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $ChatStateCopyWith<ChatState> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $ChatStateCopyWith<$Res> {
-  factory $ChatStateCopyWith(ChatState value, $Res Function(ChatState) then) =
-      _$ChatStateCopyWithImpl<$Res, ChatState>;
-  @useResult
-  $Res call(
-      {List<ChatMessage> messages,
-      List<Map<String, dynamic>> chatHistories,
-      List<String> pinnedChatIds,
-      String? currentChatId,
-      bool isLoading,
-      String? error,
-      String searchQuery});
-}
-
-/// @nodoc
-class _$ChatStateCopyWithImpl<$Res, $Val extends ChatState>
-    implements $ChatStateCopyWith<$Res> {
-  _$ChatStateCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of ChatState
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
+  $ChatStateCopyWith<ChatState> get copyWith =>
+      _$ChatStateCopyWithImpl<ChatState>(this as ChatState, _$identity);
+
   @override
-  $Res call({
-    Object? messages = null,
-    Object? chatHistories = null,
-    Object? pinnedChatIds = null,
-    Object? currentChatId = freezed,
-    Object? isLoading = null,
-    Object? error = freezed,
-    Object? searchQuery = null,
-  }) {
-    return _then(_value.copyWith(
-      messages: null == messages
-          ? _value.messages
-          : messages // ignore: cast_nullable_to_non_nullable
-              as List<ChatMessage>,
-      chatHistories: null == chatHistories
-          ? _value.chatHistories
-          : chatHistories // ignore: cast_nullable_to_non_nullable
-              as List<Map<String, dynamic>>,
-      pinnedChatIds: null == pinnedChatIds
-          ? _value.pinnedChatIds
-          : pinnedChatIds // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      currentChatId: freezed == currentChatId
-          ? _value.currentChatId
-          : currentChatId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isLoading: null == isLoading
-          ? _value.isLoading
-          : isLoading // ignore: cast_nullable_to_non_nullable
-              as bool,
-      error: freezed == error
-          ? _value.error
-          : error // ignore: cast_nullable_to_non_nullable
-              as String?,
-      searchQuery: null == searchQuery
-          ? _value.searchQuery
-          : searchQuery // ignore: cast_nullable_to_non_nullable
-              as String,
-    ) as $Val);
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is ChatState &&
+            const DeepCollectionEquality().equals(other.messages, messages) &&
+            const DeepCollectionEquality()
+                .equals(other.chatHistories, chatHistories) &&
+            const DeepCollectionEquality()
+                .equals(other.pinnedChatIds, pinnedChatIds) &&
+            (identical(other.currentChatId, currentChatId) ||
+                other.currentChatId == currentChatId) &&
+            (identical(other.isLoading, isLoading) ||
+                other.isLoading == isLoading) &&
+            (identical(other.error, error) || other.error == error) &&
+            (identical(other.searchQuery, searchQuery) ||
+                other.searchQuery == searchQuery));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(messages),
+      const DeepCollectionEquality().hash(chatHistories),
+      const DeepCollectionEquality().hash(pinnedChatIds),
+      currentChatId,
+      isLoading,
+      error,
+      searchQuery);
+
+  @override
+  String toString() {
+    return 'ChatState(messages: $messages, chatHistories: $chatHistories, pinnedChatIds: $pinnedChatIds, currentChatId: $currentChatId, isLoading: $isLoading, error: $error, searchQuery: $searchQuery)';
   }
 }
 
 /// @nodoc
-abstract class _$$ChatStateImplCopyWith<$Res>
-    implements $ChatStateCopyWith<$Res> {
-  factory _$$ChatStateImplCopyWith(
-          _$ChatStateImpl value, $Res Function(_$ChatStateImpl) then) =
-      __$$ChatStateImplCopyWithImpl<$Res>;
-  @override
+abstract mixin class $ChatStateCopyWith<$Res> {
+  factory $ChatStateCopyWith(ChatState value, $Res Function(ChatState) _then) =
+      _$ChatStateCopyWithImpl;
   @useResult
   $Res call(
       {List<ChatMessage> messages,
@@ -122,12 +82,11 @@ abstract class _$$ChatStateImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$ChatStateImplCopyWithImpl<$Res>
-    extends _$ChatStateCopyWithImpl<$Res, _$ChatStateImpl>
-    implements _$$ChatStateImplCopyWith<$Res> {
-  __$$ChatStateImplCopyWithImpl(
-      _$ChatStateImpl _value, $Res Function(_$ChatStateImpl) _then)
-      : super(_value, _then);
+class _$ChatStateCopyWithImpl<$Res> implements $ChatStateCopyWith<$Res> {
+  _$ChatStateCopyWithImpl(this._self, this._then);
+
+  final ChatState _self;
+  final $Res Function(ChatState) _then;
 
   /// Create a copy of ChatState
   /// with the given fields replaced by the non-null parameter values.
@@ -142,33 +101,33 @@ class __$$ChatStateImplCopyWithImpl<$Res>
     Object? error = freezed,
     Object? searchQuery = null,
   }) {
-    return _then(_$ChatStateImpl(
+    return _then(_self.copyWith(
       messages: null == messages
-          ? _value._messages
+          ? _self.messages
           : messages // ignore: cast_nullable_to_non_nullable
               as List<ChatMessage>,
       chatHistories: null == chatHistories
-          ? _value._chatHistories
+          ? _self.chatHistories
           : chatHistories // ignore: cast_nullable_to_non_nullable
               as List<Map<String, dynamic>>,
       pinnedChatIds: null == pinnedChatIds
-          ? _value._pinnedChatIds
+          ? _self.pinnedChatIds
           : pinnedChatIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
       currentChatId: freezed == currentChatId
-          ? _value.currentChatId
+          ? _self.currentChatId
           : currentChatId // ignore: cast_nullable_to_non_nullable
               as String?,
       isLoading: null == isLoading
-          ? _value.isLoading
+          ? _self.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
       error: freezed == error
-          ? _value.error
+          ? _self.error
           : error // ignore: cast_nullable_to_non_nullable
               as String?,
       searchQuery: null == searchQuery
-          ? _value.searchQuery
+          ? _self.searchQuery
           : searchQuery // ignore: cast_nullable_to_non_nullable
               as String,
     ));
@@ -177,8 +136,8 @@ class __$$ChatStateImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$ChatStateImpl implements _ChatState {
-  const _$ChatStateImpl(
+class _ChatState implements ChatState {
+  const _ChatState(
       {final List<ChatMessage> messages = const [],
       final List<Map<String, dynamic>> chatHistories = const [],
       final List<String> pinnedChatIds = const [],
@@ -228,16 +187,19 @@ class _$ChatStateImpl implements _ChatState {
   @JsonKey()
   final String searchQuery;
 
+  /// Create a copy of ChatState
+  /// with the given fields replaced by the non-null parameter values.
   @override
-  String toString() {
-    return 'ChatState(messages: $messages, chatHistories: $chatHistories, pinnedChatIds: $pinnedChatIds, currentChatId: $currentChatId, isLoading: $isLoading, error: $error, searchQuery: $searchQuery)';
-  }
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$ChatStateCopyWith<_ChatState> get copyWith =>
+      __$ChatStateCopyWithImpl<_ChatState>(this, _$identity);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ChatStateImpl &&
+            other is _ChatState &&
             const DeepCollectionEquality().equals(other._messages, _messages) &&
             const DeepCollectionEquality()
                 .equals(other._chatHistories, _chatHistories) &&
@@ -263,44 +225,81 @@ class _$ChatStateImpl implements _ChatState {
       error,
       searchQuery);
 
+  @override
+  String toString() {
+    return 'ChatState(messages: $messages, chatHistories: $chatHistories, pinnedChatIds: $pinnedChatIds, currentChatId: $currentChatId, isLoading: $isLoading, error: $error, searchQuery: $searchQuery)';
+  }
+}
+
+/// @nodoc
+abstract mixin class _$ChatStateCopyWith<$Res>
+    implements $ChatStateCopyWith<$Res> {
+  factory _$ChatStateCopyWith(
+          _ChatState value, $Res Function(_ChatState) _then) =
+      __$ChatStateCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {List<ChatMessage> messages,
+      List<Map<String, dynamic>> chatHistories,
+      List<String> pinnedChatIds,
+      String? currentChatId,
+      bool isLoading,
+      String? error,
+      String searchQuery});
+}
+
+/// @nodoc
+class __$ChatStateCopyWithImpl<$Res> implements _$ChatStateCopyWith<$Res> {
+  __$ChatStateCopyWithImpl(this._self, this._then);
+
+  final _ChatState _self;
+  final $Res Function(_ChatState) _then;
+
   /// Create a copy of ChatState
   /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$ChatStateImplCopyWith<_$ChatStateImpl> get copyWith =>
-      __$$ChatStateImplCopyWithImpl<_$ChatStateImpl>(this, _$identity);
+  $Res call({
+    Object? messages = null,
+    Object? chatHistories = null,
+    Object? pinnedChatIds = null,
+    Object? currentChatId = freezed,
+    Object? isLoading = null,
+    Object? error = freezed,
+    Object? searchQuery = null,
+  }) {
+    return _then(_ChatState(
+      messages: null == messages
+          ? _self._messages
+          : messages // ignore: cast_nullable_to_non_nullable
+              as List<ChatMessage>,
+      chatHistories: null == chatHistories
+          ? _self._chatHistories
+          : chatHistories // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+      pinnedChatIds: null == pinnedChatIds
+          ? _self._pinnedChatIds
+          : pinnedChatIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      currentChatId: freezed == currentChatId
+          ? _self.currentChatId
+          : currentChatId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isLoading: null == isLoading
+          ? _self.isLoading
+          : isLoading // ignore: cast_nullable_to_non_nullable
+              as bool,
+      error: freezed == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as String?,
+      searchQuery: null == searchQuery
+          ? _self.searchQuery
+          : searchQuery // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
 }
 
-abstract class _ChatState implements ChatState {
-  const factory _ChatState(
-      {final List<ChatMessage> messages,
-      final List<Map<String, dynamic>> chatHistories,
-      final List<String> pinnedChatIds,
-      final String? currentChatId,
-      final bool isLoading,
-      final String? error,
-      final String searchQuery}) = _$ChatStateImpl;
-
-  @override
-  List<ChatMessage> get messages;
-  @override
-  List<Map<String, dynamic>> get chatHistories;
-  @override
-  List<String> get pinnedChatIds;
-  @override
-  String? get currentChatId;
-  @override
-  bool get isLoading;
-  @override
-  String? get error;
-  @override
-  String get searchQuery;
-
-  /// Create a copy of ChatState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ChatStateImplCopyWith<_$ChatStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
+// dart format on

@@ -6,6 +6,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/constants/assets.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
+import 'package:devio/utils/state_extension_helpers.dart';
 
 class AuthScreen extends StatefulWidget {
   final bool isLogin;

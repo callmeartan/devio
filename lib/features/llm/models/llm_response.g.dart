@@ -6,8 +6,7 @@ part of 'llm_response.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$LlmResponseImpl _$$LlmResponseImplFromJson(Map<String, dynamic> json) =>
-    _$LlmResponseImpl(
+_LlmResponse _$LlmResponseFromJson(Map<String, dynamic> json) => _LlmResponse(
       text: json['text'] as String,
       isError: json['isError'] as bool? ?? false,
       errorMessage: json['errorMessage'] as String?,
@@ -22,9 +21,11 @@ _$LlmResponseImpl _$$LlmResponseImplFromJson(Map<String, dynamic> json) =>
       evalRate: (json['eval_rate'] as num?)?.toDouble(),
       completionTokens: (json['completion_tokens'] as num?)?.toInt(),
       totalTokens: (json['total_tokens'] as num?)?.toInt(),
+      isFinal: json['is_final'] as bool? ?? false,
+      fullText: json['full_text'] as String?,
     );
 
-Map<String, dynamic> _$$LlmResponseImplToJson(_$LlmResponseImpl instance) =>
+Map<String, dynamic> _$LlmResponseToJson(_LlmResponse instance) =>
     <String, dynamic>{
       'text': instance.text,
       'isError': instance.isError,
@@ -40,4 +41,6 @@ Map<String, dynamic> _$$LlmResponseImplToJson(_$LlmResponseImpl instance) =>
       'eval_rate': instance.evalRate,
       'completion_tokens': instance.completionTokens,
       'total_tokens': instance.totalTokens,
+      'is_final': instance.isFinal,
+      'full_text': instance.fullText,
     };

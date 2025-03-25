@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'utils/extensions.dart';
 import 'firebase_options.dart';
 import 'features/settings/cubit/preferences_cubit.dart';
 import 'features/settings/cubit/preferences_state.dart';

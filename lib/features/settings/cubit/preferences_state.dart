@@ -5,7 +5,7 @@ part 'preferences_state.freezed.dart';
 part 'preferences_state.g.dart';
 
 @freezed
-class PreferencesState with _$PreferencesState {
+abstract class PreferencesState with _$PreferencesState {
   const factory PreferencesState({
     @Default(ThemeMode.dark) ThemeMode themeMode,
     @Default(true) bool isNotificationsEnabled,

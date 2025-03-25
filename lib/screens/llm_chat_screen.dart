@@ -28,6 +28,7 @@ import '../widgets/model_selection_ui.dart';
 import '../widgets/setup_required_view.dart';
 import '../widgets/simple_drawer_menu_item.dart' as simple;
 import '../widgets/typing_indicator.dart';
+import 'package:devio/utils/state_extension_helpers.dart';
 
 const String _kAiUserName = 'AI Assistant';
 
@@ -214,20 +215,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.grey.shade800,
+        content: Text(message),
+        backgroundColor: Colors.red.shade800,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 5),
         action: SnackBarAction(
-          label: 'Dismiss',
+          label: 'DISMISS',
           textColor: Colors.white,
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -1284,15 +1280,56 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     final authState = context.read<AuthCubit>().state;
     final userId = authState.maybeWhen(
       authenticated: (uid, _, __) => uid,
-      orElse: () => 'anonymous',
+      orElse: () {
+        // Handle unauthenticated user case
+        _showErrorSnackBar(
+            'You must be signed in to send messages. Please sign in again.');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.go('/auth', extra: {'mode': 'login'});
+        });
+        return 'anonymous';
+      },
     );
 
+    // Don't proceed if user is not authenticated
+    if (userId == 'anonymous') {
+      return;
+    }
+
     // Send user's message
-    context.read<ChatCubit>().sendMessage(
+    context
+        .read<ChatCubit>()
+        .sendMessage(
           senderId: userId,
           content: message,
           isAI: false,
-        );
+        )
+        .catchError((error) {
+      String errorMessage = error.toString();
+
+      // Handle specific error cases
+      if (errorMessage.contains('permission-denied')) {
+        errorMessage = 'Permission denied: Please try refreshing the page';
+      } else if (errorMessage.contains('user-not-authenticated')) {
+        errorMessage = 'Authentication error: Please sign in again';
+        // Only redirect to login for auth errors
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.go('/auth', extra: {'mode': 'login'});
+        });
+      }
+
+      _showErrorSnackBar(errorMessage);
+      setState(() {
+        _isWaitingForAiResponse = false;
+        // Remove placeholder if it exists
+        if (_placeholderMessageId != null) {
+          context
+              .read<ChatCubit>()
+              .removePlaceholderMessage(_placeholderMessageId!);
+          _placeholderMessageId = null;
+        }
+      });
+    });
 
     setState(() {
       _selectedImageBytes = null;
@@ -1335,11 +1372,155 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       if (_isDemoMode) {
         _handleDemoResponse(message);
       } else {
-        // Text-only message with real LLM
-        context.read<LlmCubit>().generateResponse(
-              prompt: message,
-              modelName: _selectedModel,
-            );
+        // Use the streaming API for real-time responses
+        final llmCubit = context.read<LlmCubit>();
+
+        // Create a stream subscription for managing the response stream
+        StreamSubscription<LlmState>? subscription;
+        String accumulatedText = '';
+        final messageId = DateTime.now().millisecondsSinceEpoch.toString();
+
+        try {
+          // Get the authenticated user ID first
+          final authState = context.read<AuthCubit>().state;
+          final responseStream = llmCubit.streamResponse(
+            prompt: message,
+            modelName: _selectedModel,
+          );
+
+          // Remove the placeholder message
+          if (_placeholderMessageId != null) {
+            context
+                .read<ChatCubit>()
+                .removePlaceholderMessage(_placeholderMessageId!);
+            _placeholderMessageId = null;
+          }
+
+          // Add AI message with empty content that will be updated
+          context.read<ChatCubit>().sendMessage(
+                senderId: 'ai',
+                content: '', // Start with empty content
+                isAI: true,
+                id: messageId,
+                senderName: _kAiUserName,
+              );
+
+          // Subscribe to the stream to update the message content in real-time
+          subscription = responseStream.listen(
+            (state) {
+              state.maybeWhen(
+                success: (response) {
+                  // Update the message with the new content
+                  if (response.text.isNotEmpty) {
+                    accumulatedText += response.text;
+                    context.read<ChatCubit>().updateMessageContent(
+                          messageId: messageId,
+                          newContent: accumulatedText,
+                        );
+
+                    // Keep the scroll at the bottom
+                    _scrollToBottom();
+                  }
+
+                  // Since we can't access the isFinal field directly yet,
+                  // Check if response has metrics which indicates it's final
+                  final bool isFinalResponse = response.totalDuration != null ||
+                      response.evalCount != null;
+
+                  // Check if this is the final response with metrics
+                  if (isFinalResponse) {
+                    // Update metrics - do this silently without showing errors
+                    try {
+                      context.read<ChatCubit>().updateMessageMetrics(
+                            messageId: messageId,
+                            totalDuration: response.totalDuration,
+                            loadDuration: response.loadDuration,
+                            promptEvalCount: response.promptEvalCount,
+                            promptEvalDuration: response.promptEvalDuration,
+                            promptEvalRate: response.promptEvalRate,
+                            evalCount: response.evalCount,
+                            evalDuration: response.evalDuration,
+                            evalRate: response.evalRate,
+                          );
+                    } catch (e) {
+                      // Log but don't show error to user
+                      developer
+                          .log('Error updating metrics (non-critical): $e');
+                    }
+
+                    // Reset waiting state
+                    setState(() {
+                      _isWaitingForAiResponse = false;
+                    });
+
+                    // Cancel the subscription
+                    subscription?.cancel();
+                  }
+                },
+                error: (message) {
+                  // Handle error
+                  context.read<ChatCubit>().updateMessageContent(
+                        messageId: messageId,
+                        newContent: 'Error: $message',
+                      );
+
+                  setState(() {
+                    _isWaitingForAiResponse = false;
+                  });
+
+                  _handleApiError(message);
+                  subscription?.cancel();
+                },
+                orElse: () {
+                  // Skip other states
+                },
+              );
+            },
+            onError: (error) {
+              // Handle stream error
+              context.read<ChatCubit>().updateMessageContent(
+                    messageId: messageId,
+                    newContent: 'Error: $error',
+                  );
+
+              setState(() {
+                _isWaitingForAiResponse = false;
+              });
+
+              _handleApiError(error);
+              subscription?.cancel();
+            },
+            onDone: () {
+              // This may run even with errors, so we don't reset the waiting state here
+              subscription?.cancel();
+            },
+          );
+        } catch (e) {
+          // Handle immediate errors
+          developer.log('Error starting stream: $e');
+
+          // Remove placeholder if it exists
+          if (_placeholderMessageId != null) {
+            context
+                .read<ChatCubit>()
+                .removePlaceholderMessage(_placeholderMessageId!);
+            _placeholderMessageId = null;
+          }
+
+          // Send error message
+          context.read<ChatCubit>().sendMessage(
+                senderId: 'ai',
+                content: 'Error: $e',
+                isAI: true,
+                senderName: _kAiUserName,
+              );
+
+          setState(() {
+            _isWaitingForAiResponse = false;
+          });
+
+          _handleApiError(e);
+        }
       }
     }
   }
@@ -2118,47 +2299,94 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     }
   }
 
-  Future<void> _handleDemoResponse(String prompt) async {
-    try {
-      final demoService = DemoResponseService();
-      final response = await demoService.getDemoResponse(prompt);
+  void _handleDemoResponse(String message) {
+    // Simulate AI response for demo mode
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
 
-      // Remove placeholder message
-      if (_placeholderMessageId != null) {
-        context
-            .read<ChatCubit>()
-            .removePlaceholderMessage(_placeholderMessageId!);
-        _placeholderMessageId = null;
-      }
-
-      // Add AI response
       final authState = context.read<AuthCubit>().state;
-      final userId = authState.maybeWhen(
-        authenticated: (uid, _, __) => uid,
-        orElse: () => 'anonymous',
+
+      // Check if user is still authenticated
+      final isAuthenticated = authState.maybeWhen(
+        authenticated: (_, __, ___) => true,
+        orElse: () => false,
       );
 
-      context.read<ChatCubit>().sendMessage(
-            senderId: 'ai',
-            content: response.text,
-            isAI: true,
-            senderName: _kAiUserName,
-            totalDuration: response.totalDuration,
-            loadDuration: response.loadDuration,
-            promptEvalCount: response.promptEvalCount,
-            promptEvalDuration: response.promptEvalDuration,
-            promptEvalRate: response.promptEvalRate,
-            evalCount: response.evalCount,
-            evalDuration: response.evalDuration,
-            evalRate: response.evalRate,
-          );
+      if (!isAuthenticated || !mounted) {
+        // If user is no longer authenticated or widget is disposed, don't proceed
+        if (_placeholderMessageId != null && mounted) {
+          context
+              .read<ChatCubit>()
+              .removePlaceholderMessage(_placeholderMessageId!);
+          _placeholderMessageId = null;
+        }
+        setState(() {
+          _isWaitingForAiResponse = false;
+        });
+        return;
+      }
 
-      setState(() {
-        _isWaitingForAiResponse = false;
-      });
-    } catch (e) {
-      _handleApiError(e);
-    }
+      try {
+        // Generate a simple demo response
+        final demoResponse =
+            "This is a demo response. To use real AI features, please set up Ollama using the button in the top-right corner.";
+
+        // Remove placeholder message
+        if (_placeholderMessageId != null) {
+          context
+              .read<ChatCubit>()
+              .removePlaceholderMessage(_placeholderMessageId!);
+          _placeholderMessageId = null;
+        }
+
+        // Get the authenticated user ID
+        final userId = authState.maybeWhen(
+          authenticated: (uid, _, __) => uid,
+          orElse: () => 'anonymous',
+        );
+
+        // Don't send if not authenticated
+        if (userId == 'anonymous') {
+          setState(() {
+            _isWaitingForAiResponse = false;
+          });
+          return;
+        }
+
+        // Send the AI message
+        context
+            .read<ChatCubit>()
+            .sendMessage(
+              senderId: 'ai',
+              content: demoResponse,
+              isAI: true,
+              senderName: _kAiUserName,
+            )
+            .then((_) {
+          setState(() {
+            _isWaitingForAiResponse = false;
+          });
+          _scrollToBottom();
+        }).catchError((error) {
+          setState(() {
+            _isWaitingForAiResponse = false;
+          });
+          // Only show error message if not a permission issue
+          if (!error.toString().contains('permission-denied')) {
+            _showErrorSnackBar(
+                'Error sending demo response: ${error.toString()}');
+          } else {
+            developer.log(
+                'Permission denied error in demo mode (suppressed): $error');
+          }
+        });
+      } catch (e) {
+        setState(() {
+          _isWaitingForAiResponse = false;
+        });
+        _showErrorSnackBar('Error generating demo response: $e');
+      }
+    });
   }
 
   void _showOllamaGuideDialog(BuildContext context) {

@@ -132,6 +132,7 @@ class ChatCubit extends Cubit<ChatState> {
     required String content,
     required bool isAI,
     String? senderName,
+    String? id,
     double? totalDuration,
     double? loadDuration,
     int? promptEvalCount,
@@ -148,8 +149,9 @@ class ChatCubit extends Cubit<ChatState> {
       final chatId = state.currentChatId ??
           DateTime.now().millisecondsSinceEpoch.toString();
 
-      // Create the message
+      // Create the message with custom ID if provided
       final message = ChatMessage.create(
+        id: id,
         chatId: chatId,
         senderId: senderId,
         content: content,
@@ -429,6 +431,151 @@ class ChatCubit extends Cubit<ChatState> {
       final title = (chat['title'] as String).toLowerCase();
       return title.contains(query);
     }).toList();
+  }
+
+  // Update message content for streaming responses
+  Future<void> updateMessageContent({
+    required String messageId,
+    required String newContent,
+  }) async {
+    try {
+      developer.log('Updating message content for messageId: $messageId');
+
+      // Ensure we have a current chat ID
+      final chatId = state.currentChatId;
+      if (chatId == null) {
+        developer.log('No current chat ID, cannot update message');
+        return;
+      }
+
+      // Get the current messages for the chat
+      final messages = _localMessages[chatId] ?? [];
+
+      // Find the message to update
+      int messageIndex = messages.indexWhere((msg) => msg.id == messageId);
+      if (messageIndex == -1) {
+        developer.log('Message not found: $messageId');
+        return;
+      }
+
+      // Get the existing message
+      final existingMessage = messages[messageIndex];
+
+      // Create updated message with new content
+      final updatedMessage = existingMessage.copyWith(content: newContent);
+
+      // Update the message in the local state
+      final updatedMessages = List<ChatMessage>.from(messages);
+      updatedMessages[messageIndex] = updatedMessage;
+      _localMessages[chatId] = updatedMessages;
+
+      // Update state with the modified messages
+      _updateMessagesState(chatId);
+
+      // Update the message in the repository
+      await _chatRepository.updateMessageContent(messageId, newContent);
+    } catch (e) {
+      developer.log('Error updating message content: $e');
+      emit(state.copyWith(error: 'Failed to update message content: $e'));
+    }
+  }
+
+  // Update message metrics for streaming responses
+  Future<void> updateMessageMetrics({
+    required String messageId,
+    double? totalDuration,
+    double? loadDuration,
+    int? promptEvalCount,
+    double? promptEvalDuration,
+    double? promptEvalRate,
+    int? evalCount,
+    double? evalDuration,
+    double? evalRate,
+  }) async {
+    try {
+      developer.log('Updating message metrics for messageId: $messageId');
+
+      // Ensure we have a current chat ID
+      final chatId = state.currentChatId;
+      if (chatId == null) {
+        developer.log('No current chat ID, cannot update message metrics');
+        return;
+      }
+
+      // Get the current messages for the chat
+      final messages = _localMessages[chatId] ?? [];
+
+      // Find the message to update
+      int messageIndex = messages.indexWhere((msg) => msg.id == messageId);
+      if (messageIndex == -1) {
+        developer.log('Message not found: $messageId');
+        return;
+      }
+
+      // Get the existing message
+      final existingMessage = messages[messageIndex];
+
+      // Calculate rates if possible
+      double? calculatedPromptEvalRate = promptEvalRate;
+      if (calculatedPromptEvalRate == null &&
+          promptEvalCount != null &&
+          promptEvalDuration != null &&
+          promptEvalDuration > 0) {
+        calculatedPromptEvalRate = promptEvalCount / promptEvalDuration;
+      }
+
+      double? calculatedEvalRate = evalRate;
+      if (calculatedEvalRate == null &&
+          evalCount != null &&
+          evalDuration != null &&
+          evalDuration > 0) {
+        calculatedEvalRate = evalCount / evalDuration;
+      }
+
+      // Create updated message with new metrics
+      final updatedMessage = existingMessage.copyWith(
+        totalDuration: totalDuration,
+        loadDuration: loadDuration,
+        promptEvalCount: promptEvalCount,
+        promptEvalDuration: promptEvalDuration,
+        promptEvalRate: calculatedPromptEvalRate,
+        evalCount: evalCount,
+        evalDuration: evalDuration,
+        evalRate: calculatedEvalRate,
+      );
+
+      // Update the message in the local state
+      final updatedMessages = List<ChatMessage>.from(messages);
+      updatedMessages[messageIndex] = updatedMessage;
+      _localMessages[chatId] = updatedMessages;
+
+      // Update state with the modified messages
+      _updateMessagesState(chatId);
+
+      // Update the message in the repository - don't throw if this fails
+      try {
+        await _chatRepository.updateMessageMetrics(
+          messageId,
+          totalDuration: totalDuration,
+          loadDuration: loadDuration,
+          promptEvalCount: promptEvalCount,
+          promptEvalDuration: promptEvalDuration,
+          promptEvalRate: calculatedPromptEvalRate,
+          evalCount: evalCount,
+          evalDuration: evalDuration,
+          evalRate: calculatedEvalRate,
+        );
+        developer.log('Successfully updated metrics in Firestore');
+      } catch (e) {
+        // Log but don't propagate error - UI already has the metrics
+        developer.log('Error updating metrics in Firestore (non-critical): $e');
+        // Don't emit error state since the local update succeeded
+      }
+    } catch (e) {
+      // Only log errors for metrics updates - don't display to user
+      developer.log('Error updating message metrics in local state: $e');
+      // Don't emit error state to avoid disrupting user experience
+    }
   }
 
   @override

@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,174 +10,119 @@ part of 'llm_response.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
-LlmResponse _$LlmResponseFromJson(Map<String, dynamic> json) {
-  return _LlmResponse.fromJson(json);
-}
 
 /// @nodoc
 mixin _$LlmResponse {
-  String get text => throw _privateConstructorUsedError;
-  bool get isError => throw _privateConstructorUsedError;
-  String? get errorMessage => throw _privateConstructorUsedError;
+  String get text;
+  bool get isError;
+  String? get errorMessage;
   @JsonKey(name: 'model_name')
-  String? get modelName => throw _privateConstructorUsedError;
+  String? get modelName;
   @JsonKey(name: 'total_duration')
-  double? get totalDuration => throw _privateConstructorUsedError;
+  double? get totalDuration;
   @JsonKey(name: 'load_duration')
-  double? get loadDuration => throw _privateConstructorUsedError;
+  double? get loadDuration;
   @JsonKey(name: 'prompt_eval_count')
-  int? get promptEvalCount => throw _privateConstructorUsedError;
+  int? get promptEvalCount;
   @JsonKey(name: 'prompt_eval_duration')
-  double? get promptEvalDuration => throw _privateConstructorUsedError;
+  double? get promptEvalDuration;
   @JsonKey(name: 'prompt_eval_rate')
-  double? get promptEvalRate => throw _privateConstructorUsedError;
+  double? get promptEvalRate;
   @JsonKey(name: 'eval_count')
-  int? get evalCount => throw _privateConstructorUsedError;
+  int? get evalCount;
   @JsonKey(name: 'eval_duration')
-  double? get evalDuration => throw _privateConstructorUsedError;
+  double? get evalDuration;
   @JsonKey(name: 'eval_rate')
-  double? get evalRate => throw _privateConstructorUsedError;
+  double? get evalRate;
   @JsonKey(name: 'completion_tokens')
-  int? get completionTokens => throw _privateConstructorUsedError;
+  int? get completionTokens;
   @JsonKey(name: 'total_tokens')
-  int? get totalTokens => throw _privateConstructorUsedError;
-
-  /// Serializes this LlmResponse to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  int? get totalTokens; // New fields for streaming
+  @JsonKey(name: 'is_final')
+  bool get isFinal;
+  @JsonKey(name: 'full_text')
+  String? get fullText;
 
   /// Create a copy of LlmResponse
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $LlmResponseCopyWith<LlmResponse> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $LlmResponseCopyWith<$Res> {
-  factory $LlmResponseCopyWith(
-          LlmResponse value, $Res Function(LlmResponse) then) =
-      _$LlmResponseCopyWithImpl<$Res, LlmResponse>;
-  @useResult
-  $Res call(
-      {String text,
-      bool isError,
-      String? errorMessage,
-      @JsonKey(name: 'model_name') String? modelName,
-      @JsonKey(name: 'total_duration') double? totalDuration,
-      @JsonKey(name: 'load_duration') double? loadDuration,
-      @JsonKey(name: 'prompt_eval_count') int? promptEvalCount,
-      @JsonKey(name: 'prompt_eval_duration') double? promptEvalDuration,
-      @JsonKey(name: 'prompt_eval_rate') double? promptEvalRate,
-      @JsonKey(name: 'eval_count') int? evalCount,
-      @JsonKey(name: 'eval_duration') double? evalDuration,
-      @JsonKey(name: 'eval_rate') double? evalRate,
-      @JsonKey(name: 'completion_tokens') int? completionTokens,
-      @JsonKey(name: 'total_tokens') int? totalTokens});
-}
-
-/// @nodoc
-class _$LlmResponseCopyWithImpl<$Res, $Val extends LlmResponse>
-    implements $LlmResponseCopyWith<$Res> {
-  _$LlmResponseCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of LlmResponse
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
+  $LlmResponseCopyWith<LlmResponse> get copyWith =>
+      _$LlmResponseCopyWithImpl<LlmResponse>(this as LlmResponse, _$identity);
+
+  /// Serializes this LlmResponse to a JSON map.
+  Map<String, dynamic> toJson();
+
   @override
-  $Res call({
-    Object? text = null,
-    Object? isError = null,
-    Object? errorMessage = freezed,
-    Object? modelName = freezed,
-    Object? totalDuration = freezed,
-    Object? loadDuration = freezed,
-    Object? promptEvalCount = freezed,
-    Object? promptEvalDuration = freezed,
-    Object? promptEvalRate = freezed,
-    Object? evalCount = freezed,
-    Object? evalDuration = freezed,
-    Object? evalRate = freezed,
-    Object? completionTokens = freezed,
-    Object? totalTokens = freezed,
-  }) {
-    return _then(_value.copyWith(
-      text: null == text
-          ? _value.text
-          : text // ignore: cast_nullable_to_non_nullable
-              as String,
-      isError: null == isError
-          ? _value.isError
-          : isError // ignore: cast_nullable_to_non_nullable
-              as bool,
-      errorMessage: freezed == errorMessage
-          ? _value.errorMessage
-          : errorMessage // ignore: cast_nullable_to_non_nullable
-              as String?,
-      modelName: freezed == modelName
-          ? _value.modelName
-          : modelName // ignore: cast_nullable_to_non_nullable
-              as String?,
-      totalDuration: freezed == totalDuration
-          ? _value.totalDuration
-          : totalDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      loadDuration: freezed == loadDuration
-          ? _value.loadDuration
-          : loadDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      promptEvalCount: freezed == promptEvalCount
-          ? _value.promptEvalCount
-          : promptEvalCount // ignore: cast_nullable_to_non_nullable
-              as int?,
-      promptEvalDuration: freezed == promptEvalDuration
-          ? _value.promptEvalDuration
-          : promptEvalDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      promptEvalRate: freezed == promptEvalRate
-          ? _value.promptEvalRate
-          : promptEvalRate // ignore: cast_nullable_to_non_nullable
-              as double?,
-      evalCount: freezed == evalCount
-          ? _value.evalCount
-          : evalCount // ignore: cast_nullable_to_non_nullable
-              as int?,
-      evalDuration: freezed == evalDuration
-          ? _value.evalDuration
-          : evalDuration // ignore: cast_nullable_to_non_nullable
-              as double?,
-      evalRate: freezed == evalRate
-          ? _value.evalRate
-          : evalRate // ignore: cast_nullable_to_non_nullable
-              as double?,
-      completionTokens: freezed == completionTokens
-          ? _value.completionTokens
-          : completionTokens // ignore: cast_nullable_to_non_nullable
-              as int?,
-      totalTokens: freezed == totalTokens
-          ? _value.totalTokens
-          : totalTokens // ignore: cast_nullable_to_non_nullable
-              as int?,
-    ) as $Val);
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is LlmResponse &&
+            (identical(other.text, text) || other.text == text) &&
+            (identical(other.isError, isError) || other.isError == isError) &&
+            (identical(other.errorMessage, errorMessage) ||
+                other.errorMessage == errorMessage) &&
+            (identical(other.modelName, modelName) ||
+                other.modelName == modelName) &&
+            (identical(other.totalDuration, totalDuration) ||
+                other.totalDuration == totalDuration) &&
+            (identical(other.loadDuration, loadDuration) ||
+                other.loadDuration == loadDuration) &&
+            (identical(other.promptEvalCount, promptEvalCount) ||
+                other.promptEvalCount == promptEvalCount) &&
+            (identical(other.promptEvalDuration, promptEvalDuration) ||
+                other.promptEvalDuration == promptEvalDuration) &&
+            (identical(other.promptEvalRate, promptEvalRate) ||
+                other.promptEvalRate == promptEvalRate) &&
+            (identical(other.evalCount, evalCount) ||
+                other.evalCount == evalCount) &&
+            (identical(other.evalDuration, evalDuration) ||
+                other.evalDuration == evalDuration) &&
+            (identical(other.evalRate, evalRate) ||
+                other.evalRate == evalRate) &&
+            (identical(other.completionTokens, completionTokens) ||
+                other.completionTokens == completionTokens) &&
+            (identical(other.totalTokens, totalTokens) ||
+                other.totalTokens == totalTokens) &&
+            (identical(other.isFinal, isFinal) || other.isFinal == isFinal) &&
+            (identical(other.fullText, fullText) ||
+                other.fullText == fullText));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      text,
+      isError,
+      errorMessage,
+      modelName,
+      totalDuration,
+      loadDuration,
+      promptEvalCount,
+      promptEvalDuration,
+      promptEvalRate,
+      evalCount,
+      evalDuration,
+      evalRate,
+      completionTokens,
+      totalTokens,
+      isFinal,
+      fullText);
+
+  @override
+  String toString() {
+    return 'LlmResponse(text: $text, isError: $isError, errorMessage: $errorMessage, modelName: $modelName, totalDuration: $totalDuration, loadDuration: $loadDuration, promptEvalCount: $promptEvalCount, promptEvalDuration: $promptEvalDuration, promptEvalRate: $promptEvalRate, evalCount: $evalCount, evalDuration: $evalDuration, evalRate: $evalRate, completionTokens: $completionTokens, totalTokens: $totalTokens, isFinal: $isFinal, fullText: $fullText)';
   }
 }
 
 /// @nodoc
-abstract class _$$LlmResponseImplCopyWith<$Res>
-    implements $LlmResponseCopyWith<$Res> {
-  factory _$$LlmResponseImplCopyWith(
-          _$LlmResponseImpl value, $Res Function(_$LlmResponseImpl) then) =
-      __$$LlmResponseImplCopyWithImpl<$Res>;
-  @override
+abstract mixin class $LlmResponseCopyWith<$Res> {
+  factory $LlmResponseCopyWith(
+          LlmResponse value, $Res Function(LlmResponse) _then) =
+      _$LlmResponseCopyWithImpl;
   @useResult
   $Res call(
       {String text,
@@ -192,16 +138,17 @@ abstract class _$$LlmResponseImplCopyWith<$Res>
       @JsonKey(name: 'eval_duration') double? evalDuration,
       @JsonKey(name: 'eval_rate') double? evalRate,
       @JsonKey(name: 'completion_tokens') int? completionTokens,
-      @JsonKey(name: 'total_tokens') int? totalTokens});
+      @JsonKey(name: 'total_tokens') int? totalTokens,
+      @JsonKey(name: 'is_final') bool isFinal,
+      @JsonKey(name: 'full_text') String? fullText});
 }
 
 /// @nodoc
-class __$$LlmResponseImplCopyWithImpl<$Res>
-    extends _$LlmResponseCopyWithImpl<$Res, _$LlmResponseImpl>
-    implements _$$LlmResponseImplCopyWith<$Res> {
-  __$$LlmResponseImplCopyWithImpl(
-      _$LlmResponseImpl _value, $Res Function(_$LlmResponseImpl) _then)
-      : super(_value, _then);
+class _$LlmResponseCopyWithImpl<$Res> implements $LlmResponseCopyWith<$Res> {
+  _$LlmResponseCopyWithImpl(this._self, this._then);
+
+  final LlmResponse _self;
+  final $Res Function(LlmResponse) _then;
 
   /// Create a copy of LlmResponse
   /// with the given fields replaced by the non-null parameter values.
@@ -222,72 +169,82 @@ class __$$LlmResponseImplCopyWithImpl<$Res>
     Object? evalRate = freezed,
     Object? completionTokens = freezed,
     Object? totalTokens = freezed,
+    Object? isFinal = null,
+    Object? fullText = freezed,
   }) {
-    return _then(_$LlmResponseImpl(
+    return _then(_self.copyWith(
       text: null == text
-          ? _value.text
+          ? _self.text
           : text // ignore: cast_nullable_to_non_nullable
               as String,
       isError: null == isError
-          ? _value.isError
+          ? _self.isError
           : isError // ignore: cast_nullable_to_non_nullable
               as bool,
       errorMessage: freezed == errorMessage
-          ? _value.errorMessage
+          ? _self.errorMessage
           : errorMessage // ignore: cast_nullable_to_non_nullable
               as String?,
       modelName: freezed == modelName
-          ? _value.modelName
+          ? _self.modelName
           : modelName // ignore: cast_nullable_to_non_nullable
               as String?,
       totalDuration: freezed == totalDuration
-          ? _value.totalDuration
+          ? _self.totalDuration
           : totalDuration // ignore: cast_nullable_to_non_nullable
               as double?,
       loadDuration: freezed == loadDuration
-          ? _value.loadDuration
+          ? _self.loadDuration
           : loadDuration // ignore: cast_nullable_to_non_nullable
               as double?,
       promptEvalCount: freezed == promptEvalCount
-          ? _value.promptEvalCount
+          ? _self.promptEvalCount
           : promptEvalCount // ignore: cast_nullable_to_non_nullable
               as int?,
       promptEvalDuration: freezed == promptEvalDuration
-          ? _value.promptEvalDuration
+          ? _self.promptEvalDuration
           : promptEvalDuration // ignore: cast_nullable_to_non_nullable
               as double?,
       promptEvalRate: freezed == promptEvalRate
-          ? _value.promptEvalRate
+          ? _self.promptEvalRate
           : promptEvalRate // ignore: cast_nullable_to_non_nullable
               as double?,
       evalCount: freezed == evalCount
-          ? _value.evalCount
+          ? _self.evalCount
           : evalCount // ignore: cast_nullable_to_non_nullable
               as int?,
       evalDuration: freezed == evalDuration
-          ? _value.evalDuration
+          ? _self.evalDuration
           : evalDuration // ignore: cast_nullable_to_non_nullable
               as double?,
       evalRate: freezed == evalRate
-          ? _value.evalRate
+          ? _self.evalRate
           : evalRate // ignore: cast_nullable_to_non_nullable
               as double?,
       completionTokens: freezed == completionTokens
-          ? _value.completionTokens
+          ? _self.completionTokens
           : completionTokens // ignore: cast_nullable_to_non_nullable
               as int?,
       totalTokens: freezed == totalTokens
-          ? _value.totalTokens
+          ? _self.totalTokens
           : totalTokens // ignore: cast_nullable_to_non_nullable
               as int?,
+      isFinal: null == isFinal
+          ? _self.isFinal
+          : isFinal // ignore: cast_nullable_to_non_nullable
+              as bool,
+      fullText: freezed == fullText
+          ? _self.fullText
+          : fullText // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$LlmResponseImpl implements _LlmResponse {
-  const _$LlmResponseImpl(
+class _LlmResponse implements LlmResponse {
+  const _LlmResponse(
       {required this.text,
       this.isError = false,
       this.errorMessage,
@@ -301,10 +258,11 @@ class _$LlmResponseImpl implements _LlmResponse {
       @JsonKey(name: 'eval_duration') this.evalDuration,
       @JsonKey(name: 'eval_rate') this.evalRate,
       @JsonKey(name: 'completion_tokens') this.completionTokens,
-      @JsonKey(name: 'total_tokens') this.totalTokens});
-
-  factory _$LlmResponseImpl.fromJson(Map<String, dynamic> json) =>
-      _$$LlmResponseImplFromJson(json);
+      @JsonKey(name: 'total_tokens') this.totalTokens,
+      @JsonKey(name: 'is_final') this.isFinal = false,
+      @JsonKey(name: 'full_text') this.fullText});
+  factory _LlmResponse.fromJson(Map<String, dynamic> json) =>
+      _$LlmResponseFromJson(json);
 
   @override
   final String text;
@@ -346,17 +304,34 @@ class _$LlmResponseImpl implements _LlmResponse {
   @override
   @JsonKey(name: 'total_tokens')
   final int? totalTokens;
+// New fields for streaming
+  @override
+  @JsonKey(name: 'is_final')
+  final bool isFinal;
+  @override
+  @JsonKey(name: 'full_text')
+  final String? fullText;
+
+  /// Create a copy of LlmResponse
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  _$LlmResponseCopyWith<_LlmResponse> get copyWith =>
+      __$LlmResponseCopyWithImpl<_LlmResponse>(this, _$identity);
 
   @override
-  String toString() {
-    return 'LlmResponse(text: $text, isError: $isError, errorMessage: $errorMessage, modelName: $modelName, totalDuration: $totalDuration, loadDuration: $loadDuration, promptEvalCount: $promptEvalCount, promptEvalDuration: $promptEvalDuration, promptEvalRate: $promptEvalRate, evalCount: $evalCount, evalDuration: $evalDuration, evalRate: $evalRate, completionTokens: $completionTokens, totalTokens: $totalTokens)';
+  Map<String, dynamic> toJson() {
+    return _$LlmResponseToJson(
+      this,
+    );
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$LlmResponseImpl &&
+            other is _LlmResponse &&
             (identical(other.text, text) || other.text == text) &&
             (identical(other.isError, isError) || other.isError == isError) &&
             (identical(other.errorMessage, errorMessage) ||
@@ -382,7 +357,10 @@ class _$LlmResponseImpl implements _LlmResponse {
             (identical(other.completionTokens, completionTokens) ||
                 other.completionTokens == completionTokens) &&
             (identical(other.totalTokens, totalTokens) ||
-                other.totalTokens == totalTokens));
+                other.totalTokens == totalTokens) &&
+            (identical(other.isFinal, isFinal) || other.isFinal == isFinal) &&
+            (identical(other.fullText, fullText) ||
+                other.fullText == fullText));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -402,89 +380,139 @@ class _$LlmResponseImpl implements _LlmResponse {
       evalDuration,
       evalRate,
       completionTokens,
-      totalTokens);
-
-  /// Create a copy of LlmResponse
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$LlmResponseImplCopyWith<_$LlmResponseImpl> get copyWith =>
-      __$$LlmResponseImplCopyWithImpl<_$LlmResponseImpl>(this, _$identity);
+      totalTokens,
+      isFinal,
+      fullText);
 
   @override
-  Map<String, dynamic> toJson() {
-    return _$$LlmResponseImplToJson(
-      this,
-    );
+  String toString() {
+    return 'LlmResponse(text: $text, isError: $isError, errorMessage: $errorMessage, modelName: $modelName, totalDuration: $totalDuration, loadDuration: $loadDuration, promptEvalCount: $promptEvalCount, promptEvalDuration: $promptEvalDuration, promptEvalRate: $promptEvalRate, evalCount: $evalCount, evalDuration: $evalDuration, evalRate: $evalRate, completionTokens: $completionTokens, totalTokens: $totalTokens, isFinal: $isFinal, fullText: $fullText)';
   }
 }
 
-abstract class _LlmResponse implements LlmResponse {
-  const factory _LlmResponse(
-      {required final String text,
-      final bool isError,
-      final String? errorMessage,
-      @JsonKey(name: 'model_name') final String? modelName,
-      @JsonKey(name: 'total_duration') final double? totalDuration,
-      @JsonKey(name: 'load_duration') final double? loadDuration,
-      @JsonKey(name: 'prompt_eval_count') final int? promptEvalCount,
-      @JsonKey(name: 'prompt_eval_duration') final double? promptEvalDuration,
-      @JsonKey(name: 'prompt_eval_rate') final double? promptEvalRate,
-      @JsonKey(name: 'eval_count') final int? evalCount,
-      @JsonKey(name: 'eval_duration') final double? evalDuration,
-      @JsonKey(name: 'eval_rate') final double? evalRate,
-      @JsonKey(name: 'completion_tokens') final int? completionTokens,
-      @JsonKey(name: 'total_tokens')
-      final int? totalTokens}) = _$LlmResponseImpl;
+/// @nodoc
+abstract mixin class _$LlmResponseCopyWith<$Res>
+    implements $LlmResponseCopyWith<$Res> {
+  factory _$LlmResponseCopyWith(
+          _LlmResponse value, $Res Function(_LlmResponse) _then) =
+      __$LlmResponseCopyWithImpl;
+  @override
+  @useResult
+  $Res call(
+      {String text,
+      bool isError,
+      String? errorMessage,
+      @JsonKey(name: 'model_name') String? modelName,
+      @JsonKey(name: 'total_duration') double? totalDuration,
+      @JsonKey(name: 'load_duration') double? loadDuration,
+      @JsonKey(name: 'prompt_eval_count') int? promptEvalCount,
+      @JsonKey(name: 'prompt_eval_duration') double? promptEvalDuration,
+      @JsonKey(name: 'prompt_eval_rate') double? promptEvalRate,
+      @JsonKey(name: 'eval_count') int? evalCount,
+      @JsonKey(name: 'eval_duration') double? evalDuration,
+      @JsonKey(name: 'eval_rate') double? evalRate,
+      @JsonKey(name: 'completion_tokens') int? completionTokens,
+      @JsonKey(name: 'total_tokens') int? totalTokens,
+      @JsonKey(name: 'is_final') bool isFinal,
+      @JsonKey(name: 'full_text') String? fullText});
+}
 
-  factory _LlmResponse.fromJson(Map<String, dynamic> json) =
-      _$LlmResponseImpl.fromJson;
+/// @nodoc
+class __$LlmResponseCopyWithImpl<$Res> implements _$LlmResponseCopyWith<$Res> {
+  __$LlmResponseCopyWithImpl(this._self, this._then);
 
-  @override
-  String get text;
-  @override
-  bool get isError;
-  @override
-  String? get errorMessage;
-  @override
-  @JsonKey(name: 'model_name')
-  String? get modelName;
-  @override
-  @JsonKey(name: 'total_duration')
-  double? get totalDuration;
-  @override
-  @JsonKey(name: 'load_duration')
-  double? get loadDuration;
-  @override
-  @JsonKey(name: 'prompt_eval_count')
-  int? get promptEvalCount;
-  @override
-  @JsonKey(name: 'prompt_eval_duration')
-  double? get promptEvalDuration;
-  @override
-  @JsonKey(name: 'prompt_eval_rate')
-  double? get promptEvalRate;
-  @override
-  @JsonKey(name: 'eval_count')
-  int? get evalCount;
-  @override
-  @JsonKey(name: 'eval_duration')
-  double? get evalDuration;
-  @override
-  @JsonKey(name: 'eval_rate')
-  double? get evalRate;
-  @override
-  @JsonKey(name: 'completion_tokens')
-  int? get completionTokens;
-  @override
-  @JsonKey(name: 'total_tokens')
-  int? get totalTokens;
+  final _LlmResponse _self;
+  final $Res Function(_LlmResponse) _then;
 
   /// Create a copy of LlmResponse
   /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$LlmResponseImplCopyWith<_$LlmResponseImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? text = null,
+    Object? isError = null,
+    Object? errorMessage = freezed,
+    Object? modelName = freezed,
+    Object? totalDuration = freezed,
+    Object? loadDuration = freezed,
+    Object? promptEvalCount = freezed,
+    Object? promptEvalDuration = freezed,
+    Object? promptEvalRate = freezed,
+    Object? evalCount = freezed,
+    Object? evalDuration = freezed,
+    Object? evalRate = freezed,
+    Object? completionTokens = freezed,
+    Object? totalTokens = freezed,
+    Object? isFinal = null,
+    Object? fullText = freezed,
+  }) {
+    return _then(_LlmResponse(
+      text: null == text
+          ? _self.text
+          : text // ignore: cast_nullable_to_non_nullable
+              as String,
+      isError: null == isError
+          ? _self.isError
+          : isError // ignore: cast_nullable_to_non_nullable
+              as bool,
+      errorMessage: freezed == errorMessage
+          ? _self.errorMessage
+          : errorMessage // ignore: cast_nullable_to_non_nullable
+              as String?,
+      modelName: freezed == modelName
+          ? _self.modelName
+          : modelName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      totalDuration: freezed == totalDuration
+          ? _self.totalDuration
+          : totalDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      loadDuration: freezed == loadDuration
+          ? _self.loadDuration
+          : loadDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      promptEvalCount: freezed == promptEvalCount
+          ? _self.promptEvalCount
+          : promptEvalCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      promptEvalDuration: freezed == promptEvalDuration
+          ? _self.promptEvalDuration
+          : promptEvalDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      promptEvalRate: freezed == promptEvalRate
+          ? _self.promptEvalRate
+          : promptEvalRate // ignore: cast_nullable_to_non_nullable
+              as double?,
+      evalCount: freezed == evalCount
+          ? _self.evalCount
+          : evalCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      evalDuration: freezed == evalDuration
+          ? _self.evalDuration
+          : evalDuration // ignore: cast_nullable_to_non_nullable
+              as double?,
+      evalRate: freezed == evalRate
+          ? _self.evalRate
+          : evalRate // ignore: cast_nullable_to_non_nullable
+              as double?,
+      completionTokens: freezed == completionTokens
+          ? _self.completionTokens
+          : completionTokens // ignore: cast_nullable_to_non_nullable
+              as int?,
+      totalTokens: freezed == totalTokens
+          ? _self.totalTokens
+          : totalTokens // ignore: cast_nullable_to_non_nullable
+              as int?,
+      isFinal: null == isFinal
+          ? _self.isFinal
+          : isFinal // ignore: cast_nullable_to_non_nullable
+              as bool,
+      fullText: freezed == fullText
+          ? _self.fullText
+          : fullText // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
 }
+
+// dart format on

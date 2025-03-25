@@ -7,6 +7,7 @@ import '../../../features/settings/cubit/preferences_cubit.dart';
 import '../../../features/settings/cubit/preferences_state.dart';
 import '../../../cubits/chat/chat_cubit.dart';
 import 'dart:ui';
+import 'package:devio/utils/state_extension_helpers.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});

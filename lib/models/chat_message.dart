@@ -6,7 +6,7 @@ part 'chat_message.freezed.dart';
 part 'chat_message.g.dart';
 
 @Freezed(toJson: true, fromJson: true)
-class ChatMessage with _$ChatMessage {
+abstract class ChatMessage with _$ChatMessage {
   const ChatMessage._();
 
   @JsonSerializable(explicitToJson: true)
@@ -41,6 +41,7 @@ class ChatMessage with _$ChatMessage {
     required String senderId,
     required String content,
     required bool isAI,
+    String? id,
     String? senderName,
     double? totalDuration,
     double? loadDuration,
@@ -51,7 +52,7 @@ class ChatMessage with _$ChatMessage {
     double? evalDuration,
     double? evalRate,
   }) {
-    final messageId = const Uuid().v4();
+    final messageId = id ?? const Uuid().v4();
     return ChatMessage(
       id: messageId,
       chatId: chatId ?? messageId,

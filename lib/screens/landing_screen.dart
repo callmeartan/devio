@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
 import 'package:devio/constants/assets.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:devio/utils/state_extension_helpers.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});

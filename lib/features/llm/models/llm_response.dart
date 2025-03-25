@@ -4,7 +4,7 @@ part 'llm_response.freezed.dart';
 part 'llm_response.g.dart';
 
 @freezed
-class LlmResponse with _$LlmResponse {
+abstract class LlmResponse with _$LlmResponse {
   const factory LlmResponse({
     required String text,
     @Default(false) bool isError,
@@ -20,6 +20,10 @@ class LlmResponse with _$LlmResponse {
     @JsonKey(name: 'eval_rate') double? evalRate,
     @JsonKey(name: 'completion_tokens') int? completionTokens,
     @JsonKey(name: 'total_tokens') int? totalTokens,
+
+    // New fields for streaming
+    @Default(false) @JsonKey(name: 'is_final') bool isFinal,
+    @JsonKey(name: 'full_text') String? fullText,
   }) = _LlmResponse;
 
   factory LlmResponse.fromJson(Map<String, dynamic> json) =>
