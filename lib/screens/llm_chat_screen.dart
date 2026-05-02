@@ -143,9 +143,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   void _scrollListener() {
     if (!_chatScrollController.hasClients) return;
+    final position = _chatScrollController.position;
+    if (position == null) return;
 
-    final showButton = _chatScrollController.position.pixels <
-        _chatScrollController.position.maxScrollExtent - 300;
+    final showButton = position.pixels < position.maxScrollExtent - 300;
 
     if (_showScrollToBottom != showButton) {
       setState(() {
@@ -234,9 +235,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   void _scrollToBottom() {
     if (_chatScrollController.hasClients) {
-      _chatScrollController.jumpTo(
-        _chatScrollController.position.maxScrollExtent,
-      );
+      final position = _chatScrollController.position;
+      if (position != null) {
+        _chatScrollController.jumpTo(position.maxScrollExtent);
+      }
     }
   }
 
@@ -317,10 +319,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             'Chat state changed - messages: ${state.messages.length}, currentChatId: ${state.currentChatId}');
 
         // Auto-scroll to bottom when new messages arrive if we're already near the bottom
-        if (_chatScrollController.hasClients &&
-            _chatScrollController.position.pixels >
-                _chatScrollController.position.maxScrollExtent - 300) {
-          _scrollToBottom();
+        if (_chatScrollController.hasClients) {
+          final position = _chatScrollController.position;
+          final extent = position?.maxScrollExtent;
+          if (extent != null && extent > 0 &&
+              (position?.pixels ?? 0) > extent - 300) {
+            _scrollToBottom();
+          }
         }
       },
       child: BlocBuilder<AuthCubit, AuthState>(
