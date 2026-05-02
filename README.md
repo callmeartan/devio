@@ -1,12 +1,13 @@
 # DevIO - Desktop & Mobile Interface for Local LLMs
 
-DevIO is a professional Flutter application designed to connect to local LLM (Large Language Model) servers from your macOS desktop or mobile device. It features a clean, modern, and minimal UI that prioritizes ease of use while providing powerful functionality.
+DevIO is a professional Flutter application designed to connect to local LLM (Large Language Model) servers from your macOS desktop or mobile device. It features a clean, modern, and minimal UI that prioritizes ease of use while keeping your data local and private.
 
 ## 🔍 Overview
 
-DevIO transforms your device into a powerful interface for interacting with locally hosted large language models. Connect to Ollama or other LLM servers to leverage the power of AI while keeping your data private and secure.
+DevIO transforms your device into a powerful interface for interacting with locally hosted large language models. Connect to Ollama or other LLM servers to leverage the power of AI while keeping your data private and secure - no cloud accounts, no sign-ups, just pure local-first functionality.
 
 ## 🖥️ Supported Platforms
+
 - macOS (Universal)
 - iOS
 - Android (coming soon)
@@ -14,12 +15,14 @@ DevIO transforms your device into a powerful interface for interacting with loca
 
 ## ✨ Key Features
 
-### 🤖 Local LLM Integration
-- Connect to locally hosted Ollama instances with customizable server configuration
+### 🤖 Multi-Provider LLM Integration
+- **Ollama** - Connect to locally hosted Ollama instances with full support
+- **LM Studio** - Coming soon
+- **OpenAI Compatible APIs** - Coming soon (use local models with OpenAI-compatible interfaces)
+- **Anthropic** - Coming soon
 - Supports various open-source models (llama3, deepseek, mistral, phi3, etc.)
 - Performance metrics tracking and real-time monitoring
 - Automatic reconnection and connection status indicators
-- Advanced settings for context size, timeout, and thread configuration
 
 ### 📱 Modern Flutter Interface
 - Clean, minimal design with both dark and light theme support
@@ -37,12 +40,13 @@ DevIO transforms your device into a powerful interface for interacting with loca
 ### 🔐 Privacy & Local-First Use
 - No login, signup, or cloud account required
 - Chat history is stored locally on your device
-- Local processing keeps sensitive data on your device
+- All processing happens locally - your data never leaves your machine
 - Demo mode for exploring features without a connection
 
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Flutter SDK (>=3.0.0)
 - Dart SDK (>=3.0.0)
 - A running Ollama server (local or remote)
@@ -78,10 +82,11 @@ flutter run
 DevIO is designed to work seamlessly with locally hosted LLM servers. By default, it connects to Ollama running on localhost:11434.
 
 ### Configuring Ollama
+
 1. Install Ollama from [ollama.ai](https://ollama.ai)
 2. Pull your preferred models:
 ```bash
-ollama pull llama3
+ollama pull llama3.1
 ollama pull deepseek-r1:8b
 ollama pull mistral:7b
 ollama pull phi3:14b
@@ -92,6 +97,7 @@ OLLAMA_HOST=0.0.0.0:11434 ollama serve
 ```
 
 ### Remote Connections
+
 To connect to a remote Ollama instance:
 1. Ensure the remote server is accessible
 2. Update the server address in the app settings
@@ -116,6 +122,7 @@ DevIO follows modern Flutter architecture patterns:
 - **shared_preferences** for local settings and chat storage
 
 ### Directory Structure
+
 ```
 lib/
 ├── blocs/          # Bloc state management
@@ -139,6 +146,7 @@ lib/
 ## 🛠️ Development
 
 ### Building for Production
+
 ```bash
 # macOS
 flutter build macos --release
@@ -151,12 +159,16 @@ flutter build apk --release
 ```
 
 ### Running Code Generation
+
 ```bash
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
 ## 🔮 Future Roadmap
 
+- LM Studio provider support
+- OpenAI-compatible API integration
+- Anthropic provider support
 - Windows and Linux support
 - Audio input and output capabilities
 - Advanced document analysis and summarization
@@ -180,6 +192,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🙏 Acknowledgments
+
 - The Ollama team for making local LLMs accessible
 - Open-source LLM communities
 - Flutter team for the amazing cross-platform framework
