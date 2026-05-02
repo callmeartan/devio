@@ -1,6 +1,7 @@
+// ignore_for_file: invalid_annotation_target
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uuid/uuid.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 part 'chat_message.freezed.dart';
 part 'chat_message.g.dart';
@@ -118,16 +119,22 @@ abstract class ChatMessage with _$ChatMessage {
       );
 
   static DateTime _timestampFromJson(dynamic json) {
-    if (json is Timestamp) {
-      return json.toDate();
-    }
     if (json is DateTime) {
       return json;
+    }
+    if (json is String) {
+      final parsed = DateTime.tryParse(json);
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+    if (json is int) {
+      return DateTime.fromMillisecondsSinceEpoch(json);
     }
     throw FormatException('Invalid timestamp format: $json');
   }
 
-  static Timestamp _timestampToJson(DateTime time) {
-    return Timestamp.fromDate(time);
+  static String _timestampToJson(DateTime time) {
+    return time.toIso8601String();
   }
 }

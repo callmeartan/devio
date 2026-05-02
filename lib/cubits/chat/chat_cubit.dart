@@ -90,21 +90,19 @@ class ChatCubit extends Cubit<ChatState> {
     _chatSubscription?.cancel();
 
     if (state.currentChatId != null) {
-      developer
-          .log('Initializing chat stream for chat: ${state.currentChatId}');
+      final chatId = state.currentChatId!;
+      developer.log('Initializing chat stream for chat: $chatId');
 
       // Keep existing messages while waiting for stream
-      final existingMessages = _localMessages[state.currentChatId!] ?? [];
+      final existingMessages = _localMessages[chatId] ?? [];
       emit(state.copyWith(messages: existingMessages));
 
-      _chatSubscription =
-          _chatRepository.getChatMessagesForId(state.currentChatId!).listen(
+      _chatSubscription = _chatRepository.getChatMessagesForId(chatId).listen(
         (messages) {
-          developer.log(
-              'Received ${messages.length} messages for chat: ${state.currentChatId}');
+          developer
+              .log('Received ${messages.length} messages for chat: $chatId');
 
           // Merge new messages with existing ones
-          final chatId = state.currentChatId!;
           final existingMessages = _localMessages[chatId] ?? [];
           final mergedMessages = {...existingMessages, ...messages}.toList();
 
@@ -114,7 +112,7 @@ class ChatCubit extends Cubit<ChatState> {
         onError: (error) {
           developer.log('Error in chat stream: $error');
           // Keep existing messages on error
-          final existingMessages = _localMessages[state.currentChatId!] ?? [];
+          final existingMessages = _localMessages[chatId] ?? [];
           emit(state.copyWith(
             messages: existingMessages,
             error: 'Failed to load messages: $error',

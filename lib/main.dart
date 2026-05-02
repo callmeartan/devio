@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-import 'utils/extensions.dart';
-import 'firebase_options.dart';
 import 'features/settings/cubit/preferences_cubit.dart';
 import 'features/settings/cubit/preferences_state.dart';
 import 'blocs/auth/auth_cubit.dart';
@@ -14,14 +11,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:devio/router.dart';
 import 'features/llm/cubit/llm_cubit.dart';
 import 'theme/app_theme.dart';
+import 'dart:developer' as developer;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
-
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    developer.log('Optional .env file was not loaded: $e');
+  }
 
   final prefs = await SharedPreferences.getInstance();
 
@@ -49,7 +47,10 @@ class MyApp extends StatelessWidget {
           lazy: false,
         ),
         Provider<ChatRepository>(
-          create: (_) => ChatRepository(),
+          create: (context) => ChatRepository(
+            prefs: context.read<SharedPreferences>(),
+          ),
+          dispose: (_, repository) => repository.dispose(),
         ),
         BlocProvider(
           create: (context) => ChatCubit(

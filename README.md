@@ -34,9 +34,9 @@ DevIO transforms your device into a powerful interface for interacting with loca
 - Document handling with PDF support
 - Real-time typing indicators and message status
 
-### 🔐 Privacy & Authentication
-- Firebase authentication with multiple sign-in options
-- Optional cloud synchronization for chat history
+### 🔐 Privacy & Local-First Use
+- No login, signup, or cloud account required
+- Chat history is stored locally on your device
 - Local processing keeps sensitive data on your device
 - Demo mode for exploring features without a connection
 
@@ -48,7 +48,6 @@ DevIO transforms your device into a powerful interface for interacting with loca
 - A running Ollama server (local or remote)
 - macOS 12.0 or later (for desktop version)
 - iOS 15.0 or later (for mobile version)
-- (Optional) Firebase project for cloud features
 
 ### Installation
 
@@ -110,12 +109,11 @@ DevIO follows modern Flutter architecture patterns:
 ### Key Technologies
 
 - **Flutter 3.x** for cross-platform UI development
-- **Firebase** for authentication, storage, and cloud features
 - **go_router** for navigation
 - **flutter_bloc** for state management
 - **freezed** for immutable state classes
 - **http** for API communication with LLM servers
-- **shared_preferences** for local settings storage
+- **shared_preferences** for local settings and chat storage
 
 ### Directory Structure
 ```

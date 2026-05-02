@@ -16,7 +16,6 @@ import '../cubits/chat/chat_cubit.dart';
 import '../cubits/chat/chat_state.dart';
 import '../features/llm/cubit/llm_cubit.dart';
 import '../features/llm/cubit/llm_state.dart';
-import '../models/chat_message.dart';
 import '../services/demo_response_service.dart';
 import '../widgets/chat_input_field.dart';
 import '../widgets/chat_message_widget.dart';
@@ -306,7 +305,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final llmCubit = context.read<LlmCubit>();
 
     // Add logging for current auth state
     final currentAuthState = context.read<AuthCubit>().state;
@@ -1034,8 +1032,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                           context.read<AuthCubit>().state;
                                       final userId = authState.maybeWhen(
                                         authenticated: (uid, _, __) => uid,
-                                        orElse: () => throw Exception(
-                                            'User must be authenticated to send messages'),
+                                        orElse: () => AuthCubit.localUserId,
                                       );
 
                                       // Remove the placeholder message if it exists
@@ -1216,9 +1213,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               );
             },
             unauthenticated: () {
-              // Redirect to login screen
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                context.go('/auth', extra: {'mode': 'login'});
+                context.read<AuthCubit>().signInAnonymously();
               });
               return const Center(
                 child: CircularProgressIndicator(),
@@ -1235,7 +1231,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Authentication Error',
+                    'Local Session Error',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.grey.shade800,
                         ),
@@ -1250,9 +1246,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () =>
-                        context.go('/auth', extra: {'mode': 'login'}),
-                    child: const Text('Go to Login'),
+                    onPressed: () {
+                      context.read<AuthCubit>().signInAnonymously();
+                      context.go('/llm');
+                    },
+                    child: const Text('Return to Chat'),
                   ),
                 ],
               ),
@@ -1280,21 +1278,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     final authState = context.read<AuthCubit>().state;
     final userId = authState.maybeWhen(
       authenticated: (uid, _, __) => uid,
-      orElse: () {
-        // Handle unauthenticated user case
-        _showErrorSnackBar(
-            'You must be signed in to send messages. Please sign in again.');
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go('/auth', extra: {'mode': 'login'});
-        });
-        return 'anonymous';
-      },
+      orElse: () => AuthCubit.localUserId,
     );
-
-    // Don't proceed if user is not authenticated
-    if (userId == 'anonymous') {
-      return;
-    }
 
     // Send user's message
     context
@@ -1311,11 +1296,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       if (errorMessage.contains('permission-denied')) {
         errorMessage = 'Permission denied: Please try refreshing the page';
       } else if (errorMessage.contains('user-not-authenticated')) {
-        errorMessage = 'Authentication error: Please sign in again';
-        // Only redirect to login for auth errors
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.go('/auth', extra: {'mode': 'login'});
-        });
+        errorMessage = 'Local session error: Please try again';
       }
 
       _showErrorSnackBar(errorMessage);
@@ -1381,8 +1362,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         final messageId = DateTime.now().millisecondsSinceEpoch.toString();
 
         try {
-          // Get the authenticated user ID first
-          final authState = context.read<AuthCubit>().state;
           final responseStream = llmCubit.streamResponse(
             prompt: message,
             modelName: _selectedModel,
@@ -1611,11 +1590,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   void _sendInitialGreeting() {
-    // Get the authenticated user's ID
     final authState = context.read<AuthCubit>().state;
     final userId = authState.maybeWhen(
       authenticated: (uid, _, __) => uid,
-      orElse: () => 'anonymous',
+      orElse: () => AuthCubit.localUserId,
     );
 
     if (_isDemoMode) {
@@ -2304,28 +2282,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (!mounted) return;
 
-      final authState = context.read<AuthCubit>().state;
-
-      // Check if user is still authenticated
-      final isAuthenticated = authState.maybeWhen(
-        authenticated: (_, __, ___) => true,
-        orElse: () => false,
-      );
-
-      if (!isAuthenticated || !mounted) {
-        // If user is no longer authenticated or widget is disposed, don't proceed
-        if (_placeholderMessageId != null && mounted) {
-          context
-              .read<ChatCubit>()
-              .removePlaceholderMessage(_placeholderMessageId!);
-          _placeholderMessageId = null;
-        }
-        setState(() {
-          _isWaitingForAiResponse = false;
-        });
-        return;
-      }
-
       try {
         // Generate a simple demo response
         final demoResponse =
@@ -2337,20 +2293,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               .read<ChatCubit>()
               .removePlaceholderMessage(_placeholderMessageId!);
           _placeholderMessageId = null;
-        }
-
-        // Get the authenticated user ID
-        final userId = authState.maybeWhen(
-          authenticated: (uid, _, __) => uid,
-          orElse: () => 'anonymous',
-        );
-
-        // Don't send if not authenticated
-        if (userId == 'anonymous') {
-          setState(() {
-            _isWaitingForAiResponse = false;
-          });
-          return;
         }
 
         // Send the AI message

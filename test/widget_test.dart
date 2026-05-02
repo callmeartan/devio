@@ -1,35 +1,41 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:devio/main.dart';
+import 'package:devio/blocs/auth/auth_cubit.dart';
+import 'package:devio/models/chat_message.dart';
+import 'package:devio/repositories/chat_repository.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Set up mock SharedPreferences
+  test('local-first auth starts with an authenticated local session', () {
+    final authCubit = AuthCubit();
+
+    expect(authCubit.state.toString(), contains('AuthState.authenticated'));
+    expect(authCubit.state.toString(), contains(AuthCubit.localUserId));
+
+    authCubit.close();
+  });
+
+  test('chat repository persists messages without a remote user account',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp(prefs: prefs));
+    final repository = ChatRepository(prefs: prefs);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await repository.sendMessage(
+      ChatMessage.create(
+        chatId: 'local-chat',
+        senderId: AuthCubit.localUserId,
+        content: 'Hello from local mode',
+        isAI: false,
+      ),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    final histories = await repository.getChatHistories();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(histories, hasLength(1));
+    expect(histories.single['id'], 'local-chat');
+    expect(histories.single['title'], 'Hello from local...');
+
+    repository.dispose();
   });
 }

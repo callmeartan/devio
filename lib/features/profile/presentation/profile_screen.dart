@@ -6,7 +6,6 @@ import '../../../blocs/auth/auth_cubit.dart';
 import '../../../features/settings/cubit/preferences_cubit.dart';
 import '../../../features/settings/cubit/preferences_state.dart';
 import '../../../cubits/chat/chat_cubit.dart';
-import 'dart:ui';
 import 'package:devio/utils/state_extension_helpers.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -198,7 +197,7 @@ class ProfileScreen extends StatelessWidget {
                       // Account Section
                       _buildSection(
                         context,
-                        title: 'Account',
+                        title: 'Local Profile',
                         icon: Icons.person_outline,
                         children: [
                           _buildTile(
@@ -210,10 +209,9 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           _buildTile(
                             context,
-                            icon: Icons.logout,
-                            title: 'Log Out',
+                            icon: Icons.manage_accounts_outlined,
+                            title: 'Reset Local Profile',
                             onTap: () => _showLogoutDialog(context),
-                            isDestructive: true,
                           ),
                         ],
                       ),
@@ -490,8 +488,8 @@ class ProfileScreen extends StatelessWidget {
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? const Color(0xFF202123) : Colors.white,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out?'),
+        title: const Text('Reset Local Profile'),
+        content: const Text('Reset the local profile for this device?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -507,11 +505,11 @@ class ProfileScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<AuthCubit>().signOut();
-              context.go('/landing');
+              context.read<AuthCubit>().deleteAccount();
+              context.go('/llm');
             },
             child: Text(
-              'Log Out',
+              'Reset',
               style: TextStyle(color: theme.colorScheme.error),
             ),
           ),
@@ -804,7 +802,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'We collect information necessary to provide our services, including account information, chat history, and app preferences. This information is stored securely on Firebase.',
+                'DevIO stores chat history and app preferences locally on your device. No account information is required to use the app.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
@@ -834,7 +832,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Your data is stored on Firebase, a secure cloud platform. We implement appropriate security measures to protect against unauthorized access, alteration, disclosure, or destruction of your information.',
+                'Your data is stored on your device using local app storage. You control the local environment where your data lives.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
@@ -849,7 +847,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'We retain your data for as long as your account is active or as needed to provide you services. You can request deletion of your data at any time through the app settings.',
+                'Local data remains on your device until you clear it through the app settings or remove the app data from your device.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),
@@ -955,7 +953,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Your data is stored on Firebase and is used to provide and improve our services. We implement appropriate security measures to protect your information as detailed in our Privacy Policy.',
+                'Your data is stored locally and used only to provide the app experience on your device.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),

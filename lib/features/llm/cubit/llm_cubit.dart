@@ -1,6 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:typed_data';
-import 'dart:io';
 import '../services/llm_service.dart';
 import 'llm_state.dart';
 import 'dart:developer' as dev;
@@ -33,7 +32,7 @@ class LlmCubit extends Cubit<LlmState> {
   Future<void> _loadCustomOllamaIp() async {
     try {
       // First check if there's a value in the .env file
-      final envOllamaHost = dotenv.env['OLLAMA_HOST'];
+      final envOllamaHost = _readEnvValue('OLLAMA_HOST');
 
       if (envOllamaHost != null && envOllamaHost.isNotEmpty) {
         dev.log('Setting Ollama IP from environment: $envOllamaHost');
@@ -186,7 +185,7 @@ class LlmCubit extends Cubit<LlmState> {
 
   Future<void> _ensureOllamaIpIsSet() async {
     // Check if there's a value in the .env file
-    final envOllamaHost = dotenv.env['OLLAMA_HOST'];
+    final envOllamaHost = _readEnvValue('OLLAMA_HOST');
 
     if (envOllamaHost != null && envOllamaHost.isNotEmpty) {
       dev.log('Setting Ollama IP from environment: $envOllamaHost');
@@ -195,6 +194,15 @@ class LlmCubit extends Cubit<LlmState> {
       // Set default IP
       await setCustomOllamaIp(_defaultOllamaIp);
       dev.log('Set default Ollama IP: $_defaultOllamaIp');
+    }
+  }
+
+  String? _readEnvValue(String key) {
+    try {
+      return dotenv.env[key];
+    } catch (e) {
+      dev.log('Dotenv is not initialized; using default local settings.');
+      return null;
     }
   }
 

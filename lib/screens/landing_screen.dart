@@ -56,8 +56,8 @@ class _LandingScreenState extends State<LandingScreen> {
                   end: Alignment.bottomCenter,
                   colors: [
                     theme.colorScheme.surface,
-                    theme.colorScheme.surface.withOpacity(0.8),
-                    theme.colorScheme.primary.withOpacity(0.2),
+                    theme.colorScheme.surface.withValues(alpha: 0.8),
+                    theme.colorScheme.primary.withValues(alpha: 0.2),
                   ],
                 ),
               ),
@@ -74,8 +74,8 @@ class _LandingScreenState extends State<LandingScreen> {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      theme.colorScheme.primary.withOpacity(0.2),
-                      theme.colorScheme.primary.withOpacity(0),
+                      theme.colorScheme.primary.withValues(alpha: 0.2),
+                      theme.colorScheme.primary.withValues(alpha: 0),
                     ],
                   ),
                 ),
@@ -93,8 +93,8 @@ class _LandingScreenState extends State<LandingScreen> {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      theme.colorScheme.secondary.withOpacity(0.15),
-                      theme.colorScheme.secondary.withOpacity(0),
+                      theme.colorScheme.secondary.withValues(alpha: 0.15),
+                      theme.colorScheme.secondary.withValues(alpha: 0),
                     ],
                   ),
                 ),
@@ -154,7 +154,8 @@ class _LandingScreenState extends State<LandingScreen> {
                         'Connect to locally hosted LLM servers while keeping your data private and secure',
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 16,
-                          color: theme.colorScheme.onSurface.withOpacity(0.8),
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.8),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -164,8 +165,7 @@ class _LandingScreenState extends State<LandingScreen> {
                       SizedBox(
                         width: 280,
                         child: ElevatedButton(
-                          onPressed: () =>
-                              context.go('/auth', extra: {'mode': 'signup'}),
+                          onPressed: () => context.go('/llm'),
                           style: ElevatedButton.styleFrom(
                             foregroundColor: Colors.black,
                             backgroundColor: Colors.white,
@@ -176,7 +176,7 @@ class _LandingScreenState extends State<LandingScreen> {
                             elevation: 2,
                           ),
                           child: const Text(
-                            'Get Started',
+                            'Open DevIO',
                             style: TextStyle(
                               fontFamily: 'JosefinSans',
                               fontSize: 18,
@@ -192,8 +192,7 @@ class _LandingScreenState extends State<LandingScreen> {
                       SizedBox(
                         width: 280,
                         child: OutlinedButton(
-                          onPressed: () =>
-                              context.go('/auth', extra: {'mode': 'login'}),
+                          onPressed: () => context.go('/llm'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor:
                                 theme.brightness == Brightness.light
@@ -211,7 +210,7 @@ class _LandingScreenState extends State<LandingScreen> {
                             ),
                           ),
                           child: Text(
-                            'Sign In',
+                            'Continue Locally',
                             style: TextStyle(
                               fontFamily: 'JosefinSans',
                               fontSize: 18,
@@ -252,7 +251,7 @@ class _LandingScreenState extends State<LandingScreen> {
           snippets.join('\n'),
           style: TextStyle(
             fontFamily: 'monospace',
-            color: theme.colorScheme.onSurface.withOpacity(0.08),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
             fontSize: 16,
             height: 1.4,
           ),

@@ -40,18 +40,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Get the current user
-      final authState = context.read<AuthCubit>().state;
-      final userId = authState.maybeWhen(
-        authenticated: (uid, _, __) => uid,
-        orElse: () => null,
-      );
-
-      if (userId == null) {
-        throw Exception('User not authenticated');
-      }
-
-      // Update the display name
       await context.read<AuthCubit>().updateProfile(
             displayName: _displayNameController.text.trim(),
           );

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../cubit/preferences_cubit.dart';
 import '../cubit/preferences_state.dart';
 import '../../../blocs/auth/auth_cubit.dart';
-import 'dart:ui';
+import '../../../cubits/chat/chat_cubit.dart';
 import 'package:devio/utils/state_extension_helpers.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -148,22 +148,21 @@ class SettingsScreen extends StatelessWidget {
                             authenticated: (uid, displayName, email) =>
                                 _buildSection(
                               context,
-                              title: 'Account',
-                              icon: Icons.person_outline,
+                              title: 'Local Data',
+                              icon: Icons.storage_outlined,
                               children: [
                                 _buildTile(
                                   context,
-                                  icon: Icons.logout_outlined,
-                                  title: 'Log Out',
+                                  icon: Icons.manage_accounts_outlined,
+                                  title: 'Reset Local Profile',
                                   onTap: () => _showLogoutDialog(context),
-                                  isDestructive: true,
                                   showDivider: true,
                                 ),
                                 _buildTile(
                                   context,
-                                  icon: Icons.delete_forever_outlined,
-                                  title: 'Delete Account',
-                                  subtitle: 'This action cannot be undone',
+                                  icon: Icons.delete_sweep_outlined,
+                                  title: 'Clear Local Data',
+                                  subtitle: 'Clears local chats and profile',
                                   onTap: () =>
                                       _showDeleteAccountDialog(context),
                                   isDestructive: true,
@@ -343,13 +342,13 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor:
             isDark ? Colors.grey.shade900 : theme.colorScheme.surface,
         title: Text(
-          'Log Out',
+          'Reset Local Profile',
           style: TextStyle(
             color: isDark ? Colors.white : theme.colorScheme.onSurface,
           ),
         ),
         content: Text(
-          'Are you sure you want to log out?',
+          'Reset the local profile for this device?',
           style: TextStyle(
             color: isDark
                 ? Colors.white.withOpacity(0.8)
@@ -369,11 +368,11 @@ class SettingsScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<AuthCubit>().signOut();
-              context.go('/');
+              context.read<AuthCubit>().deleteAccount();
+              context.go('/llm');
             },
             child: Text(
-              'Log Out',
+              'Reset',
               style: TextStyle(color: theme.colorScheme.error),
             ),
           ),
@@ -386,6 +385,8 @@ class SettingsScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final navigator = Navigator.of(context);
     final router = GoRouter.of(context);
+    final authCubit = context.read<AuthCubit>();
+    final chatCubit = context.read<ChatCubit>();
     final isDark = theme.brightness == Brightness.dark;
 
     showDialog(
@@ -394,7 +395,7 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor:
             isDark ? Colors.grey.shade900 : theme.colorScheme.surface,
         title: Text(
-          'Delete Account',
+          'Clear Local Data',
           style: TextStyle(color: theme.colorScheme.error),
         ),
         content: Column(
@@ -402,7 +403,7 @@ class SettingsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Are you sure you want to delete your account? This action cannot be undone and you will lose:',
+              'This clears local data stored on this device. This action cannot be undone and you will lose:',
               style: TextStyle(
                 color: isDark
                     ? Colors.white.withOpacity(0.8)
@@ -410,9 +411,8 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _buildBulletPoint(context, 'All your chat history'),
-            _buildBulletPoint(context, 'Your preferences and settings'),
-            _buildBulletPoint(context, 'Your saved data'),
+            _buildBulletPoint(context, 'Local chat history'),
+            _buildBulletPoint(context, 'Local profile details'),
           ],
         ),
         actions: [
@@ -429,9 +429,10 @@ class SettingsScreen extends StatelessWidget {
             onPressed: () async {
               navigator.pop();
               try {
-                await context.read<AuthCubit>().deleteAccount();
+                await chatCubit.clearChat();
+                await authCubit.deleteAccount();
                 if (context.mounted) {
-                  router.go('/intro');
+                  router.go('/llm');
                 }
               } catch (e) {
                 if (context.mounted) {
@@ -445,7 +446,7 @@ class SettingsScreen extends StatelessWidget {
               }
             },
             child: Text(
-              'Delete Account',
+              'Clear Data',
               style: TextStyle(color: theme.colorScheme.error),
             ),
           ),

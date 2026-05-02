@@ -8,17 +8,17 @@ This Privacy Policy applies to our mobile application Devio and its associated s
 
 ### Information You Provide to Us
 
-- **Account Information**: When you create an account, we may collect your name, email address, and authentication information if you choose to sign up with third-party services.
-- **User Content**: We process code snippets, development queries, and other content you input into the application to provide our services.
+- **Local Profile Information**: Devio does not require an account. Optional local profile details remain on your device.
+- **User Content**: We process code snippets, development queries, and other content you input into the application locally through your configured Ollama server.
 
 ### Information Collected Automatically
 
-- **Usage Data**: We collect information about how you use the application, including features accessed, time spent in the app, and interactions with the interface.
-- **Device Information**: We collect information about your device, including device model, operating system, and unique device identifiers.
+- **Usage Data**: Devio does not send usage analytics to a hosted Devio service.
+- **Device Information**: Devio does not collect device identifiers for a hosted Devio service.
 
 ### Local Processing
 
-- **Local LLM Interaction**: When you use Devio with your local LLMs, the code and queries you process remain on your device. We do not collect, store, or transmit this locally processed content to our servers.
+- **Local LLM Interaction**: When you use Devio with your local LLMs, the code and queries you process remain on your device and your configured Ollama server. We do not collect, store, or transmit this locally processed content to Devio servers.
 
 ## How We Use Your Information
 
@@ -43,10 +43,9 @@ We do not sell your personal information. We may share information in the follow
 
 Our application may use third-party services that collect information. These services include:
 
-- Firebase (for analytics and app functionality)
-- Authentication providers (if you choose to sign in with them)
+- Ollama or other local endpoints you configure in the app
 
-When you connect to cloud-based AI services through our application, your data will be subject to the privacy policies of those services.
+When you connect to any non-local endpoint through your own configuration, your data is subject to that endpoint's policies.
 
 ## Data Security
 
@@ -77,5 +76,4 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 If you have any questions about this Privacy Policy, please contact us at:
 
 [artanahmadi@icloud.com]
-
 

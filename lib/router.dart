@@ -1,7 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:devio/screens/landing_screen.dart';
-import 'package:devio/screens/auth_screen.dart';
 import 'package:devio/screens/llm_chat_screen.dart';
 import 'package:devio/features/profile/presentation/profile_screen.dart';
 import 'package:devio/features/profile/presentation/edit_profile_screen.dart';
@@ -11,65 +9,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
 import 'package:devio/features/settings/cubit/preferences_cubit.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:developer' as developer;
-
-// Create a class to listen for auth state changes
-class AuthStateChangeNotifier extends ChangeNotifier {
-  AuthStateChangeNotifier() {
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
-      notifyListeners();
-    });
-  }
-}
 
 final appRouter = GoRouter(
-  initialLocation: '/landing',
+  initialLocation: '/llm',
   debugLogDiagnostics: true,
-  redirect: (context, state) async {
-    if (context == null) return null;
-
-    // Check if user is authenticated using Firebase directly
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final isAuthenticated = currentUser != null;
-
-    // List of routes that require authentication
-    final authenticatedRoutes = [
-      '/llm',
-      '/profile',
-      '/settings',
-      '/notifications',
-      '/edit-profile'
-    ];
-
-    // If user is authenticated, redirect from initial/auth routes to LLM
-    if (isAuthenticated) {
-      // If currently on landing, auth or empty path, go to LLM
-      if (state.matchedLocation == '/landing' ||
-          state.matchedLocation == '/auth' ||
-          state.matchedLocation == '/') {
-        return '/llm';
-      }
-      // Otherwise, allow access to other routes for authenticated users
-      return null;
-    } else {
-      // If user is not authenticated and trying to access authenticated routes
-      if (authenticatedRoutes.contains(state.matchedLocation)) {
-        // Try anonymous sign-in first
-        try {
-          developer.log('Attempting anonymous sign-in from router...');
-          await FirebaseAuth.instance.signInAnonymously();
-          developer.log('Anonymous sign-in successful from router');
-          // After successful sign-in, allow access to the requested route
-          return state.matchedLocation;
-        } catch (e) {
-          developer.log('Anonymous sign-in failed from router: $e');
-          // If anonymous sign-in fails, redirect to landing
-          return '/landing';
-        }
-      }
+  redirect: (context, state) {
+    if (state.matchedLocation == '/' || state.matchedLocation == '/auth') {
+      return '/llm';
     }
-
     return null;
   },
   routes: [
@@ -81,10 +28,7 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/auth',
       name: 'auth',
-      builder: (context, state) {
-        final mode = (state.extra as Map<String, String>?)?['mode'] ?? 'login';
-        return AuthScreen(isLogin: mode == 'login');
-      },
+      builder: (context, state) => const LlmChatScreen(),
     ),
     GoRoute(
       path: '/llm',
@@ -124,6 +68,4 @@ final appRouter = GoRouter(
       builder: (context, state) => const NotificationsScreen(),
     ),
   ],
-  // Refresh when auth state changes
-  refreshListenable: AuthStateChangeNotifier(),
 );

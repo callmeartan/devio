@@ -14,13 +14,13 @@ We aim to respond to all inquiries within 1-2 business days.
 ### General Questions
 
 **Q: What is Devio?**  
-A: Devio is an AI-powered development assistant that connects to both local LLMs running on your system and cloud AI services to help you code more efficiently.
+A: Devio is an AI-powered development assistant that connects to local LLMs running through Ollama to help you code more efficiently.
 
 **Q: Which platforms does Devio support?**  
 A: Devio is currently available for iOS. Android and desktop versions are planned for future releases.
 
 **Q: Is an internet connection required?**  
-A: Not necessarily. When using local LLMs, Devio can function offline. However, cloud AI features and certain app functionalities require an internet connection.
+A: Not for day-to-day chat with local models. You only need internet access to install dependencies, download Ollama models, or reach a remote Ollama endpoint you configure yourself.
 
 ### Local LLM Integration
 
@@ -174,16 +174,13 @@ If you're having trouble connecting Devio to Ollama, try these solutions:
 
 For additional assistance, please contact our support team.
 
-### Account & Billing
+### Local-First Use
 
 **Q: Do I need an account to use Devio?**  
-A: Basic functionality is available without an account. Creating an account allows you to sync settings across devices and access premium features.
+A: No. Devio runs without login or signup, and chat history is stored locally on your device.
 
-**Q: What's included in the free version vs. premium?**  
-A: The free version includes basic coding assistance with limited requests. Premium unlocks unlimited requests, priority support, and advanced features.
-
-**Q: How do I cancel my subscription?**  
-A: Subscriptions can be managed through your App Store account settings.
+**Q: Where is my chat history stored?**  
+A: Chat history and app preferences are stored locally using the app's device storage.
 
 ## Troubleshooting
 
