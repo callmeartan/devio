@@ -55,8 +55,12 @@ dependencies:
 
   # Document handling
   syncfusion_flutter_pdf: ^28.2.9  # For PDF handling
-  path: ^1.8.3
+  path: ^1.9.0
+  path_provider: ^2.1.0
   mime: ^2.0.0  # For MIME type detection
+  drift: ^2.27.0
+  sqlite3_flutter_libs: ^0.5.0
+  flutter_secure_storage: ^9.0.0
 
   # New dependencies
   google_fonts: ^6.2.1
@@ -75,6 +79,7 @@ dev_dependencies:
   build_runner: ^2.4.7
   freezed: 3.0.4
   json_serializable: ^6.7.1
+  drift_dev: ^2.27.0
   flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
