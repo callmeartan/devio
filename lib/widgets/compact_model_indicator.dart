@@ -36,13 +36,20 @@ class CompactModelIndicator extends StatelessWidget {
               color: theme.colorScheme.primary,
             ),
             const SizedBox(width: 4),
-            Text(
-              selectedModel != null
-                  ? getModelDisplayName(selectedModel!)
-                  : 'Select Model',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 140),
+                child: Text(
+                  selectedModel != null
+                      ? getModelDisplayName(selectedModel!)
+                      : 'Select Model',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 4),

@@ -75,7 +75,6 @@ class LlmChatScreen extends StatefulWidget {
 }
 
 class _LlmChatScreenState extends State<LlmChatScreen> {
-  final ScrollController _scrollController = ScrollController();
   final ScrollController _chatScrollController = ScrollController();
   final ScrollController _historyScrollController = ScrollController();
   final TextEditingController _messageController = TextEditingController();
@@ -139,7 +138,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
     _chatScrollController.dispose();
     _historyScrollController.dispose();
     _messageController.dispose();
@@ -150,9 +148,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   void _scrollListener() {
-    if (!_chatScrollController.hasClients) return;
+    if (_chatScrollController.positions.length != 1) return;
     final position = _chatScrollController.position;
-    if (position == null) return;
 
     final showButton = position.pixels < position.maxScrollExtent - 300;
 
@@ -250,11 +247,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   void _scrollToBottom() {
-    if (_chatScrollController.hasClients) {
+    if (_chatScrollController.positions.length == 1) {
       final position = _chatScrollController.position;
-      if (position != null) {
-        _chatScrollController.jumpTo(position.maxScrollExtent);
-      }
+      _chatScrollController.jumpTo(position.maxScrollExtent);
     }
   }
 
@@ -335,12 +330,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             'Chat state changed - messages: ${state.messages.length}, currentChatId: ${state.currentChatId}');
 
         // Auto-scroll to bottom when new messages arrive if we're already near the bottom
-        if (_chatScrollController.hasClients) {
+        if (_chatScrollController.positions.length == 1) {
           final position = _chatScrollController.position;
-          final extent = position?.maxScrollExtent;
-          if (extent != null &&
-              extent > 0 &&
-              (position?.pixels ?? 0) > extent - 300) {
+          final extent = position.maxScrollExtent;
+          if (extent > 0 && position.pixels > extent - 300) {
             _scrollToBottom();
           }
         }
@@ -826,7 +819,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                 .toList();
 
                             return ListView(
-                              controller: _chatScrollController,
+                              controller: _historyScrollController,
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               children: [
                                 if (pinnedChats.isNotEmpty) ...[
