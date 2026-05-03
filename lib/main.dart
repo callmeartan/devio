@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'features/settings/cubit/preferences_cubit.dart';
 import 'features/settings/cubit/preferences_state.dart';
 import 'blocs/auth/auth_cubit.dart';
+import 'database/app_database.dart';
+import 'database/migration_service.dart';
 import 'repositories/chat_repository.dart';
 import 'cubits/chat/chat_cubit.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -18,19 +20,29 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    developer.log('Optional .env file was not loaded: $e');
+    assert(() {
+      developer.log('Optional .env file was not loaded: $e');
+      return true;
+    }());
   }
 
   final prefs = await SharedPreferences.getInstance();
+  final database = AppDatabase();
+  await MigrationService.runIfNeeded(prefs, database);
 
-  runApp(MyApp(prefs: prefs));
+  runApp(MyApp(
+    prefs: prefs,
+    database: database,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final SharedPreferences prefs;
+  final AppDatabase database;
 
   const MyApp({
     required this.prefs,
+    required this.database,
     super.key,
   });
 
@@ -39,6 +51,10 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<SharedPreferences>.value(value: prefs),
+        Provider<AppDatabase>(
+          create: (_) => database,
+          dispose: (_, database) => database.close(),
+        ),
         BlocProvider(
           create: (context) => PreferencesCubit(prefs),
         ),
@@ -48,6 +64,7 @@ class MyApp extends StatelessWidget {
         ),
         Provider<ChatRepository>(
           create: (context) => ChatRepository(
+            database: context.read<AppDatabase>(),
             prefs: context.read<SharedPreferences>(),
           ),
           dispose: (_, repository) => repository.dispose(),

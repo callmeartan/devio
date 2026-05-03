@@ -1,7 +1,9 @@
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:devio/blocs/auth/auth_cubit.dart';
+import 'package:devio/database/app_database.dart';
 import 'package:devio/models/chat_message.dart';
 import 'package:devio/repositories/chat_repository.dart';
 
@@ -19,7 +21,8 @@ void main() {
       () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    final repository = ChatRepository(prefs: prefs);
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final repository = ChatRepository(database: database, prefs: prefs);
 
     await repository.sendMessage(
       ChatMessage.create(
@@ -37,5 +40,6 @@ void main() {
     expect(histories.single['title'], 'Hello from local...');
 
     repository.dispose();
+    await database.close();
   });
 }

@@ -1,16 +1,16 @@
 import 'dart:convert';
 import 'dart:developer' as dev;
+import 'dart:io';
+
 import 'package:http/http.dart' as http;
-import '../models/llm_response.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io';
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
+
+import '../models/llm_response.dart';
+import 'providers/llm_provider.dart';
+import 'providers/ollama_provider.dart';
 
 class LlmService {
   final http.Client _client;
-  static const _timeout = Duration(seconds: 120);
   static const String _customOllamaIpKey = 'custom_ollama_ip';
   static const String _defaultOllamaUrl = 'http://localhost:11434';
   static const String _ollamaTimeoutKey = 'ollama_timeout_seconds';
@@ -25,7 +25,7 @@ class LlmService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_customOllamaIpKey);
     } catch (e) {
-      dev.log('Error getting custom Ollama IP: $e');
+      _debugLog('Error getting custom Ollama IP: $e');
       return null;
     }
   }
@@ -43,7 +43,7 @@ class LlmService {
 
       return true;
     } catch (e) {
-      dev.log('Error saving custom Ollama IP: $e');
+      _debugLog('Error saving custom Ollama IP: $e');
       return false;
     }
   }
@@ -72,7 +72,7 @@ class LlmService {
       // If no port specified, use default Ollama port
       return 'http://$customIp:11434';
     } catch (e) {
-      dev.log('Error getting Ollama server URL: $e');
+      _debugLog('Error getting Ollama server URL: $e');
       return _defaultOllamaUrl;
     }
   }
@@ -80,47 +80,15 @@ class LlmService {
   Future<List<String>> getAvailableModels() async {
     try {
       final ollamaUrl = await getOllamaServerUrl();
-      dev.log('Fetching available models from: $ollamaUrl/api/tags');
-
-      // First verify connection
-      final versionResponse = await _client
-          .get(Uri.parse('$ollamaUrl/api/version'))
-          .timeout(const Duration(seconds: 5));
-
-      if (versionResponse.statusCode != 200) {
-        dev.log('Server not connected: ${versionResponse.statusCode}');
-        return [];
-      }
-
-      final response = await _client
-          .get(Uri.parse('$ollamaUrl/api/tags'))
-          .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        if (jsonResponse['models'] != null) {
-          final models = List<String>.from(
-              jsonResponse['models'].map((model) => model['name'] as String));
-          dev.log('Available models: $models');
-          return models;
-        }
-      }
-
-      dev.log(
-          'Error fetching models: ${response.statusCode} - ${response.body}');
-      return [];
+      return OllamaProvider(client: _client).listModels(LlmProviderConfig(
+        baseUrl: ollamaUrl,
+        model: 'deepseek-r1:8b',
+      ));
     } catch (e) {
-      dev.log('Error connecting to Ollama server: $e');
+      _debugLog('Error connecting to Ollama server: $e');
       return [];
     }
   }
-
-  List<String> _getDefaultModels() => [
-        'deepseek-r1:8b',
-        'llama3:8b',
-        'mistral:7b',
-        'phi3:14b',
-      ];
 
   Future<LlmResponse> generateResponse({
     required String prompt,
@@ -135,49 +103,20 @@ class LlmService {
       final formattedModelName =
           modelName?.contains(':') == true ? modelName : '$modelName:latest';
 
-      dev.log('Generating response with model: $formattedModelName');
+      _debugLog('Generating response with Ollama chat provider');
+      final text = await OllamaProvider(client: _client).chatOnce(
+        LlmProviderConfig(
+          baseUrl: ollamaUrl,
+          model: formattedModelName ?? 'deepseek-r1:8b',
+          maxTokens: maxTokens,
+          temperature: temperature,
+        ),
+        [LlmMessage(role: 'user', content: prompt)],
+      );
 
-      final requestBody = {
-        'model': formattedModelName,
-        'prompt': prompt,
-        'stream': false,
-        'options': {
-          'num_predict': maxTokens,
-          'temperature': temperature,
-        }
-      };
-
-      final response = await _client
-          .post(
-            Uri.parse('$ollamaUrl/api/generate'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode(requestBody),
-          )
-          .timeout(_timeout);
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
-        final responseText = jsonResponse['response'] as String? ?? '';
-        final metrics = _extractMetrics(jsonResponse);
-
-        return LlmResponse.fromJson({
-          'text': responseText,
-          'model_name': modelName,
-          ...metrics,
-        });
-      } else {
-        return LlmResponse(
-          text: '',
-          isError: true,
-          errorMessage:
-              'Failed to generate response: ${response.statusCode} - ${response.body}',
-        );
-      }
+      return LlmResponse(text: text, modelName: modelName);
     } catch (e) {
-      dev.log('Error in generateResponse: $e');
+      _debugLog('Error in generateResponse: $e');
       return LlmResponse(
         text: '',
         isError: true,
@@ -200,156 +139,28 @@ class LlmService {
       final formattedModelName =
           modelName?.contains(':') == true ? modelName : '$modelName:latest';
 
-      dev.log('Streaming response with model: $formattedModelName');
+      _debugLog('Streaming response with Ollama chat provider');
+      final stream = OllamaProvider(client: _client).chat(
+        LlmProviderConfig(
+          baseUrl: ollamaUrl,
+          model: formattedModelName ?? 'deepseek-r1:8b',
+          maxTokens: maxTokens,
+          temperature: temperature,
+        ),
+        [LlmMessage(role: 'user', content: prompt)],
+      );
 
-      final requestBody = {
-        'model': formattedModelName,
-        'prompt': prompt,
-        'stream': true, // Enable streaming
-        'options': {
-          'num_predict': maxTokens,
-          'temperature': temperature,
-        }
-      };
-
-      final request =
-          http.Request('POST', Uri.parse('$ollamaUrl/api/generate'));
-      request.headers['Content-Type'] = 'application/json';
-      request.headers['Accept'] = 'application/json';
-      request.body = jsonEncode(requestBody);
-
-      final streamedResponse = await _client.send(request).timeout(_timeout);
-
-      if (streamedResponse.statusCode == 200) {
-        // Process the stream line by line
-        final stream = streamedResponse.stream
-            .transform(utf8.decoder)
-            .transform(const LineSplitter());
-
-        String accumulatedText = '';
-        Map<String, dynamic> finalMetrics = {};
-        bool isDone = false;
-
-        await for (final chunk in stream) {
-          // Skip empty lines
-          if (chunk.trim().isEmpty) continue;
-
-          try {
-            final jsonChunk = jsonDecode(chunk);
-
-            // Check if this is the final response with metrics
-            if (jsonChunk['done'] == true) {
-              isDone = true;
-              // Extract metrics if present
-              finalMetrics = _extractMetrics(jsonChunk);
-
-              // Yield final response with accumulated text and metrics
-              if (accumulatedText.isNotEmpty) {
-                yield LlmResponse.fromJson({
-                  'text': accumulatedText,
-                  'model_name': modelName,
-                  ...finalMetrics,
-                });
-              }
-              break;
-            }
-
-            // Get text from the chunk
-            final responseText = jsonChunk['response'] as String? ?? '';
-
-            // Update accumulated text
-            accumulatedText += responseText;
-
-            // Yield incremental response
-            yield LlmResponse.fromJson({
-              'text': responseText,
-              'model_name': modelName,
-            });
-          } catch (e) {
-            dev.log('Error parsing JSON chunk: $e, chunk: $chunk');
-            continue;
-          }
-        }
-
-        // If we didn't get a done message, yield one last time with what we have
-        if (!isDone && accumulatedText.isNotEmpty) {
-          yield LlmResponse.fromJson({
-            'text': accumulatedText,
-            'model_name': modelName,
-          });
-        }
-      } else {
-        // Handle error response
-        final responseBody = await streamedResponse.stream.bytesToString();
-        yield LlmResponse(
-          text: '',
-          isError: true,
-          errorMessage:
-              'Failed to generate response: ${streamedResponse.statusCode} - $responseBody',
-        );
+      await for (final chunk in stream) {
+        yield LlmResponse(text: chunk, modelName: modelName);
       }
     } catch (e) {
-      dev.log('Error in streamResponse: $e');
+      _debugLog('Error in streamResponse: $e');
       yield LlmResponse(
         text: '',
         isError: true,
         errorMessage: 'Error connecting to Ollama server: $e',
       );
     }
-  }
-
-  Map<String, dynamic> _extractMetrics(Map<String, dynamic> jsonResponse) {
-    final Map<String, dynamic> metrics = {};
-
-    final metricsFields = [
-      'total_duration',
-      'load_duration',
-      'prompt_eval_duration',
-      'eval_duration',
-    ];
-
-    for (final field in metricsFields) {
-      if (jsonResponse.containsKey(field)) {
-        metrics[field] = _convertNanosecondsToSeconds(jsonResponse[field]);
-      }
-    }
-
-    final countFields = ['prompt_eval_count', 'eval_count'];
-    for (final field in countFields) {
-      if (jsonResponse.containsKey(field)) {
-        metrics[field] = jsonResponse[field];
-      }
-    }
-
-    // Calculate rates
-    if (metrics.containsKey('prompt_eval_count') &&
-        metrics.containsKey('prompt_eval_duration')) {
-      final count = metrics['prompt_eval_count'] as int;
-      final duration = metrics['prompt_eval_duration'] as double;
-      if (duration > 0) {
-        metrics['prompt_eval_rate'] = count / duration;
-      }
-    }
-
-    if (metrics.containsKey('eval_count') &&
-        metrics.containsKey('eval_duration')) {
-      final count = metrics['eval_count'] as int;
-      final duration = metrics['eval_duration'] as double;
-      if (duration > 0) {
-        metrics['eval_rate'] = count / duration;
-      }
-    }
-
-    return metrics;
-  }
-
-  double _convertNanosecondsToSeconds(dynamic value) {
-    if (value is int) {
-      return value / 1e9; // Convert nanoseconds to seconds
-    } else if (value is double) {
-      return value / 1e9;
-    }
-    return 0.0;
   }
 
   // Get advanced Ollama settings
@@ -362,7 +173,7 @@ class LlmService {
         'threads': prefs.getInt(_ollamaThreadsKey) ?? 4,
       };
     } catch (e) {
-      dev.log('Error getting advanced settings: $e');
+      _debugLog('Error getting advanced settings: $e');
       return {
         'timeout': 120,
         'contextSize': 4096,
@@ -384,7 +195,7 @@ class LlmService {
       await prefs.setInt(_ollamaThreadsKey, threads);
       return true;
     } catch (e) {
-      dev.log('Error saving advanced settings: $e');
+      _debugLog('Error saving advanced settings: $e');
       return false;
     }
   }
@@ -510,12 +321,12 @@ class LlmService {
               }
             }
           } catch (e) {
-            dev.log('Error getting GPU metrics: $e');
+            _debugLog('Error getting GPU metrics: $e');
             // Continue without GPU metrics
           }
         }
       } catch (e) {
-        dev.log('Error getting process info: $e');
+        _debugLog('Error getting process info: $e');
       }
 
       final versionJson = jsonDecode(versionResponse.body);
@@ -529,7 +340,7 @@ class LlmService {
         },
       };
     } catch (e) {
-      dev.log('Error getting server status: $e');
+      _debugLog('Error getting server status: $e');
       return {
         'status': 'error',
         'error': e.toString(),
@@ -630,5 +441,12 @@ class LlmService {
 
   void dispose() {
     _client.close();
+  }
+
+  void _debugLog(String message) {
+    assert(() {
+      dev.log(message);
+      return true;
+    }());
   }
 }

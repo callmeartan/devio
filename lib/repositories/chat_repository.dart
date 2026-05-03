@@ -1,168 +1,89 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as developer;
 
+import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../database/app_database.dart';
 import '../models/chat_message.dart';
 
 class ChatRepository {
-  static const String _messagesKey = 'devio.local.chat.messages.v1';
-  static const String _metadataKey = 'devio.local.chat.metadata.v1';
+  final AppDatabase _database;
 
-  final SharedPreferences _prefs;
-  final StreamController<void> _changes = StreamController<void>.broadcast();
+  ChatRepository({
+    required AppDatabase database,
+    SharedPreferences? prefs,
+  }) : _database = database;
 
-  ChatRepository({required SharedPreferences prefs}) : _prefs = prefs;
+  void dispose() {}
 
-  void dispose() {
-    _changes.close();
+  Stream<List<ChatMessage>> getChatMessages() {
+    return _database.watchLatestMessages().map(
+          (rows) => rows.map(_messageFromRow).toList(),
+        );
   }
 
-  Stream<List<ChatMessage>> getChatMessages() async* {
-    yield _latestMessages();
-    await for (final _ in _changes.stream) {
-      yield _latestMessages();
-    }
-  }
-
-  Stream<List<ChatMessage>> getChatMessagesForId(String chatId) async* {
-    yield _messagesForChat(chatId);
-    await for (final _ in _changes.stream) {
-      yield _messagesForChat(chatId);
-    }
+  Stream<List<ChatMessage>> getChatMessagesForId(String chatId) {
+    return _database.watchMessagesByConversationId(chatId).map(
+          (rows) => rows.map(_messageFromRow).toList(),
+        );
   }
 
   Future<List<Map<String, dynamic>>> getChatHistories() async {
-    final messages = _readMessages();
-    final metadata = _readMetadata();
-
-    if (messages.isEmpty) {
-      if (metadata.isNotEmpty) {
-        await _writeMetadata({});
-      }
-      return [];
-    }
-
-    final latestByChat = <String, ChatMessage>{};
-    for (final message in messages) {
-      final latest = latestByChat[message.chatId];
-      if (latest == null || message.timestamp.isAfter(latest.timestamp)) {
-        latestByChat[message.chatId] = message;
-      }
-    }
-
-    final validChatIds = latestByChat.keys.toSet();
-    final orphanedMetadata = metadata.keys
-        .where((chatId) => !validChatIds.contains(chatId))
-        .toList();
-    if (orphanedMetadata.isNotEmpty) {
-      for (final chatId in orphanedMetadata) {
-        metadata.remove(chatId);
-      }
-      await _writeMetadata(metadata);
-    }
-
-    final result = latestByChat.entries.map((entry) {
-      final chatId = entry.key;
-      final chatMessages = _messagesForChat(chatId, source: messages);
-      final chatMetadata = metadata[chatId] ?? {};
-
-      return {
-        'id': chatId,
-        'title':
-            chatMetadata['title'] as String? ?? _titleForChat(chatMessages),
-        'timestamp': entry.value.timestamp,
-        'isPinned': chatMetadata['isPinned'] == true,
-      };
-    }).toList();
-
-    result.sort((a, b) {
-      if (a['isPinned'] == b['isPinned']) {
-        return (b['timestamp'] as DateTime)
-            .compareTo(a['timestamp'] as DateTime);
-      }
-      return (b['isPinned'] as bool) ? 1 : -1;
-    });
-
-    return result;
+    final conversations = await _database.getAllConversationSummaries();
+    return conversations.map(_historyFromConversation).toList();
   }
 
   Future<void> sendMessage(ChatMessage message) async {
-    final messages = _readMessages();
-    final existingIndex = messages.indexWhere((item) => item.id == message.id);
+    final existingConversation =
+        await _database.getConversationById(message.chatId);
+    final messages =
+        await _database.getMessagesByConversationId(message.chatId);
+    final now = DateTime.now();
+    final isFirstMessage = messages.isEmpty;
+    final title = existingConversation?.title ??
+        _titleForChat([...messages.map(_messageFromRow), message]);
 
-    if (existingIndex >= 0) {
-      messages[existingIndex] = message;
-    } else {
-      messages.add(message);
-    }
-
-    final metadata = _readMetadata();
-    final existingMetadata = metadata[message.chatId] ?? {};
-    final shouldSetTitle = existingMetadata['title'] == null ||
-        (existingMetadata['title'] as String?)?.trim().isEmpty == true ||
-        !message.isAI;
-
-    metadata[message.chatId] = {
-      ...existingMetadata,
-      'lastMessageTime': message.timestamp.toIso8601String(),
-      'title': shouldSetTitle
-          ? _generateChatTitle(message.content)
-          : existingMetadata['title'],
-      'isPinned': existingMetadata['isPinned'] == true,
-    };
-
-    await _writeMessages(messages);
-    await _writeMetadata(metadata);
-    _notify();
+    await _database.transaction(() async {
+      await _database.insertOrUpdateConversation(ConversationsCompanion(
+        id: Value(message.chatId),
+        title: Value(title),
+        isPinned: Value(existingConversation?.isPinned ?? false),
+        provider: Value(existingConversation?.provider ?? 'ollama'),
+        modelName: Value(existingConversation?.modelName),
+        systemPrompt: Value(existingConversation?.systemPrompt),
+        settingsJson: Value(existingConversation?.settingsJson),
+        createdAt: Value(
+          existingConversation?.createdAt ??
+              (isFirstMessage ? message.timestamp : now),
+        ),
+        updatedAt: Value(message.timestamp),
+      ));
+      await _database.insertOrUpdateMessage(_messageToCompanion(message));
+    });
   }
 
   Future<void> deleteMessage(String messageId) async {
-    final messages = _readMessages();
-    final message = messages.cast<ChatMessage?>().firstWhere(
-          (item) => item?.id == messageId,
-          orElse: () => null,
-        );
-
+    final message = await _database.getMessageById(messageId);
     if (message == null) {
+      _debugLog('Message not found for delete: $messageId');
       return;
     }
 
-    messages.removeWhere((item) => item.id == messageId);
-    final metadata = _readMetadata();
-    _refreshMetadataForChat(message.chatId, messages, metadata);
-
-    await _writeMessages(messages);
-    await _writeMetadata(metadata);
-    _notify();
+    await _database.deleteMessageById(messageId);
+    await _refreshConversationAfterMessageChange(message.conversationId);
   }
 
   Future<void> updateMessageContent(String messageId, String newContent) async {
-    final messages = _readMessages();
-    final messageIndex = messages.indexWhere((item) => item.id == messageId);
-
-    if (messageIndex == -1) {
-      developer.log('Message not found for content update: $messageId');
+    final message = await _database.getMessageById(messageId);
+    if (message == null) {
+      _debugLog('Message not found for content update: $messageId');
       return;
     }
 
-    messages[messageIndex] = messages[messageIndex].copyWith(
-      content: newContent,
-    );
-
-    final metadata = _readMetadata();
-    _refreshMetadataForChat(
-      messages[messageIndex].chatId,
-      messages,
-      metadata,
-      titleOverride:
-          messages[messageIndex].isAI ? null : _generateChatTitle(newContent),
-    );
-
-    await _writeMessages(messages);
-    await _writeMetadata(metadata);
-    _notify();
+    await _database.updateMessageContent(messageId, newContent);
+    await _refreshConversationAfterMessageChange(message.conversationId);
   }
 
   Future<void> updateMessageMetrics(
@@ -176,47 +97,66 @@ class ChatRepository {
     double? evalDuration,
     double? evalRate,
   }) async {
-    final messages = _readMessages();
-    final messageIndex = messages.indexWhere((item) => item.id == messageId);
-
-    if (messageIndex == -1) {
-      developer.log('Message not found for metrics update: $messageId');
-      return;
-    }
-
-    messages[messageIndex] = messages[messageIndex].copyWith(
-      totalDuration: totalDuration,
-      loadDuration: loadDuration,
-      promptEvalCount: promptEvalCount,
-      promptEvalDuration: promptEvalDuration,
-      promptEvalRate: promptEvalRate,
-      evalCount: evalCount,
-      evalDuration: evalDuration,
-      evalRate: evalRate,
+    final metrics = _encodeMetrics({
+      'totalDuration': totalDuration,
+      'loadDuration': loadDuration,
+      'promptEvalCount': promptEvalCount,
+      'promptEvalDuration': promptEvalDuration,
+      'promptEvalRate': promptEvalRate,
+      'evalCount': evalCount,
+      'evalDuration': evalDuration,
+      'evalRate': evalRate,
+    });
+    final updated = await _database.updateMessageMetricsJson(
+      messageId,
+      metrics,
     );
-
-    await _writeMessages(messages);
-    _notify();
+    if (updated == 0) {
+      _debugLog('Message not found for metrics update: $messageId');
+    }
   }
 
   Future<void> clearChat() async {
-    await _prefs.remove(_messagesKey);
-    await _prefs.remove(_metadataKey);
-    _notify();
+    await _database.clearAllConversationsAndMessages();
   }
 
   Future<void> updateChatMetadata(
     String chatId,
     Map<String, dynamic> updates,
   ) async {
-    final metadata = _readMetadata();
-    metadata[chatId] = {
-      ...(metadata[chatId] ?? {}),
-      ..._serializeMetadata(updates),
-    };
+    final conversation = await _ensureConversation(chatId, updates: updates);
+    final serialized = _serializeMetadata(updates);
 
-    await _writeMetadata(metadata);
-    _notify();
+    await _database.insertOrUpdateConversation(ConversationsCompanion(
+      id: Value(chatId),
+      title: Value(
+        serialized['title'] as String? ?? conversation.title,
+      ),
+      isPinned: Value(
+        serialized['isPinned'] as bool? ?? conversation.isPinned,
+      ),
+      provider: Value(
+        serialized['provider'] as String? ?? conversation.provider,
+      ),
+      modelName: Value(
+        serialized.containsKey('modelName')
+            ? serialized['modelName'] as String?
+            : conversation.modelName,
+      ),
+      systemPrompt: Value(
+        serialized.containsKey('systemPrompt')
+            ? serialized['systemPrompt'] as String?
+            : conversation.systemPrompt,
+      ),
+      settingsJson: Value(
+        serialized['settingsJson'] as String? ??
+            _mergedSettingsJson(conversation.settingsJson, serialized),
+      ),
+      createdAt: Value(conversation.createdAt),
+      updatedAt: Value(
+        _dateTimeFromMetadata(serialized['lastMessageTime']) ?? DateTime.now(),
+      ),
+    ));
   }
 
   Future<void> updateChatPin(String chatId, bool isPinned) async {
@@ -228,147 +168,228 @@ class ChatRepository {
   }
 
   Future<void> deleteChat(String chatId) async {
-    final messages =
-        _readMessages().where((message) => message.chatId != chatId).toList();
-    final metadata = _readMetadata()..remove(chatId);
-
-    await _writeMessages(messages);
-    await _writeMetadata(metadata);
-    _notify();
+    await _database.deleteConversationById(chatId);
   }
 
   Future<Map<String, dynamic>> getChatMetadata(String chatId) async {
-    return _readMetadata()[chatId] ?? {};
+    final conversation = await _database.getConversationById(chatId);
+    if (conversation == null) {
+      return {};
+    }
+
+    return {
+      'title': conversation.title,
+      'isPinned': conversation.isPinned,
+      'lastMessageTime': conversation.updatedAt.toIso8601String(),
+      'provider': conversation.provider,
+      if (conversation.modelName != null) 'modelName': conversation.modelName,
+      if (conversation.systemPrompt != null)
+        'systemPrompt': conversation.systemPrompt,
+      if (conversation.settingsJson != null)
+        ..._decodeSettingsJson(conversation.settingsJson),
+    };
   }
 
   Future<void> batchUpdateMetadata(
     Map<String, Map<String, dynamic>> updates,
   ) async {
-    final metadata = _readMetadata();
-
-    updates.forEach((chatId, data) {
-      metadata[chatId] = {
-        ...(metadata[chatId] ?? {}),
-        ..._serializeMetadata(data),
-      };
-    });
-
-    await _writeMetadata(metadata);
-    _notify();
-  }
-
-  List<ChatMessage> _readMessages() {
-    final rawMessages = _prefs.getString(_messagesKey);
-    if (rawMessages == null || rawMessages.isEmpty) {
-      return [];
-    }
-
-    try {
-      final decoded = jsonDecode(rawMessages);
-      if (decoded is! List) {
-        return [];
-      }
-
-      return decoded
-          .whereType<Map>()
-          .map((item) => ChatMessage.fromJson(
-                Map<String, dynamic>.from(item),
-              ))
-          .toList();
-    } catch (e, stackTrace) {
-      developer.log(
-        'Failed to read local chat messages',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      return [];
+    for (final entry in updates.entries) {
+      await updateChatMetadata(entry.key, entry.value);
     }
   }
 
-  Future<void> _writeMessages(List<ChatMessage> messages) {
-    final encoded = jsonEncode(
-      messages.map((message) => message.toJson()).toList(),
-    );
-    return _prefs.setString(_messagesKey, encoded);
-  }
-
-  Map<String, Map<String, dynamic>> _readMetadata() {
-    final rawMetadata = _prefs.getString(_metadataKey);
-    if (rawMetadata == null || rawMetadata.isEmpty) {
-      return {};
-    }
-
-    try {
-      final decoded = jsonDecode(rawMetadata);
-      if (decoded is! Map) {
-        return {};
-      }
-
-      return decoded.map(
-        (key, value) => MapEntry(
-          key.toString(),
-          value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{},
-        ),
-      );
-    } catch (e, stackTrace) {
-      developer.log(
-        'Failed to read local chat metadata',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      return {};
-    }
-  }
-
-  Future<void> _writeMetadata(Map<String, Map<String, dynamic>> metadata) {
-    return _prefs.setString(_metadataKey, jsonEncode(metadata));
-  }
-
-  List<ChatMessage> _messagesForChat(
+  Future<Conversation> _ensureConversation(
     String chatId, {
-    List<ChatMessage>? source,
-  }) {
-    final messages = (source ?? _readMessages())
-        .where((message) => message.chatId == chatId)
-        .toList()
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    Map<String, dynamic>? updates,
+  }) async {
+    final existing = await _database.getConversationById(chatId);
+    if (existing != null) {
+      return existing;
+    }
 
-    return messages;
+    final messages = await _database.getMessagesByConversationId(chatId);
+    final now = DateTime.now();
+    final createdAt = messages.isEmpty ? now : messages.first.createdAt;
+    final updatedAt = messages.isEmpty ? now : messages.last.createdAt;
+    final title = updates?['title'] as String? ??
+        _titleForChat(messages.map(_messageFromRow).toList());
+    final conversation = Conversation(
+      id: chatId,
+      title: title,
+      isPinned: updates?['isPinned'] == true,
+      provider: updates?['provider'] as String? ?? 'ollama',
+      modelName: updates?['modelName'] as String?,
+      systemPrompt: updates?['systemPrompt'] as String?,
+      settingsJson: updates?['settingsJson'] as String?,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+
+    await _database.insertOrUpdateConversation(ConversationsCompanion(
+      id: Value(conversation.id),
+      title: Value(conversation.title),
+      isPinned: Value(conversation.isPinned),
+      provider: Value(conversation.provider),
+      modelName: Value(conversation.modelName),
+      systemPrompt: Value(conversation.systemPrompt),
+      settingsJson: Value(conversation.settingsJson),
+      createdAt: Value(conversation.createdAt),
+      updatedAt: Value(conversation.updatedAt),
+    ));
+    return conversation;
   }
 
-  List<ChatMessage> _latestMessages() {
-    final messages = _readMessages()
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-    return messages.take(100).toList();
-  }
-
-  void _refreshMetadataForChat(
-    String chatId,
-    List<ChatMessage> messages,
-    Map<String, Map<String, dynamic>> metadata, {
-    String? titleOverride,
-  }) {
-    final chatMessages = _messagesForChat(chatId, source: messages);
-    if (chatMessages.isEmpty) {
-      metadata.remove(chatId);
+  Future<void> _refreshConversationAfterMessageChange(String chatId) async {
+    final conversation = await _database.getConversationById(chatId);
+    final messages = await _database.getMessagesByConversationId(chatId);
+    if (messages.isEmpty) {
+      await _database.deleteConversationById(chatId);
       return;
     }
 
-    final latestMessage = chatMessages.reduce(
-      (latest, message) =>
-          message.timestamp.isAfter(latest.timestamp) ? message : latest,
-    );
-    final existingMetadata = metadata[chatId] ?? {};
+    final chatMessages = messages.map(_messageFromRow).toList();
+    await _database.insertOrUpdateConversation(ConversationsCompanion(
+      id: Value(chatId),
+      title: Value(conversation?.title ?? _titleForChat(chatMessages)),
+      isPinned: Value(conversation?.isPinned ?? false),
+      provider: Value(conversation?.provider ?? 'ollama'),
+      modelName: Value(conversation?.modelName),
+      systemPrompt: Value(conversation?.systemPrompt),
+      settingsJson: Value(conversation?.settingsJson),
+      createdAt: Value(conversation?.createdAt ?? messages.first.createdAt),
+      updatedAt: Value(messages.last.createdAt),
+    ));
+  }
 
-    metadata[chatId] = {
-      ...existingMetadata,
-      'lastMessageTime': latestMessage.timestamp.toIso8601String(),
-      'title': titleOverride ??
-          (existingMetadata['title'] as String?) ??
-          _titleForChat(chatMessages),
-      'isPinned': existingMetadata['isPinned'] == true,
+  MessagesCompanion _messageToCompanion(ChatMessage message) {
+    return MessagesCompanion(
+      id: Value(message.id),
+      conversationId: Value(message.chatId),
+      senderId: Value(message.senderId),
+      senderName: Value(message.senderName),
+      role: Value(message.isAI ? 'assistant' : 'user'),
+      content: Value(message.content),
+      isStreaming: const Value(false),
+      isPlaceholder: Value(message.isPlaceholder),
+      metricsJson: Value(_metricsJsonFromMessage(message)),
+      createdAt: Value(message.timestamp),
+    );
+  }
+
+  ChatMessage _messageFromRow(Message row) {
+    final metrics = _decodeMetrics(row.metricsJson);
+    return ChatMessage(
+      id: row.id,
+      chatId: row.conversationId,
+      senderId: row.senderId,
+      senderName: row.senderName,
+      content: row.content,
+      timestamp: row.createdAt,
+      isAI: row.role == 'assistant',
+      isPlaceholder: row.isPlaceholder,
+      totalDuration: metrics['totalDuration'] as double?,
+      loadDuration: metrics['loadDuration'] as double?,
+      promptEvalCount: metrics['promptEvalCount'] as int?,
+      promptEvalDuration: metrics['promptEvalDuration'] as double?,
+      promptEvalRate: metrics['promptEvalRate'] as double?,
+      evalCount: metrics['evalCount'] as int?,
+      evalDuration: metrics['evalDuration'] as double?,
+      evalRate: metrics['evalRate'] as double?,
+    );
+  }
+
+  Map<String, dynamic> _historyFromConversation(Conversation conversation) {
+    return {
+      'id': conversation.id,
+      'title': conversation.title,
+      'timestamp': conversation.updatedAt,
+      'isPinned': conversation.isPinned,
     };
+  }
+
+  String? _metricsJsonFromMessage(ChatMessage message) {
+    return _encodeMetrics({
+      'totalDuration': message.totalDuration,
+      'loadDuration': message.loadDuration,
+      'promptEvalCount': message.promptEvalCount,
+      'promptEvalDuration': message.promptEvalDuration,
+      'promptEvalRate': message.promptEvalRate,
+      'evalCount': message.evalCount,
+      'evalDuration': message.evalDuration,
+      'evalRate': message.evalRate,
+    });
+  }
+
+  String? _encodeMetrics(Map<String, dynamic> metrics) {
+    final filtered = Map<String, dynamic>.from(metrics)
+      ..removeWhere((_, value) => value == null);
+    if (filtered.isEmpty) {
+      return null;
+    }
+    return jsonEncode(filtered);
+  }
+
+  Map<String, dynamic> _decodeMetrics(String? metricsJson) {
+    if (metricsJson == null || metricsJson.isEmpty) {
+      return {};
+    }
+
+    try {
+      final decoded = jsonDecode(metricsJson);
+      if (decoded is! Map) {
+        return {};
+      }
+      return decoded.map((key, value) {
+        if (value is int && key.toString().endsWith('Duration')) {
+          return MapEntry(key.toString(), value.toDouble());
+        }
+        if (value is int && key.toString().endsWith('Rate')) {
+          return MapEntry(key.toString(), value.toDouble());
+        }
+        return MapEntry(key.toString(), value);
+      });
+    } catch (e) {
+      _debugLog('Failed to decode message metrics: $e');
+      return {};
+    }
+  }
+
+  Map<String, dynamic> _decodeSettingsJson(String? settingsJson) {
+    if (settingsJson == null || settingsJson.isEmpty) {
+      return {};
+    }
+    try {
+      final decoded = jsonDecode(settingsJson);
+      return decoded is Map ? Map<String, dynamic>.from(decoded) : {};
+    } catch (e) {
+      _debugLog('Failed to decode chat settings: $e');
+      return {};
+    }
+  }
+
+  String? _mergedSettingsJson(
+    String? currentSettingsJson,
+    Map<String, dynamic> updates,
+  ) {
+    final settings = _decodeSettingsJson(currentSettingsJson);
+    const nonSettingsKeys = {
+      'title',
+      'isPinned',
+      'lastMessageTime',
+      'provider',
+      'modelName',
+      'systemPrompt',
+      'settingsJson',
+    };
+    for (final entry in updates.entries) {
+      if (!nonSettingsKeys.contains(entry.key)) {
+        settings[entry.key] = entry.value;
+      }
+    }
+    if (settings.isEmpty) {
+      return currentSettingsJson;
+    }
+    return jsonEncode(settings);
   }
 
   String _titleForChat(List<ChatMessage> messages) {
@@ -405,9 +426,20 @@ class ChatRepository {
     });
   }
 
-  void _notify() {
-    if (!_changes.isClosed) {
-      _changes.add(null);
+  DateTime? _dateTimeFromMetadata(dynamic value) {
+    if (value is DateTime) {
+      return value;
     }
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
+    return null;
+  }
+
+  void _debugLog(String message) {
+    assert(() {
+      debugPrint(message);
+      return true;
+    }());
   }
 }
