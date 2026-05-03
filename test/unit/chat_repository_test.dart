@@ -7,12 +7,17 @@ import 'package:devio/models/chat_message.dart';
 import 'package:devio/repositories/chat_repository.dart';
 
 void main() {
+  const legacyMessagesKey = 'devio.local.chat.messages.v1';
+  const legacyMetadataKey = 'devio.local.chat.metadata.v1';
+  const migrationDoneKey = 'drift_migration_done_v1';
+
   late AppDatabase database;
   late ChatRepository repository;
+  late SharedPreferences prefs;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    final prefs = await SharedPreferences.getInstance();
+    prefs = await SharedPreferences.getInstance();
     database = AppDatabase.forTesting(NativeDatabase.memory());
     repository = ChatRepository(database: database, prefs: prefs);
   });
@@ -90,6 +95,27 @@ void main() {
 
     expect(await repository.getChatHistories(), isEmpty);
     expect(await database.getMessagesByConversationId('chat-1'), isEmpty);
+  });
+
+  test('clearChat removes drift data and legacy chat preferences', () async {
+    await prefs.setString(legacyMessagesKey, '[]');
+    await prefs.setString(legacyMetadataKey, '{}');
+    await prefs.setBool(migrationDoneKey, false);
+    await repository.sendMessage(ChatMessage(
+      id: 'message-1',
+      chatId: 'chat-1',
+      senderId: 'user',
+      content: 'Delete me',
+      timestamp: DateTime(2026),
+    ));
+
+    await repository.clearChat();
+
+    expect(await repository.getChatHistories(), isEmpty);
+    expect(await database.getMessagesByConversationId('chat-1'), isEmpty);
+    expect(prefs.getString(legacyMessagesKey), isNull);
+    expect(prefs.getString(legacyMetadataKey), isNull);
+    expect(prefs.getBool(migrationDoneKey), isTrue);
   });
 
   test('updates message content', () async {

@@ -9,12 +9,18 @@ import '../database/app_database.dart';
 import '../models/chat_message.dart';
 
 class ChatRepository {
+  static const String _legacyMessagesKey = 'devio.local.chat.messages.v1';
+  static const String _legacyMetadataKey = 'devio.local.chat.metadata.v1';
+  static const String _migrationDoneKey = 'drift_migration_done_v1';
+
   final AppDatabase _database;
+  final SharedPreferences? _prefs;
 
   ChatRepository({
     required AppDatabase database,
     SharedPreferences? prefs,
-  }) : _database = database;
+  })  : _database = database,
+        _prefs = prefs;
 
   void dispose() {}
 
@@ -118,6 +124,18 @@ class ChatRepository {
 
   Future<void> clearChat() async {
     await _database.clearAllConversationsAndMessages();
+    await _clearLegacyChatData();
+  }
+
+  Future<void> _clearLegacyChatData() async {
+    final prefs = _prefs;
+    if (prefs == null) {
+      return;
+    }
+
+    await prefs.remove(_legacyMessagesKey);
+    await prefs.remove(_legacyMetadataKey);
+    await prefs.setBool(_migrationDoneKey, true);
   }
 
   Future<void> updateChatMetadata(
