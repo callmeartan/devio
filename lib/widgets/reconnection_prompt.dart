@@ -93,7 +93,7 @@ class _ReconnectionPromptState extends State<ReconnectionPrompt> {
           const SizedBox(height: 8),
           Text(
             widget.errorMessage ??
-                'Configure your Ollama connection to start using local AI models',
+                'Configure your model provider connection to start using AI models',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onPrimaryContainer,
             ),

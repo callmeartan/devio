@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../features/llm/cubit/llm_cubit.dart';
 import 'ollama_connection_guide.dart';
 
 class SetupRequiredView extends StatelessWidget {
@@ -48,7 +46,7 @@ class SetupRequiredView extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Ollama Connection Setup',
+                  'Connection Setup',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -93,7 +91,7 @@ class SetupRequiredView extends StatelessWidget {
           ],
           const SizedBox(height: 16),
           Text(
-            'To use AI features, you need to connect to Ollama running on your computer.',
+            'To use AI features, connect DevIO to a supported model provider.',
             style: theme.textTheme.bodyLarge,
           ),
           const SizedBox(height: 24),
@@ -157,7 +155,7 @@ class SetupRequiredView extends StatelessWidget {
   }) {
     // Use more positive messaging regardless of the error
     String setupMessage =
-        'Configure your Ollama connection to start using local AI models';
+        'Configure your model provider connection to start using AI models';
 
     return SetupRequiredView(
       errorMessage: setupMessage,

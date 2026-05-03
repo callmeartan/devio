@@ -73,7 +73,7 @@ class HelpScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      'DevIO supports various Ollama models including deepseek-coder, llama2, and more. Each model has different capabilities and specializations. You can install additional models using the Ollama CLI.',
+                      'DevIO supports Ollama, LM Studio, and OpenAI-compatible chat APIs. Available models come from the provider you connect, so model names and capabilities depend on that server.',
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),

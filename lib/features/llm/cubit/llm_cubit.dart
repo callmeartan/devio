@@ -19,6 +19,7 @@ enum LlmProvider {
 class LlmCubit extends Cubit<LlmState> {
   final LlmService _llmService;
   final LlmProviderRegistry _providerRegistry;
+  late final Future<void> ready;
   String _currentProviderId = 'ollama';
   String? _baseUrl;
   String? _apiKey;
@@ -46,9 +47,14 @@ class LlmCubit extends Cubit<LlmState> {
   })  : _llmService = llmService ?? LlmService(),
         _providerRegistry = providerRegistry ?? LlmProviderRegistry(),
         super(const LlmState.initial()) {
-    _loadProviderSettings();
-    _loadCustomOllamaIp();
-    _loadAdvancedSettings();
+    ready = _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _loadProviderSettings();
+    await _loadCustomOllamaIp();
+    await _loadAdvancedSettings();
+    emit(const LlmState.initial());
   }
 
   Future<void> _loadProviderSettings() async {
@@ -114,14 +120,17 @@ class LlmCubit extends Cubit<LlmState> {
         return LlmProvider.openai;
       case 'ollama':
       default:
-        return LlmProvider.local;
+        return LlmProvider.ollama;
     }
   }
 
   String get currentProviderId => _currentProviderId;
   String? get customOllamaIp => _customOllamaIp;
   String? get baseUrl => _baseUrl;
+  String? get apiKey => _apiKey;
   String? get selectedModel => _selectedModel;
+  double get temperature => _temperature;
+  int? get maxTokens => _maxTokens;
 
   // Get current advanced settings
   Map<String, dynamic> get advancedSettings => _advancedSettings;
@@ -249,8 +258,39 @@ class LlmCubit extends Cubit<LlmState> {
         (_customOllamaIp == null || _customOllamaIp!.isEmpty)) {
       _ensureOllamaIpIsSet();
     }
+    if (providerId == 'lmstudio') {
+      _baseUrl ??= 'http://localhost:1234';
+    } else if (providerId == 'openai') {
+      _baseUrl ??= 'https://api.openai.com';
+    }
 
     _saveProviderSettings();
+    emit(const LlmState.initial());
+  }
+
+  Future<void> updateProviderConnection({
+    String? baseUrl,
+    String? apiKey,
+    int? maxTokens,
+    double? temperature,
+  }) async {
+    if (_currentProviderId == 'ollama') {
+      await setCustomOllamaIp(baseUrl);
+    } else {
+      _baseUrl = baseUrl;
+    }
+    _apiKey = apiKey;
+    _maxTokens = maxTokens;
+    if (temperature != null) {
+      _temperature = temperature;
+    }
+    await _saveProviderSettings();
+    emit(const LlmState.initial());
+  }
+
+  Future<void> selectModel(String? modelName) async {
+    _selectedModel = modelName;
+    await _saveProviderSettings();
     emit(const LlmState.initial());
   }
 
@@ -410,7 +450,7 @@ class LlmCubit extends Cubit<LlmState> {
       // This method could be extended later to use a multimodal model
 
       const String errorMessage =
-          'Image analysis is not supported with local models. '
+          'Image analysis is not supported by the selected provider yet. '
           'Consider using a multimodal model like llava, bakllava, or moondream.';
 
       _debugLog(errorMessage);

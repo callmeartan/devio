@@ -106,19 +106,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Set local as default provider
-    context.read<LlmCubit>().setProvider(LlmProvider.local);
-    _loadAvailableModels();
     _chatScrollController.addListener(_scrollListener);
 
     // Start a new chat immediately
     context.read<ChatCubit>().startNewChat();
 
-    // Check connection status
-    _checkConnectionStatus();
-
-    // Send initial greeting since we know we're authenticated (router ensures this)
-    _sendInitialGreeting();
+    _initializeLlmSession();
 
     // Schedule scroll to bottom after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -127,6 +120,21 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     // Don't show model selection initially
     _showModelSelection = false;
+  }
+
+  Future<void> _initializeLlmSession() async {
+    final llmCubit = context.read<LlmCubit>();
+    await llmCubit.ready;
+    if (!mounted) return;
+
+    setState(() {
+      _selectedModel = llmCubit.selectedModel;
+    });
+
+    await _loadAvailableModels();
+    await _checkConnectionStatus();
+    if (!mounted) return;
+    _sendInitialGreeting();
   }
 
   @override
@@ -190,9 +198,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           // Filter models based on current context
           final filteredModels = _getFilteredModels();
 
-          // Only set a default model if we have models available
+          final savedModel = context.read<LlmCubit>().selectedModel;
           if (filteredModels.isNotEmpty) {
-            _selectedModel ??= filteredModels.first;
+            if (savedModel != null && filteredModels.contains(savedModel)) {
+              _selectedModel = savedModel;
+            } else if (_selectedModel != null &&
+                filteredModels.contains(_selectedModel)) {
+              _selectedModel = _selectedModel;
+            } else {
+              _selectedModel = filteredModels.first;
+              context.read<LlmCubit>().selectModel(_selectedModel);
+            }
           } else {
             _selectedModel = null;
           }
@@ -322,7 +338,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         if (_chatScrollController.hasClients) {
           final position = _chatScrollController.position;
           final extent = position?.maxScrollExtent;
-          if (extent != null && extent > 0 &&
+          if (extent != null &&
+              extent > 0 &&
               (position?.pixels ?? 0) > extent - 300) {
             _scrollToBottom();
           }
@@ -962,23 +979,14 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     ],
                   ),
                   actions: [
-                    // Show Ollama config button if using local provider
-                    if (context.watch<LlmCubit>().currentProvider ==
-                        LlmProvider.local)
-                      Tooltip(
-                        message: context.read<LlmCubit>().customOllamaIp !=
-                                    null &&
-                                context
-                                    .read<LlmCubit>()
-                                    .customOllamaIp!
-                                    .isNotEmpty
-                            ? 'Ollama IP: ${context.read<LlmCubit>().customOllamaIp}'
-                            : 'Configure Ollama Connection',
-                        child: IconButton(
-                          icon: const Icon(Icons.settings_ethernet),
-                          onPressed: _showOllamaConfigDialog,
-                        ),
+                    Tooltip(
+                      message:
+                          'Configure ${_activeProviderDisplayName()} connection',
+                      child: IconButton(
+                        icon: const Icon(Icons.settings_ethernet),
+                        onPressed: _showProviderConfigDialog,
                       ),
+                    ),
                     // Show a compact model indicator instead of the full selection UI
                     CompactModelIndicator(
                       selectedModel: _selectedModel,
@@ -1011,7 +1019,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                             child: ConnectionStatusBanner(
                               status: ConnectionStatus.error,
                               message: _connectionErrorMessage,
-                              onTap: _showOllamaConfigDialog,
+                              onTap: _showProviderConfigDialog,
                             ),
                           ),
 
@@ -1020,7 +1028,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: DemoModeBanner(
-                              onSetupTap: _showOllamaConfigDialog,
+                              onSetupTap: _showProviderConfigDialog,
                             ),
                           ),
 
@@ -1200,9 +1208,11 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           onModelSelected: (model) {
                             setState(() {
                               _selectedModel = model;
+                              context.read<LlmCubit>().selectModel(model);
                               // Auto-hide the model selection UI after selecting a model
                               Future.delayed(const Duration(milliseconds: 300),
                                   () {
+                                if (!mounted) return;
                                 setState(() {
                                   _showModelSelection = false;
                                 });
@@ -1277,6 +1287,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     }
 
     final message = _messageController.text.trim();
+    final selectedImageBytes = _selectedImageBytes;
+    final selectedDocument = _selectedDocument;
     _messageController.clear();
 
     // Add message to chat history
@@ -1326,16 +1338,15 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     _scrollToBottom();
 
     // Generate response based on the message
-    if (_selectedDocument != null) {
-      // Document analysis is not supported without Gemini
+    if (selectedDocument != null) {
       _showErrorSnackBar(
-          'Document analysis is not supported with local models');
+          'Document analysis is not available for the selected provider yet');
       setState(() {
         _isWaitingForAiResponse = false;
       });
-    } else if (_selectedImageBytes != null) {
-      // Image analysis is not supported without Gemini
-      _showErrorSnackBar('Image analysis is not supported with local models');
+    } else if (selectedImageBytes != null) {
+      _showErrorSnackBar(
+          'Image analysis is not available for the selected provider yet');
       setState(() {
         _isWaitingForAiResponse = false;
       });
@@ -1522,7 +1533,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       // Set connection error state
       _hasConnectionError = true;
       _connectionErrorMessage =
-          "Configure Ollama server connection to continue";
+          "Configure ${_activeProviderDisplayName()} connection to continue";
       _isDemoMode = true;
     });
 
@@ -1533,12 +1544,17 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     chatCubit.sendMessage(
       senderId: 'system',
       content:
-          'Please configure your Ollama server connection to continue using local models.',
+          'Please configure ${_activeProviderDisplayName()} to continue using real AI responses.',
       isAI: false,
       senderName: 'System',
     );
 
-    // Show the setup required view as a bottom sheet
+    if (context.read<LlmCubit>().currentProviderId != 'ollama') {
+      _showProviderSetupSheet();
+      return;
+    }
+
+    // Show the Ollama setup guide as a bottom sheet
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1549,13 +1565,84 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ),
         child: SetupRequiredView.fromError(
           context,
-          errorMessage: "Configure your Ollama server connection to continue",
+          errorMessage:
+              "Configure ${_activeProviderDisplayName()} connection to continue",
           onSetupComplete: () {
             Navigator.pop(context);
             // Test connection again after setup
             _testAndUpdateConnectionStatus();
           },
           onDismiss: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _showProviderSetupSheet() {
+    final theme = Theme.of(context);
+    final providerName = _activeProviderDisplayName();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _activeProviderIcon(),
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '$providerName Setup',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Configure the base URL${providerName == 'OpenAI-compatible' ? ' and API key' : ''}, then refresh models to continue.',
+                  style: theme.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _showProviderConfigDialog();
+                    },
+                    icon: const Icon(Icons.settings),
+                    label: const Text('Configure'),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -1580,7 +1667,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         setState(() {
           _hasConnectionError = true;
           _connectionErrorMessage =
-              "Configure Ollama server connection to continue";
+              "Configure ${_activeProviderDisplayName()} connection to continue";
           _isDemoMode = true;
         });
       }
@@ -1588,7 +1675,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       setState(() {
         _hasConnectionError = true;
         _connectionErrorMessage =
-            "Configure Ollama server connection to continue";
+            "Configure ${_activeProviderDisplayName()} connection to continue";
         _isDemoMode = true;
       });
     }
@@ -1625,8 +1712,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     // Standard greeting for normal mode
     final greeting =
-        'Hello! I\'m DevIO, your mobile interface for Local LLMs. I can help you with:\n\n'
-        '• Connecting to local LLM servers\n'
+        'Hello! I\'m DevIO, your chat interface for local and OpenAI-compatible LLMs. I can help you with:\n\n'
+        '• Connecting to Ollama, LM Studio, or OpenAI-compatible servers\n'
         '• Processing AI requests privately\n'
         '• Code analysis and generation\n'
         '• Text and image processing\n'
@@ -1701,6 +1788,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       _selectedImageBytes = null;
       _selectedDocument = null;
       _selectedModel = null;
+      _hasConnectionError = false;
+      _connectionErrorMessage = null;
+      _isDemoMode = false;
     });
 
     context.read<LlmCubit>().setProvider(provider);
@@ -1723,19 +1813,33 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     // }
   }
 
-  void _showOllamaConfigDialog() {
+  void _showOllamaConfigDialog() => _showProviderConfigDialog();
+
+  void _showProviderConfigDialog() {
     final llmCubit = context.read<LlmCubit>();
     final theme = Theme.of(context);
     final advancedSettings = llmCubit.advancedSettings;
+    final providerId = llmCubit.currentProviderId;
+    final isOllama = providerId == 'ollama';
+    final isOpenAiCompatible = providerId == 'openai';
+    final providerName = _activeProviderDisplayName();
 
-    final ipController =
-        TextEditingController(text: llmCubit.customOllamaIp ?? '');
+    final connectionController = TextEditingController(
+      text: isOllama
+          ? (llmCubit.customOllamaIp ?? '')
+          : (llmCubit.baseUrl ?? _activeProviderDefaultEndpoint()),
+    );
+    final apiKeyController = TextEditingController(text: llmCubit.apiKey ?? '');
     final timeoutController =
         TextEditingController(text: advancedSettings['timeout'].toString());
     final contextSizeController =
         TextEditingController(text: advancedSettings['contextSize'].toString());
     final threadsController =
         TextEditingController(text: advancedSettings['threads'].toString());
+    final maxTokensController =
+        TextEditingController(text: (llmCubit.maxTokens ?? 1000).toString());
+    final temperatureController =
+        TextEditingController(text: llmCubit.temperature.toString());
 
     showDialog(
       context: context,
@@ -1745,13 +1849,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           title: Row(
             children: [
               Icon(
-                Icons.laptop,
+                _activeProviderIcon(),
                 size: 20,
                 color: theme.colorScheme.primary,
               ),
               const SizedBox(width: 8),
               Text(
-                'Ollama Connection Settings',
+                '$providerName Settings',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -1767,25 +1871,45 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 _buildSectionHeader(theme, 'Connection Settings'),
                 const SizedBox(height: 8),
                 TextField(
-                  controller: ipController,
+                  controller: connectionController,
                   decoration: InputDecoration(
-                    labelText: 'Server Address',
-                    hintText: 'e.g., localhost:11434',
+                    labelText: isOllama ? 'Server Address' : 'Base URL',
+                    hintText: isOllama
+                        ? 'e.g., localhost:11434'
+                        : _activeProviderDefaultEndpoint(),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     prefixIcon: const Icon(Icons.link),
                   ),
                 ),
+                if (isOpenAiCompatible) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: apiKeyController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'API Key',
+                      hintText: 'Optional bearer token',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.key_outlined),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
 
-                // Test Connection Button
                 Center(
                   child: FilledButton.icon(
                     onPressed: () async {
-                      // First save the IP to test
-                      await llmCubit
-                          .setCustomOllamaIp(ipController.text.trim());
+                      await llmCubit.updateProviderConnection(
+                        baseUrl: connectionController.text.trim(),
+                        apiKey: apiKeyController.text.trim(),
+                        maxTokens: int.tryParse(maxTokensController.text),
+                        temperature:
+                            double.tryParse(temperatureController.text),
+                      );
 
                       final result = await llmCubit.testConnection();
                       if (!context.mounted) return;
@@ -1805,8 +1929,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                                'Connected to Ollama v${result['version']}'),
+                            content: Text(_connectionSuccessMessage(result)),
                             backgroundColor: Colors.green,
                           ),
                         );
@@ -1825,232 +1948,294 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Advanced Settings Section
                 _buildSectionHeader(theme, 'Advanced Settings'),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: timeoutController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Request Timeout (seconds)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                if (isOllama) ...[
+                  TextField(
+                    controller: timeoutController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Request Timeout (seconds)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.timer),
                     ),
-                    prefixIcon: const Icon(Icons.timer),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: contextSizeController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Context Size (tokens)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: contextSizeController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Context Size (tokens)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.memory),
                     ),
-                    prefixIcon: const Icon(Icons.memory),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: threadsController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'CPU Threads',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: threadsController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'CPU Threads',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.developer_board),
                     ),
-                    prefixIcon: const Icon(Icons.developer_board),
                   ),
-                ),
-                const SizedBox(height: 24),
-
-                // Model Management Section
-                _buildSectionHeader(theme, 'Model Management'),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showPullModelDialog(context),
-                        icon: Icon(
-                          Icons.cloud_download,
-                          color: theme.colorScheme.primary,
-                        ),
-                        label: Text(
-                          'Pull Model',
-                          style: TextStyle(
+                ] else ...[
+                  TextField(
+                    controller: maxTokensController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Max Output Tokens',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.format_list_numbered),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: temperatureController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Temperature',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.tune),
+                    ),
+                  ),
+                ],
+                if (isOllama) ...[
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(theme, 'Model Management'),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showPullModelDialog(context),
+                          icon: Icon(
+                            Icons.cloud_download,
                             color: theme.colorScheme.primary,
                           ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: theme.colorScheme.primary.withOpacity(0.5),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showDeleteModelDialog(context),
-                        icon: Icon(
-                          Icons.delete_outline,
-                          color: theme.colorScheme.error,
-                        ),
-                        label: Text(
-                          'Delete Model',
-                          style: TextStyle(
-                            color: theme.colorScheme.error,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: theme.colorScheme.error.withOpacity(0.5),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Server Status Section
-                _buildSectionHeader(theme, 'Server Status'),
-                const SizedBox(height: 8),
-                FutureBuilder<Map<String, dynamic>>(
-                  future: llmCubit.getServerStatus(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-
-                    if (snapshot.hasError ||
-                        !snapshot.hasData ||
-                        snapshot.data?['status'] == 'error') {
-                      return Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer
-                                  .withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color:
-                                    theme.colorScheme.primary.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  color: theme.colorScheme.primary,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    "Configure your Ollama server connection to continue",
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: () => _showOllamaGuideDialog(context),
-                            icon: Icon(
-                              Icons.computer_outlined,
+                          label: Text(
+                            'Pull Model',
+                            style: TextStyle(
                               color: theme.colorScheme.primary,
                             ),
-                            label: Text(
-                              'How to Run Ollama?',
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color:
-                                    theme.colorScheme.primary.withOpacity(0.5),
-                              ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: theme.colorScheme.primary.withOpacity(0.5),
                             ),
                           ),
-                        ],
-                      );
-                    }
-
-                    final status = snapshot.data!;
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color:
-                            theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: theme.colorScheme.outlineVariant,
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildStatusItem(
-                              theme,
-                              'Status',
-                              status['status'] == 'ok'
-                                  ? 'Connected'
-                                  : 'Unknown'),
-                          if (status['data'] != null) ...[
-                            _buildStatusItem(theme, 'Memory Usage',
-                                '${(status['data']['memory_usage'] ?? 0).toStringAsFixed(1)}%'),
-                            _buildStatusItem(theme, 'CPU Usage',
-                                '${(status['data']['cpu_usage'] ?? 0).toStringAsFixed(1)}%'),
-                            if (status['data']['gpu_usage'] != null)
-                              _buildStatusItem(theme, 'GPU Usage',
-                                  '${(status['data']['gpu_usage'] ?? 0).toStringAsFixed(1)}%'),
-                            _buildStatusItem(theme, 'Version',
-                                status['data']['version'] ?? 'Unknown'),
-                          ],
-                        ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showDeleteModelDialog(context),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: theme.colorScheme.error,
+                          ),
+                          label: Text(
+                            'Delete Model',
+                            style: TextStyle(
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: theme.colorScheme.error.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
                       ),
-                    );
-                  },
-                ),
+                    ],
+                  ),
+                ],
+                if (isOllama) ...[
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(theme, 'Server Status'),
+                  const SizedBox(height: 8),
+                  FutureBuilder<Map<String, dynamic>>(
+                    future: llmCubit.getServerStatus(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      if (snapshot.hasError ||
+                          !snapshot.hasData ||
+                          snapshot.data?['status'] == 'error') {
+                        return Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer
+                                    .withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: theme.colorScheme.primary
+                                      .withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: theme.colorScheme.primary,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "Configure your Ollama server connection to continue",
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: () => _showOllamaGuideDialog(context),
+                              icon: Icon(
+                                Icons.computer_outlined,
+                                color: theme.colorScheme.primary,
+                              ),
+                              label: Text(
+                                'How to Run Ollama?',
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: theme.colorScheme.primary
+                                      .withOpacity(0.5),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+
+                      final status = snapshot.data!;
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color:
+                              theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildStatusItem(
+                                theme,
+                                'Status',
+                                status['status'] == 'ok'
+                                    ? 'Connected'
+                                    : 'Unknown'),
+                            if (status['data'] != null) ...[
+                              _buildStatusItem(theme, 'Memory Usage',
+                                  '${(status['data']['memory_usage'] ?? 0).toStringAsFixed(1)}%'),
+                              _buildStatusItem(theme, 'CPU Usage',
+                                  '${(status['data']['cpu_usage'] ?? 0).toStringAsFixed(1)}%'),
+                              if (status['data']['gpu_usage'] != null)
+                                _buildStatusItem(theme, 'GPU Usage',
+                                    '${(status['data']['gpu_usage'] ?? 0).toStringAsFixed(1)}%'),
+                              _buildStatusItem(theme, 'Version',
+                                  status['data']['version'] ?? 'Unknown'),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 18,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Model management is handled in $providerName. Use Refresh Models after changing the running model server.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
           actions: [
-            if (llmCubit.customOllamaIp != null &&
-                llmCubit.customOllamaIp!.isNotEmpty)
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                  ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
                 ),
               ),
+            ),
             FilledButton.icon(
               onPressed: () async {
-                // Save connection settings
-                await llmCubit.setCustomOllamaIp(ipController.text.trim());
-
-                // Save advanced settings
-                await llmCubit.updateAdvancedSettings(
-                  timeout: int.tryParse(timeoutController.text) ?? 120,
-                  contextSize: int.tryParse(contextSizeController.text) ?? 4096,
-                  threads: int.tryParse(threadsController.text) ?? 4,
+                await llmCubit.updateProviderConnection(
+                  baseUrl: connectionController.text.trim(),
+                  apiKey: apiKeyController.text.trim(),
+                  maxTokens: int.tryParse(maxTokensController.text),
+                  temperature: double.tryParse(temperatureController.text),
                 );
+
+                if (isOllama) {
+                  await llmCubit.updateAdvancedSettings(
+                    timeout: int.tryParse(timeoutController.text) ?? 120,
+                    contextSize:
+                        int.tryParse(contextSizeController.text) ?? 4096,
+                    threads: int.tryParse(threadsController.text) ?? 4,
+                  );
+                }
 
                 if (!context.mounted) return;
                 Navigator.of(context).pop();
@@ -2110,6 +2295,44 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ],
       ),
     );
+  }
+
+  String _activeProviderDisplayName() {
+    final provider = context.read<LlmCubit>().currentProvider;
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => 'Ollama',
+      LlmProvider.lmstudio => 'LM Studio',
+      LlmProvider.openai => 'OpenAI-compatible',
+    };
+  }
+
+  IconData _activeProviderIcon() {
+    final provider = context.read<LlmCubit>().currentProvider;
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => Icons.computer,
+      LlmProvider.lmstudio => Icons.dns_outlined,
+      LlmProvider.openai => Icons.hub_outlined,
+    };
+  }
+
+  String _activeProviderDefaultEndpoint() {
+    final providerId = context.read<LlmCubit>().currentProviderId;
+    return switch (providerId) {
+      'lmstudio' => 'http://localhost:1234',
+      'openai' => 'https://api.openai.com',
+      _ => 'localhost:11434',
+    };
+  }
+
+  String _connectionSuccessMessage(Map<String, dynamic> result) {
+    final providerName = _activeProviderDisplayName();
+    if (context.read<LlmCubit>().currentProviderId == 'ollama') {
+      return 'Connected to Ollama v${result['version'] ?? 'unknown'}';
+    }
+    final modelCount = result['models'];
+    return modelCount is int
+        ? 'Connected to $providerName ($modelCount models)'
+        : 'Connected to $providerName';
   }
 
   void _showPullModelDialog(BuildContext context) {
@@ -2268,7 +2491,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         } else {
           _hasConnectionError = true;
           _connectionErrorMessage =
-              "Configure Ollama server connection to continue";
+              "Configure ${_activeProviderDisplayName()} connection to continue";
           _isDemoMode = true;
         }
       });
@@ -2276,7 +2499,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       setState(() {
         _hasConnectionError = true;
         _connectionErrorMessage =
-            "Configure Ollama server connection to continue";
+            "Configure ${_activeProviderDisplayName()} connection to continue";
         _isDemoMode = true;
       });
     }
@@ -2290,7 +2513,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       try {
         // Generate a simple demo response
         final demoResponse =
-            "This is a demo response. To use real AI features, please set up Ollama using the button in the top-right corner.";
+            "This is a demo response. To use real AI features, configure ${_activeProviderDisplayName()} using the connection button in the top-right corner.";
 
         // Remove placeholder message
         if (_placeholderMessageId != null) {

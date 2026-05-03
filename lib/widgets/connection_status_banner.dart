@@ -116,15 +116,27 @@ class ConnectionStatusBanner extends StatelessWidget {
     final result = await llmCubit.testConnection();
 
     if (result['status'] == 'connected') {
+      final providerName = switch (llmCubit.currentProviderId) {
+        'lmstudio' => 'LM Studio',
+        'openai' => 'OpenAI-compatible',
+        _ => 'Ollama',
+      };
       return ConnectionStatusBanner(
         status: ConnectionStatus.connected,
-        message: 'Ollama v${result['version']} on ${llmCubit.customOllamaIp}',
+        message: llmCubit.currentProviderId == 'ollama'
+            ? 'Ollama v${result['version']} on ${llmCubit.customOllamaIp}'
+            : '$providerName connected',
         onTap: onTap,
       );
     } else {
+      final providerName = switch (llmCubit.currentProviderId) {
+        'lmstudio' => 'LM Studio',
+        'openai' => 'OpenAI-compatible provider',
+        _ => 'Ollama server',
+      };
       return ConnectionStatusBanner(
         status: ConnectionStatus.error,
-        message: result['error'] ?? 'Failed to connect to Ollama server',
+        message: result['error'] ?? 'Failed to connect to $providerName',
         onTap: onTap,
       );
     }

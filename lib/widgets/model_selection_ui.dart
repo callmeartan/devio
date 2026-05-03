@@ -53,10 +53,13 @@ class ModelSelectionUI extends StatefulWidget {
 
 class _ModelSelectionUIState extends State<ModelSelectionUI>
     with SingleTickerProviderStateMixin {
-  // Always start expanded
-  bool _isExpanded = true;
+  static const List<LlmProvider> _availableProviders = [
+    LlmProvider.ollama,
+    LlmProvider.lmstudio,
+    LlmProvider.openai,
+  ];
+
   late AnimationController _animationController;
-  late Animation<double> _expandAnimation;
 
   @override
   void initState() {
@@ -65,11 +68,6 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _expandAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    );
-
     // Start with animation in forward state since we're expanded by default
     _animationController.value = 1.0;
   }
@@ -80,21 +78,9 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     super.dispose();
   }
 
-  void _toggleExpanded() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-      if (_isExpanded) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
 
     return Material(
@@ -176,7 +162,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Choose the best model for your task',
+                                    'Choose a provider and model for this chat',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: theme.colorScheme.onSurface
                                           .withOpacity(0.6),
@@ -405,35 +391,38 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
   Widget _buildProviderSelector() {
     final theme = Theme.of(context);
     final llmCubit = context.watch<LlmCubit>();
+    final currentProvider = llmCubit.currentProvider;
 
     return PopupMenuButton<LlmProvider>(
       onSelected: widget.onProviderChanged,
       position: PopupMenuPosition.under,
-      itemBuilder: (context) => [
-        PopupMenuItem<LlmProvider>(
-          value: LlmProvider.local,
-          child: Row(
-            children: [
-              Icon(
-                Icons.computer,
-                color: llmCubit.currentProvider == LlmProvider.local
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
-                size: 20,
+      itemBuilder: (context) => _availableProviders
+          .map(
+            (provider) => PopupMenuItem<LlmProvider>(
+              value: provider,
+              child: Row(
+                children: [
+                  Icon(
+                    _providerIcon(provider),
+                    color: currentProvider == provider
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withOpacity(0.7),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _providerName(provider),
+                    style: TextStyle(
+                      color: currentProvider == provider
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Local',
-                style: TextStyle(
-                  color: llmCubit.currentProvider == LlmProvider.local
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          )
+          .toList(),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -448,13 +437,13 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
         child: Row(
           children: [
             Icon(
-              Icons.computer,
+              _providerIcon(currentProvider),
               size: 16,
               color: theme.colorScheme.primary,
             ),
             const SizedBox(width: 8),
             Text(
-              'Local',
+              _providerName(currentProvider),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.w500,
@@ -475,9 +464,8 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
   Widget _buildModelSelector(BuildContext context) {
     final filteredModels = _getFilteredModels();
     final theme = Theme.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final llmCubit = context.read<LlmCubit>();
-    final isLocalProvider = llmCubit.currentProvider == LlmProvider.local;
+    final isOllamaProvider = llmCubit.currentProviderId == 'ollama';
 
     // Group models by type
     final textModels =
@@ -569,7 +557,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
             ...visionModels.map((model) => _buildModelItem(model)),
           ],
           // Note about model availability - ONLY for cloud providers
-          if (!isLocalProvider) // Hide for local models
+          if (!isOllamaProvider)
             Padding(
               padding: const EdgeInsets.all(16),
               child: Container(
@@ -604,7 +592,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
               ),
             ),
           // For local models, show a different note if appropriate
-          if (isLocalProvider && filteredModels.isNotEmpty)
+          if (isOllamaProvider && filteredModels.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
               child: Container(
@@ -626,7 +614,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Using models from your local Ollama instance',
+                        'Using models from your Ollama instance',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           height: 1.4,
@@ -934,7 +922,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
 
     // Set format and quantization if it's a local model (assuming GGUF format)
     final llmCubit = context.read<LlmCubit>();
-    if (llmCubit.currentProvider == LlmProvider.local) {
+    if (llmCubit.currentProviderId == 'ollama') {
       format = 'GGUF';
       // Extract quantization if present in model name
       if (baseName.contains('q4_k_m')) {
@@ -983,5 +971,21 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     } else {
       return 'General purpose AI model for text generation';
     }
+  }
+
+  String _providerName(LlmProvider provider) {
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => 'Ollama',
+      LlmProvider.lmstudio => 'LM Studio',
+      LlmProvider.openai => 'OpenAI-compatible',
+    };
+  }
+
+  IconData _providerIcon(LlmProvider provider) {
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => Icons.computer,
+      LlmProvider.lmstudio => Icons.dns_outlined,
+      LlmProvider.openai => Icons.hub_outlined,
+    };
   }
 }

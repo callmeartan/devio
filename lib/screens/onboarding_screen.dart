@@ -67,7 +67,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_showConnectionSetup) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Connect to Ollama'),
+          title: const Text('Connect a Provider'),
           automaticallyImplyLeading: false,
           actions: [
             TextButton(
@@ -280,7 +280,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 32),
           Text(
-            'Connect to Ollama',
+            'Connect a Provider',
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -288,7 +288,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'DevIO uses Ollama to run AI models locally on your computer',
+            'DevIO can connect to Ollama, LM Studio, or another OpenAI-compatible model server',
             style: theme.textTheme.titleMedium,
             textAlign: TextAlign.center,
           ),

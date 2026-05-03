@@ -110,11 +110,8 @@ class ChatMessageWidget extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: SelectableText(
-                            message.content,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurface,
-                            ),
+                          child: _AssistantMessageContent(
+                            content: message.content,
                           ),
                         ),
                       ),
@@ -150,7 +147,6 @@ class ChatMessageWidget extends StatelessWidget {
   }
 
   void _showMessageOptions(BuildContext context) {
-    final theme = Theme.of(context);
     final isUser = !message.isAI;
 
     showModalBottomSheet(
@@ -187,6 +183,187 @@ class ChatMessageWidget extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AssistantMessageContent extends StatelessWidget {
+  final String content;
+
+  const _AssistantMessageContent({
+    required this.content,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = _splitCodeFences(content);
+    if (parts.length == 1 && !parts.first.isCode) {
+      return SelectableText(
+        content,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: parts.map((part) {
+        if (part.isCode) {
+          return _CodeBlock(
+            code: part.text,
+            language: part.language,
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: SelectableText(
+            part.text.trim(),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  List<_MessagePart> _splitCodeFences(String text) {
+    final parts = <_MessagePart>[];
+    final pattern = RegExp(r'```([A-Za-z0-9_+\-.#]*)\n([\s\S]*?)```');
+    var index = 0;
+
+    for (final match in pattern.allMatches(text)) {
+      if (match.start > index) {
+        final plainText = text.substring(index, match.start);
+        if (plainText.trim().isNotEmpty) {
+          parts.add(_MessagePart.text(plainText));
+        }
+      }
+
+      parts.add(_MessagePart.code(
+        match.group(2) ?? '',
+        language: match.group(1)?.trim(),
+      ));
+      index = match.end;
+    }
+
+    if (index < text.length) {
+      final plainText = text.substring(index);
+      if (plainText.trim().isNotEmpty) {
+        parts.add(_MessagePart.text(plainText));
+      }
+    }
+
+    if (parts.isEmpty) {
+      parts.add(_MessagePart.text(text));
+    }
+    return parts;
+  }
+}
+
+class _CodeBlock extends StatelessWidget {
+  final String code;
+  final String? language;
+
+  const _CodeBlock({
+    required this.code,
+    this.language,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.7),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(8),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    language == null || language!.isEmpty ? 'code' : language!,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.copy, size: 16),
+                  tooltip: 'Copy code',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: code.trim()));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Code copied to clipboard'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.all(12),
+            child: SelectableText(
+              code.trimRight(),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontFamily: 'monospace',
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MessagePart {
+  final String text;
+  final String? language;
+  final bool isCode;
+
+  const _MessagePart._({
+    required this.text,
+    required this.isCode,
+    this.language,
+  });
+
+  factory _MessagePart.text(String text) {
+    return _MessagePart._(text: text, isCode: false);
+  }
+
+  factory _MessagePart.code(String text, {String? language}) {
+    return _MessagePart._(
+      text: text,
+      language: language,
+      isCode: true,
     );
   }
 }

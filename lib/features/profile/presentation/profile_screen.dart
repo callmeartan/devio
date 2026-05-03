@@ -677,7 +677,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'DevIO is a mobile interface for interacting with locally hosted large language models. Connect to Ollama or other LLM servers while keeping your data private and secure.',
+                'DevIO is a mobile interface for interacting with locally hosted and OpenAI-compatible large language models while keeping your workflow private and secure.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface,
                 ),

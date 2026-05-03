@@ -28,7 +28,7 @@ class DemoModeBanner extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Connect to Ollama for full AI capabilities',
+              'Connect a model provider for full AI capabilities',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onPrimaryContainer,
                 fontWeight: FontWeight.w500,
