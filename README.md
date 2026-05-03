@@ -1,13 +1,17 @@
 # DevIO
 
-DevIO is a Flutter application for local-first AI chat and app-development guidance. It supports Ollama by default and includes provider abstractions for LM Studio and OpenAI-compatible chat APIs.
+DevIO is a Flutter application for local-first AI chat and app-development guidance. It supports Ollama, LM Studio, and OpenAI-compatible chat APIs through a provider-aware chat interface.
 
 ## Current Status
 
 ### Implemented
-- **Ollama chat** - Default local provider, using Ollama's multi-turn `/api/chat` streaming API.
+- **Provider-aware chat UI** - Switch between Ollama, LM Studio, and OpenAI-compatible providers from the model picker.
+- **Provider settings** - Configure Ollama host, LM Studio base URL, or OpenAI-compatible base URL/API key from the chat screen.
+- **Ollama chat** - Local provider using Ollama's multi-turn `/api/chat` streaming API.
 - **LM Studio provider** - OpenAI-compatible model listing and streaming chat through `/v1/models` and `/v1/chat/completions`.
 - **OpenAI-compatible provider** - Configurable base URL with optional bearer API key support.
+- **Model selection** - Refresh and select models from the active provider; selected provider/model settings persist locally.
+- **Readable AI responses** - Assistant messages support selectable text and fenced code blocks with copy actions.
 - **Local chat storage** - Conversations and messages are stored locally in Drift/SQLite.
 - **Legacy migration** - Existing SharedPreferences chat data migrates into SQLite on first launch.
 - **Chat management** - Existing chat title generation, pinning, renaming, deleting, message updates, streaming placeholders, search filtering, and metrics storage are preserved.
@@ -15,13 +19,16 @@ DevIO is a Flutter application for local-first AI chat and app-development guida
 
 ### Not Yet Implemented
 - Anthropic provider
-- Full provider-selection UI for every OpenAI-compatible setting
+- Multimodal image/PDF analysis across providers
+- Per-provider capability detection beyond model listing and chat
 
 ## Requirements
 
 - Flutter SDK with Dart 3.x support
-- Ollama server for the default local LLM workflow
-- LM Studio or another OpenAI-compatible server if using non-Ollama providers
+- At least one supported model provider:
+  - Ollama for local models
+  - LM Studio for local OpenAI-compatible chat
+  - Any OpenAI-compatible `/v1/models` and `/v1/chat/completions` server
 
 ## Setup
 
@@ -38,6 +45,12 @@ echo "OLLAMA_HOST=localhost:11434" > .env
 # Run the app
 flutter run
 ```
+
+In the app, open the chat model picker to choose a provider and model. Use the connection button in the chat toolbar to configure:
+
+- **Ollama**: server address such as `localhost:11434`
+- **LM Studio**: base URL such as `http://localhost:1234`
+- **OpenAI-compatible**: base URL such as `https://api.openai.com` plus an optional bearer API key
 
 ## Local Data
 
@@ -77,6 +90,17 @@ Supported provider IDs:
 - `openai`
 
 `LlmProvider.local` is kept as a compatibility path and maps to Ollama.
+
+Provider preferences are persisted through `LlmCubit` using SharedPreferences:
+
+- `llm_provider_id`
+- `llm_base_url`
+- `llm_api_key`
+- `llm_selected_model`
+- `llm_temperature`
+- `llm_max_tokens`
+
+Ollama-specific host and advanced settings are still stored through the legacy Ollama keys for compatibility.
 
 ## Code Generation
 
