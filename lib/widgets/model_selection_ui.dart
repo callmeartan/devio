@@ -699,47 +699,53 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                         children: [
                           Row(
                             children: [
-                              Text(
-                                _getModelDisplayName(model),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: isSelected
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurface,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
+                              Expanded(
+                                child: Text(
+                                  _getModelDisplayName(model),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: isSelected
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurface,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
                               if (isRecommended)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primaryContainer
-                                        .withOpacity(0.4),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.verified,
-                                        size: 12,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Recommended',
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primaryContainer
+                                          .withOpacity(0.4),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.verified,
+                                          size: 12,
                                           color: theme.colorScheme.primary,
-                                          fontWeight: FontWeight.w600,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Recommended',
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                             ],
