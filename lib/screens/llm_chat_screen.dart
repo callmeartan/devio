@@ -8,7 +8,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
-import 'package:google_fonts/google_fonts.dart';
 
 import '../blocs/auth/auth_cubit.dart';
 import '../constants/assets.dart';
@@ -16,7 +15,6 @@ import '../cubits/chat/chat_cubit.dart';
 import '../cubits/chat/chat_state.dart';
 import '../features/llm/cubit/llm_cubit.dart';
 import '../features/llm/cubit/llm_state.dart';
-import '../services/demo_response_service.dart';
 import '../widgets/chat_input_field.dart';
 import '../widgets/chat_message_widget.dart';
 import '../widgets/compact_model_indicator.dart';
@@ -75,6 +73,12 @@ class LlmChatScreen extends StatefulWidget {
 }
 
 class _LlmChatScreenState extends State<LlmChatScreen> {
+  static const List<LlmProvider> _providerChoices = [
+    LlmProvider.ollama,
+    LlmProvider.lmstudio,
+    LlmProvider.openai,
+  ];
+
   final ScrollController _chatScrollController = ScrollController();
   final ScrollController _historyScrollController = ScrollController();
   final TextEditingController _messageController = TextEditingController();
@@ -82,10 +86,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   final FocusNode _messageFocusNode = FocusNode();
   final FocusNode _searchFocusNode = FocusNode();
   bool _showPerformanceMetrics = false;
-  final bool _isDrawerOpen = false;
-  final bool _isSettingsOpen = false;
-  final bool _isPromptLibraryOpen = false;
-  String? _selectedPromptId;
   bool _isWaitingForAiResponse = false;
   String? _placeholderMessageId;
   final ImagePicker _picker = ImagePicker();
@@ -132,8 +132,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     await _loadAvailableModels();
     await _checkConnectionStatus();
-    if (!mounted) return;
-    _sendInitialGreeting();
   }
 
   @override
@@ -352,10 +350,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             ),
             authenticated: (uid, displayName, email) {
               return Scaffold(
-                backgroundColor: theme.colorScheme.surface,
+                backgroundColor: theme.scaffoldBackgroundColor,
                 drawer: Drawer(
                   backgroundColor: isDark
-                      ? const Color(0xFF202123)
+                      ? theme.colorScheme.surface
                       : theme.colorScheme.surface,
                   child: Column(
                     children: [
@@ -745,7 +743,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                     ),
                                     const SizedBox(height: 24),
                                     Text(
-                                      'Welcome To Devio',
+                                      'No chats yet',
                                       style:
                                           theme.textTheme.titleMedium?.copyWith(
                                         color: isDark
@@ -759,7 +757,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 32),
                                       child: Text(
-                                        'Start your first conversation with our AI assistant',
+                                        'Create a thread when you need one.',
                                         textAlign: TextAlign.center,
                                         style: theme.textTheme.bodyMedium
                                             ?.copyWith(
@@ -942,7 +940,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                   ),
                 ),
                 appBar: AppBar(
-                  backgroundColor: theme.colorScheme.surface,
+                  backgroundColor: theme.scaffoldBackgroundColor,
                   elevation: 0,
                   leading: Builder(
                     builder: (context) => IconButton(
@@ -972,15 +970,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     ],
                   ),
                   actions: [
-                    Tooltip(
-                      message:
-                          'Configure ${_activeProviderDisplayName()} connection',
-                      child: IconButton(
-                        icon: const Icon(Icons.settings_ethernet),
-                        onPressed: _showProviderConfigDialog,
-                      ),
-                    ),
-                    // Show a compact model indicator instead of the full selection UI
+                    _buildProviderPill(theme),
+                    const SizedBox(width: 8),
                     CompactModelIndicator(
                       selectedModel: _selectedModel,
                       showModelSelection: _showModelSelection,
@@ -997,7 +988,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     preferredSize: const Size.fromHeight(1),
                     child: Divider(
                       height: 1,
-                      color: theme.colorScheme.onSurface.withOpacity(0.1),
+                      color: theme.colorScheme.outlineVariant,
                     ),
                   ),
                 ),
@@ -1131,6 +1122,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                                         );
                                       }
 
+                                      if (chatState.messages.isEmpty) {
+                                        return _buildEmptyChatState(theme);
+                                      }
+
                                       return ListView.builder(
                                         controller: _chatScrollController,
                                         padding: const EdgeInsets.all(16),
@@ -1168,7 +1163,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                         ),
                         Divider(
                           height: 1,
-                          color: theme.colorScheme.onSurface.withOpacity(0.1),
+                          color: theme.colorScheme.outlineVariant,
                         ),
                         // Bottom input field
                         ChatInputField(
@@ -1214,6 +1209,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           },
                           selectedImageBytes: _selectedImageBytes,
                           onProviderChanged: _onProviderChanged,
+                          onProviderConnectionRequested: _connectProvider,
                         ),
                       ),
                   ],
@@ -1270,6 +1266,259 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         },
       ),
     );
+  }
+
+  Widget _buildEmptyChatState(ThemeData theme) {
+    return BlocBuilder<LlmCubit, LlmState>(
+      builder: (context, _) {
+        final llmCubit = context.read<LlmCubit>();
+        final currentProvider = llmCubit.currentProvider;
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 620;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 32, 20, 28),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: (constraints.maxHeight - 60)
+                      .clamp(360.0, 900.0)
+                      .toDouble(),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(
+                              theme.brightness == Brightness.dark ? 0.2 : 0.08,
+                            ),
+                            blurRadius: 28,
+                            offset: const Offset(0, 14),
+                          ),
+                        ],
+                      ),
+                      child: Image.asset(AppAssets.logo, fit: BoxFit.contain),
+                    ),
+                    const SizedBox(height: 26),
+                    Text(
+                      'What are we building?',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.displaySmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    _buildEmptyProviderSwitch(
+                      theme: theme,
+                      currentProvider: currentProvider,
+                      compact: compact,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProviderPill(ThemeData theme) {
+    return BlocBuilder<LlmCubit, LlmState>(
+      builder: (context, _) {
+        final provider = context.read<LlmCubit>().currentProvider;
+        final accent = _providerAccent(provider, theme);
+
+        return Tooltip(
+          message: 'Configure ${_providerDisplayName(provider)}',
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _showProviderConfigDialog,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 128),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: accent.withOpacity(0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _providerIcon(provider),
+                      color: accent,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        _providerDisplayName(provider),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.tune_rounded,
+                      color: accent,
+                      size: 15,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyProviderSwitch({
+    required ThemeData theme,
+    required LlmProvider currentProvider,
+    required bool compact,
+  }) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.center,
+      children: _providerChoices
+          .map(
+            (provider) => _buildEmptyProviderTile(
+              theme: theme,
+              provider: provider,
+              isSelected: provider == currentProvider,
+              compact: compact,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildEmptyProviderTile({
+    required ThemeData theme,
+    required LlmProvider provider,
+    required bool isSelected,
+    required bool compact,
+  }) {
+    final accent = _providerAccent(provider, theme);
+    final foreground =
+        isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface;
+
+    return SizedBox(
+      width: compact ? double.infinity : 196,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isSelected
+              ? _showProviderConfigDialog
+              : () => _connectProvider(provider),
+          borderRadius: BorderRadius.circular(8),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? accent.withOpacity(0.09)
+                  : theme.colorScheme.surface.withOpacity(0.92),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected
+                    ? accent.withOpacity(0.58)
+                    : theme.colorScheme.outlineVariant,
+                width: isSelected ? 1.4 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _providerIcon(provider),
+                    color: accent,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _providerDisplayName(provider),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: foreground,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _providerEndpoint(provider),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: isSelected
+                      ? 'Configure ${_providerDisplayName(provider)}'
+                      : 'Connect ${_providerDisplayName(provider)}',
+                  child: Icon(
+                    isSelected ? Icons.tune_rounded : Icons.add_link_rounded,
+                    size: 18,
+                    color: isSelected
+                        ? accent
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _connectProvider(LlmProvider provider) {
+    if (context.read<LlmCubit>().currentProvider != provider) {
+      _onProviderChanged(provider);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _showProviderConfigDialog();
+      }
+    });
   }
 
   void _sendMessage() {
@@ -1674,63 +1923,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     }
   }
 
-  void _sendInitialGreeting() {
-    final authState = context.read<AuthCubit>().state;
-    final userId = authState.maybeWhen(
-      authenticated: (uid, _, __) => uid,
-      orElse: () => AuthCubit.localUserId,
-    );
-
-    if (_isDemoMode) {
-      // Use demo greeting in demo mode
-      final demoGreeting = DemoResponseService().getInitialGreeting();
-
-      context
-          .read<ChatCubit>()
-          .sendMessage(
-            senderId: userId,
-            content: demoGreeting,
-            isAI: true,
-            senderName: _kAiUserName,
-          )
-          .then((_) {
-        // Ensure we scroll to bottom after the message is sent
-        _scrollToBottom();
-      }).catchError((error) {
-        developer.log('Error sending initial greeting: $error');
-        // Handle error if needed
-      });
-      return;
-    }
-
-    // Standard greeting for normal mode
-    final greeting =
-        'Hello! I\'m DevIO, your chat interface for local and OpenAI-compatible LLMs. I can help you with:\n\n'
-        '• Connecting to Ollama, LM Studio, or OpenAI-compatible servers\n'
-        '• Processing AI requests privately\n'
-        '• Code analysis and generation\n'
-        '• Text and image processing\n'
-        '• Maintaining data privacy and security\n\n'
-        'How can I assist you today?';
-
-    // Send the greeting message directly without a placeholder
-    context
-        .read<ChatCubit>()
-        .sendMessage(
-          senderId: userId,
-          content: greeting,
-          isAI: true,
-          senderName: _kAiUserName,
-        )
-        .then((_) {
-      // Ensure we scroll to bottom after the message is sent
-      _scrollToBottom();
-    }).catchError((error) {
-      developer.log('Error sending initial greeting: $error');
-      // Handle error if needed
-    });
-  }
-
   Widget _buildChatItem(Map<String, dynamic> chat, String? currentChatId,
       bool isDark, BuildContext context) {
     final isSelected = chat['id'] == currentChatId;
@@ -1788,25 +1980,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     context.read<LlmCubit>().setProvider(provider);
     _loadAvailableModels();
-
-    // If switching to local provider, prompt for Ollama IP configuration
-    // Wait for the state to update before showing the dialog
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _promptForOllamaIpIfNeeded();
-    });
   }
-
-  void _promptForOllamaIpIfNeeded() {
-    final llmCubit = context.read<LlmCubit>();
-    final customIp = llmCubit.customOllamaIp;
-
-    // Don't automatically show the configuration dialog
-    // if (customIp == null || customIp.isEmpty) {
-    //   _showOllamaConfigDialog();
-    // }
-  }
-
-  void _showOllamaConfigDialog() => _showProviderConfigDialog();
 
   void _showProviderConfigDialog() {
     final llmCubit = context.read<LlmCubit>();
@@ -1836,19 +2010,24 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
+          backgroundColor: theme.colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           title: Row(
             children: [
               Icon(
                 _activeProviderIcon(),
                 size: 20,
-                color: theme.colorScheme.primary,
+                color: _providerAccent(llmCubit.currentProvider, theme),
               ),
               const SizedBox(width: 8),
               Text(
-                '$providerName Settings',
+                'Connection',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -1860,6 +2039,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildProviderSettingsHero(
+                  theme: theme,
+                  providerName: providerName,
+                  provider: llmCubit.currentProvider,
+                ),
+                const SizedBox(height: 20),
                 // Connection Settings Section
                 _buildSectionHeader(theme, 'Connection Settings'),
                 const SizedBox(height: 8),
@@ -2266,6 +2451,72 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     );
   }
 
+  Widget _buildProviderSettingsHero({
+    required ThemeData theme,
+    required String providerName,
+    required LlmProvider provider,
+  }) {
+    final accent = _providerAccent(provider, theme);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: accent.withOpacity(0.09),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.withOpacity(0.22)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              _providerIcon(provider),
+              color: accent,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  providerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _providerEndpoint(provider),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.check_circle_rounded,
+            color: accent,
+            size: 18,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatusItem(ThemeData theme, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -2290,8 +2541,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     );
   }
 
-  String _activeProviderDisplayName() {
-    final provider = context.read<LlmCubit>().currentProvider;
+  String _providerDisplayName(LlmProvider provider) {
     return switch (provider) {
       LlmProvider.local || LlmProvider.ollama => 'Ollama',
       LlmProvider.lmstudio => 'LM Studio',
@@ -2299,13 +2549,49 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     };
   }
 
-  IconData _activeProviderIcon() {
-    final provider = context.read<LlmCubit>().currentProvider;
+  IconData _providerIcon(LlmProvider provider) {
     return switch (provider) {
-      LlmProvider.local || LlmProvider.ollama => Icons.computer,
-      LlmProvider.lmstudio => Icons.dns_outlined,
-      LlmProvider.openai => Icons.hub_outlined,
+      LlmProvider.local || LlmProvider.ollama => Icons.computer_rounded,
+      LlmProvider.lmstudio => Icons.dns_rounded,
+      LlmProvider.openai => Icons.hub_rounded,
     };
+  }
+
+  Color _providerAccent(LlmProvider provider, ThemeData theme) {
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => theme.colorScheme.tertiary,
+      LlmProvider.lmstudio => theme.brightness == Brightness.dark
+          ? const Color(0xFF8AB4CF)
+          : const Color(0xFF3B6F8F),
+      LlmProvider.openai => theme.colorScheme.secondary,
+    };
+  }
+
+  String _providerEndpoint(LlmProvider provider) {
+    final llmCubit = context.read<LlmCubit>();
+    final isCurrent = llmCubit.currentProvider == provider ||
+        (provider == LlmProvider.ollama &&
+            llmCubit.currentProvider == LlmProvider.local);
+
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => isCurrent
+          ? (llmCubit.customOllamaIp ?? 'localhost:11434')
+          : 'localhost:11434',
+      LlmProvider.lmstudio => isCurrent
+          ? (llmCubit.baseUrl ?? 'http://localhost:1234')
+          : 'http://localhost:1234',
+      LlmProvider.openai => isCurrent
+          ? (llmCubit.baseUrl ?? 'https://api.openai.com')
+          : 'https://api.openai.com',
+    };
+  }
+
+  String _activeProviderDisplayName() {
+    return _providerDisplayName(context.read<LlmCubit>().currentProvider);
+  }
+
+  IconData _activeProviderIcon() {
+    return _providerIcon(context.read<LlmCubit>().currentProvider);
   }
 
   String _activeProviderDefaultEndpoint() {
@@ -2882,89 +3168,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ModelGroupHeader extends StatelessWidget {
-  final String title;
-
-  const _ModelGroupHeader({
-    required this.title,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            height: 1,
-            color: theme.colorScheme.onSurface.withOpacity(0.2),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChatBubble extends StatelessWidget {
-  final ChatMessage message;
-
-  const _ChatBubble({
-    required this.message,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Align(
-      alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.only(
-          top: 8,
-          bottom: 8,
-          left: message.isUser ? 64 : 0,
-          right: message.isUser ? 0 : 64,
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        decoration: BoxDecoration(
-          color: message.isUser
-              ? theme.colorScheme.primary
-              : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: message.isUser
-              ? null
-              : Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
-        ),
-        child: Text(
-          message.text,
-          style: GoogleFonts.spaceGrotesk(
-            color: message.isUser
-                ? theme.colorScheme.onPrimary
-                : theme.colorScheme.onSurface,
-            fontSize: 16,
-          ),
-        ),
       ),
     );
   }

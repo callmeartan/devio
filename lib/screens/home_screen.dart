@@ -15,14 +15,14 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Welcome to DevIO!',
+              'DevIO',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () => context.push('/llm'),
-              icon: const Icon(Icons.chat_bubble_outline),
-              label: const Text('Open LLM Chat'),
+              icon: const Icon(Icons.arrow_forward_rounded),
+              label: const Text('Open'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,

@@ -38,7 +38,7 @@ class CompactModelIndicator extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 140),
+                constraints: const BoxConstraints(maxWidth: 112),
                 child: Text(
                   selectedModel != null
                       ? getModelDisplayName(selectedModel!)

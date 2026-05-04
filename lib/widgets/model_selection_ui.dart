@@ -34,6 +34,7 @@ class ModelSelectionUI extends StatefulWidget {
   final Function(String) onModelSelected;
   final Uint8List? selectedImageBytes;
   final Function(LlmProvider)? onProviderChanged;
+  final Function(LlmProvider)? onProviderConnectionRequested;
 
   const ModelSelectionUI({
     super.key,
@@ -45,6 +46,7 @@ class ModelSelectionUI extends StatefulWidget {
     required this.onModelSelected,
     this.selectedImageBytes,
     this.onProviderChanged,
+    this.onProviderConnectionRequested,
   });
 
   @override
@@ -101,21 +103,22 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
           Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: 600,
-                maxHeight: size.height * 0.7, // Reduced max height
+                maxWidth: 760,
+                maxHeight: size.height * 0.78,
               ),
               child: Container(
                 width: size.width * 0.95,
                 margin: const EdgeInsets.symmetric(vertical: 20),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.shadow.withOpacity(0.2),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 5),
+                      color: Colors.black.withOpacity(
+                        theme.brightness == Brightness.dark ? 0.36 : 0.14,
+                      ),
+                      blurRadius: 32,
+                      offset: const Offset(0, 18),
                     ),
                   ],
                   border: Border.all(
@@ -124,7 +127,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                   ),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,19 +156,10 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Select AI Model',
+                                    'Provider & model',
                                     style:
                                         theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
                                       color: theme.colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Choose a provider and model for this chat',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface
-                                          .withOpacity(0.6),
                                     ),
                                   ),
                                 ],
@@ -215,47 +209,16 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                         ),
                       ),
 
-                      // Provider selector with enhanced styling
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildProviderSelector(),
-                            const Spacer(),
-                            if (widget.isLoadingModels)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary
-                                      .withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                theme.colorScheme.primary),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Loading...',
-                                      style:
-                                          theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                            if (widget.isLoadingModels) ...[
+                              const SizedBox(height: 10),
+                              _buildLoadingPill(theme),
+                            ],
                           ],
                         ),
                       ),
@@ -297,6 +260,41 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     } else {
       return _buildModelSelector(context);
     }
+  }
+
+  Widget _buildLoadingPill(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.12),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Loading models',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildLoadingState() {
@@ -389,73 +387,163 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
   }
 
   Widget _buildProviderSelector() {
-    final theme = Theme.of(context);
     final llmCubit = context.watch<LlmCubit>();
     final currentProvider = llmCubit.currentProvider;
 
-    return PopupMenuButton<LlmProvider>(
-      onSelected: widget.onProviderChanged,
-      position: PopupMenuPosition.under,
-      itemBuilder: (context) => _availableProviders
-          .map(
-            (provider) => PopupMenuItem<LlmProvider>(
-              value: provider,
-              child: Row(
-                children: [
-                  Icon(
-                    _providerIcon(provider),
-                    color: currentProvider == provider
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withOpacity(0.7),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _providerName(provider),
-                    style: TextStyle(
-                      color: currentProvider == provider
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-          .toList(),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 560;
+
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: _availableProviders
+              .map(
+                (provider) => _buildProviderCard(
+                  provider: provider,
+                  isSelected: provider == currentProvider,
+                  compact: compact,
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildProviderCard({
+    required LlmProvider provider,
+    required bool isSelected,
+    required bool compact,
+  }) {
+    final theme = Theme.of(context);
+    final accent = _providerAccent(provider);
+    final width = compact ? double.infinity : 226.0;
+
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => widget.onProviderChanged?.call(provider),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.3),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              _providerIcon(currentProvider),
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _providerName(currentProvider),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? accent.withOpacity(0.09)
+                  : theme.colorScheme.surfaceContainerHighest.withOpacity(0.42),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected
+                    ? accent.withOpacity(0.58)
+                    : theme.colorScheme.outlineVariant.withOpacity(0.72),
+                width: isSelected ? 1.4 : 1,
               ),
             ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 16,
-              color: theme.colorScheme.onSurface,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _providerIcon(provider),
+                        color: accent,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _providerName(provider),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      isSelected
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      color: isSelected
+                          ? accent
+                          : theme.colorScheme.onSurfaceVariant,
+                      size: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _providerEndpoint(provider),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? accent.withOpacity(0.14)
+                            : theme.colorScheme.surface.withOpacity(0.76),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isSelected ? 'Selected' : 'Available',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: isSelected
+                              ? accent
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: widget.onProviderConnectionRequested == null
+                          ? null
+                          : () => widget.onProviderConnectionRequested!(
+                                provider,
+                              ),
+                      icon: Icon(
+                        isSelected
+                            ? Icons.tune_rounded
+                            : Icons.add_link_rounded,
+                        size: 16,
+                      ),
+                      label: Text(isSelected ? 'Edit' : 'Connect'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: accent,
+                        minimumSize: const Size(0, 34),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -992,6 +1080,36 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
       LlmProvider.local || LlmProvider.ollama => Icons.computer,
       LlmProvider.lmstudio => Icons.dns_outlined,
       LlmProvider.openai => Icons.hub_outlined,
+    };
+  }
+
+  Color _providerAccent(LlmProvider provider) {
+    final theme = Theme.of(context);
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => theme.colorScheme.tertiary,
+      LlmProvider.lmstudio => theme.brightness == Brightness.dark
+          ? const Color(0xFF8AB4CF)
+          : const Color(0xFF3B6F8F),
+      LlmProvider.openai => theme.colorScheme.secondary,
+    };
+  }
+
+  String _providerEndpoint(LlmProvider provider) {
+    final llmCubit = context.read<LlmCubit>();
+    final isCurrent = llmCubit.currentProvider == provider ||
+        (provider == LlmProvider.ollama &&
+            llmCubit.currentProvider == LlmProvider.local);
+
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => isCurrent
+          ? (llmCubit.customOllamaIp ?? 'localhost:11434')
+          : 'localhost:11434',
+      LlmProvider.lmstudio => isCurrent
+          ? (llmCubit.baseUrl ?? 'http://localhost:1234')
+          : 'http://localhost:1234',
+      LlmProvider.openai => isCurrent
+          ? (llmCubit.baseUrl ?? 'https://api.openai.com')
+          : 'https://api.openai.com',
     };
   }
 }

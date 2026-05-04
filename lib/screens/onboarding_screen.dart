@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/ollama_connection_guide.dart';
@@ -171,7 +170,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 32),
           Text(
-            'Welcome to DevIO',
+            'DevIO',
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -179,13 +178,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Your AI-powered development assistant',
+            'What are we building?',
             style: theme.textTheme.titleLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           Text(
-            'Get help with coding, debugging, and learning new technologies',
+            'Connect a provider and start from the chat surface.',
             style: theme.textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
@@ -198,18 +197,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final features = [
       {
         'icon': Icons.chat_bubble_outline,
-        'title': 'AI Chat Assistant',
-        'description': 'Get answers to your development questions',
+        'title': 'Ollama',
+        'description': 'localhost:11434',
       },
       {
         'icon': Icons.code,
-        'title': 'Code Generation',
-        'description': 'Generate code snippets and examples',
+        'title': 'LM Studio',
+        'description': 'localhost:1234',
       },
       {
         'icon': Icons.privacy_tip_outlined,
-        'title': 'Local Processing',
-        'description': 'Your data stays on your devices with Ollama',
+        'title': 'OpenAI-compatible',
+        'description': 'api.openai.com',
       },
     ];
 
@@ -219,7 +218,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'Key Features',
+            'Providers',
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),

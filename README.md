@@ -1,78 +1,108 @@
 # DevIO
 
-DevIO is a Flutter application for local-first AI chat and app-development guidance. It supports Ollama, LM Studio, and OpenAI-compatible chat APIs through a provider-aware chat interface.
+DevIO is a Flutter chat workspace for building with local and OpenAI-compatible LLMs. The app is provider-first: you connect a model server, choose a model, and work from a clean chat surface without onboarding copy getting in the way.
 
-## Current Status
+## What Changed
 
-### Implemented
-- **Provider-aware chat UI** - Switch between Ollama, LM Studio, and OpenAI-compatible providers from the model picker.
-- **Provider settings** - Configure Ollama host, LM Studio base URL, or OpenAI-compatible base URL/API key from the chat screen.
-- **Ollama chat** - Local provider using Ollama's multi-turn `/api/chat` streaming API.
-- **LM Studio provider** - OpenAI-compatible model listing and streaming chat through `/v1/models` and `/v1/chat/completions`.
-- **OpenAI-compatible provider** - Configurable base URL with optional bearer API key support.
-- **Model selection** - Refresh and select models from the active provider; selected provider/model settings persist locally.
-- **Readable AI responses** - Assistant messages support selectable text and fenced code blocks with copy actions.
-- **Local chat storage** - Conversations and messages are stored locally in Drift/SQLite.
-- **Legacy migration** - Existing SharedPreferences chat data migrates into SQLite on first launch.
-- **Chat management** - Existing chat title generation, pinning, renaming, deleting, message updates, streaming placeholders, search filtering, and metrics storage are preserved.
-- **Demo mode** - Test app behavior without a running LLM server.
+- New Claude-inspired visual system with warmer surfaces, quieter borders, and more focused controls.
+- Provider connection is now explicit. The model area shows Ollama, LM Studio, and OpenAI-compatible options with connection actions.
+- Old intro and welcome text has been removed from chat, landing, onboarding, and empty states.
+- The chat composer has been redesigned with a compact model chip, attachment/action controls, and a cleaner send affordance.
+- Empty chat now starts from the actual task: connect a provider or start building.
+- Provider status is visible from the chat header and model selection flow.
 
-### Not Yet Implemented
-- Anthropic provider
-- Multimodal image/PDF analysis across providers
-- Per-provider capability detection beyond model listing and chat
+## Supported Providers
+
+DevIO currently supports:
+
+- Ollama, using the local `/api/chat` streaming API.
+- LM Studio, using OpenAI-compatible `/v1/models` and `/v1/chat/completions` endpoints.
+- OpenAI-compatible APIs, with configurable base URL and optional bearer token.
+
+Provider IDs used internally:
+
+```text
+ollama
+lmstudio
+openai
+```
+
+`LlmProvider.local` is still mapped to Ollama for compatibility.
 
 ## Requirements
 
 - Flutter SDK with Dart 3.x support
-- At least one supported model provider:
-  - Ollama for local models
-  - LM Studio for local OpenAI-compatible chat
-  - Any OpenAI-compatible `/v1/models` and `/v1/chat/completions` server
+- Xcode for iOS/macOS builds
+- At least one model provider:
+  - Ollama on a local or network host
+  - LM Studio with its local server enabled
+  - Any OpenAI-compatible chat API
 
 ## Setup
 
 ```bash
-# Install dependencies
 flutter pub get
-
-# Generate Drift, freezed, and JSON serialization code
 dart run build_runner build --delete-conflicting-outputs
-
-# Optional: set the default Ollama host
-echo "OLLAMA_HOST=localhost:11434" > .env
-
-# Run the app
 flutter run
 ```
 
-In the app, open the chat model picker to choose a provider and model. Use the connection button in the chat toolbar to configure:
+Optional default Ollama host:
 
-- **Ollama**: server address such as `localhost:11434`
-- **LM Studio**: base URL such as `http://localhost:1234`
-- **OpenAI-compatible**: base URL such as `https://api.openai.com` plus an optional bearer API key
+```bash
+echo "OLLAMA_HOST=localhost:11434" > .env
+```
+
+## Connecting a Provider
+
+Open the provider/model control in the chat UI and choose the provider you want to connect.
+
+- Ollama: use a host like `localhost:11434`.
+- LM Studio: use a base URL like `http://localhost:1234`.
+- OpenAI-compatible: use a base URL like `https://api.openai.com` and add an API key when required.
+
+After connecting, refresh models and select the model for the current chat.
 
 ## Local Data
 
-Chat persistence is handled by Drift/SQLite:
+Chats are stored locally with Drift and SQLite.
 
 - Database file: `devio.sqlite`
-- Location: the platform application documents directory
+- Location: platform application documents directory
 - Main schema: `lib/database/app_database.dart`
 - Migration service: `lib/database/migration_service.dart`
 
-Settings and provider preferences still use SharedPreferences. Legacy chat keys are read once for migration:
+Provider settings are stored with SharedPreferences:
 
-- `devio.local.chat.messages.v1`
-- `devio.local.chat.metadata.v1`
-
-After a successful migration, the app marks `drift_migration_done_v1` and keeps the old SharedPreferences data untouched.
-
-## LLM Providers
-
-Provider code lives under `lib/features/llm/services/`.
-
+```text
+llm_provider_id
+llm_base_url
+llm_api_key
+llm_selected_model
+llm_temperature
+llm_max_tokens
 ```
+
+Legacy SharedPreferences chat data is migrated once into SQLite and then left untouched.
+
+## Project Structure
+
+```text
+lib/
+├── blocs/           # BLoC state management
+├── cubits/          # Cubit state management
+├── database/        # Drift schema and migration service
+├── features/        # LLM and settings features
+├── models/          # Data models
+├── repositories/    # Data access layer
+├── screens/         # App screens
+├── services/        # App services
+├── theme/           # Visual system
+└── widgets/         # Reusable UI components
+```
+
+Provider implementations live in:
+
+```text
 lib/features/llm/services/
 ├── llm_provider_registry.dart
 ├── llm_service.dart
@@ -83,26 +113,7 @@ lib/features/llm/services/
     └── openai_compatible_provider.dart
 ```
 
-Supported provider IDs:
-
-- `ollama`
-- `lmstudio`
-- `openai`
-
-`LlmProvider.local` is kept as a compatibility path and maps to Ollama.
-
-Provider preferences are persisted through `LlmCubit` using SharedPreferences:
-
-- `llm_provider_id`
-- `llm_base_url`
-- `llm_api_key`
-- `llm_selected_model`
-- `llm_temperature`
-- `llm_max_tokens`
-
-Ollama-specific host and advanced settings are still stored through the legacy Ollama keys for compatibility.
-
-## Code Generation
+## Development
 
 Run code generation after changing Drift tables, freezed models, or JSON-serializable models:
 
@@ -110,59 +121,22 @@ Run code generation after changing Drift tables, freezed models, or JSON-seriali
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-## Architecture
-
-```
-lib/
-├── blocs/           # BLoC state management
-├── cubits/          # Cubit state management
-├── database/        # Drift database schema and migration service
-├── features/        # Feature modules organized by domain
-│   ├── llm/         # LLM cubit, models, services, provider implementations
-│   └── settings/    # App preferences
-├── models/          # Data models
-├── repositories/    # Data access layer
-├── screens/         # UI screens
-├── services/        # Business logic services
-├── theme/           # App theming
-└── widgets/         # Reusable UI components
-```
-
-## Key Technologies
-
-- **flutter_bloc** / **cubits** - State management
-- **provider** - Dependency wiring
-- **go_router** - Navigation
-- **drift** + **sqlite3_flutter_libs** - Local SQLite persistence
-- **shared_preferences** - Settings and provider preferences
-- **freezed** + **json_serializable** - Immutable models and JSON serialization
-- **http** - API communication with LLM servers
-
-## Validation
-
 Common checks:
 
 ```bash
-flutter pub get
-dart run build_runner build --delete-conflicting-outputs
 flutter analyze
 flutter test
 ```
 
-The test suite includes focused coverage for:
+The test suite includes coverage for Drift-backed chat storage, chat history behavior, message updates, metrics, Ollama stream parsing, and OpenAI-compatible SSE stream parsing.
 
-- Drift-backed chat repository behavior
-- Chat history sorting, rename, delete cascade, message updates, and metrics roundtrip
-- Ollama NDJSON stream parsing
-- OpenAI-compatible SSE stream parsing
+## Adding a Provider
 
-## Adding a New LLM Provider
-
-1. Implement `LlmProviderInterface` from `lib/features/llm/services/providers/llm_provider.dart`.
-2. Register the provider in `lib/features/llm/services/llm_provider_registry.dart`.
-3. Update `LlmCubit` provider switching/config persistence if the provider needs new settings.
+1. Implement `LlmProviderInterface` in `lib/features/llm/services/providers/`.
+2. Register it in `lib/features/llm/services/llm_provider_registry.dart`.
+3. Persist any provider-specific settings through `LlmCubit`.
 4. Add parser or provider tests under `test/unit/`.
-5. Update UI only where provider selection or provider-specific settings need to be exposed.
+5. Expose only the provider controls that users need to connect and select a model.
 
 ## License
 

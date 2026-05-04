@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:devio/blocs/auth/auth_cubit.dart';
 import 'package:devio/constants/assets.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:devio/utils/state_extension_helpers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -29,8 +28,11 @@ class _LandingScreenState extends State<LandingScreen> {
                   TextSpan(
                     children: [
                       const WidgetSpan(
-                        child: Icon(Icons.error_outline,
-                            color: Colors.white, size: 16),
+                        child: Icon(
+                          Icons.error_outline,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                       const TextSpan(text: ' '),
                       TextSpan(text: message),
@@ -38,7 +40,7 @@ class _LandingScreenState extends State<LandingScreen> {
                   ),
                   style: const TextStyle(color: Colors.white),
                 ),
-                backgroundColor: Colors.red,
+                backgroundColor: theme.colorScheme.error,
                 behavior: SnackBarBehavior.floating,
               ),
             );
@@ -46,216 +48,184 @@ class _LandingScreenState extends State<LandingScreen> {
         );
       },
       child: Scaffold(
-        body: Stack(
-          children: [
-            // Background gradient
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    theme.colorScheme.surface,
-                    theme.colorScheme.surface.withValues(alpha: 0.8),
-                    theme.colorScheme.primary.withValues(alpha: 0.2),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 920),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildBrandLockup(theme),
+                    const SizedBox(height: 30),
+                    _buildChatSurface(theme),
+                    const SizedBox(height: 22),
+                    _buildProviderRail(theme),
                   ],
                 ),
               ),
             ),
-
-            // Animated circles in the background
-            Positioned(
-              right: -100,
-              top: -100,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      theme.colorScheme.primary.withValues(alpha: 0.2),
-                      theme.colorScheme.primary.withValues(alpha: 0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Additional decorative circle
-            Positioned(
-              left: -80,
-              bottom: -80,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      theme.colorScheme.secondary.withValues(alpha: 0.15),
-                      theme.colorScheme.secondary.withValues(alpha: 0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Code snippets at the top for aesthetic
-                      _buildCodeSnippets(theme),
-
-                      // Logo
-                      SizedBox(
-                        width: 120,
-                        height: 120,
-                        child: Image.asset(
-                          AppAssets.logo,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-
-                      // App title
-                      Text(
-                        'DevIO',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 56,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -1.0,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // App subtitle
-                      Text(
-                        'Mobile Interface for Local LLMs',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w500,
-                          color: theme.colorScheme.primary,
-                          letterSpacing: -0.5,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Description
-                      Text(
-                        'Connect to locally hosted LLM servers while keeping your data private and secure',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 16,
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.8),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 60),
-
-                      // Get Started button
-                      SizedBox(
-                        width: 280,
-                        child: ElevatedButton(
-                          onPressed: () => context.go('/llm'),
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: Colors.black,
-                            backgroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 2,
-                          ),
-                          child: const Text(
-                            'Open DevIO',
-                            style: TextStyle(
-                              fontFamily: 'JosefinSans',
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Sign in button
-                      SizedBox(
-                        width: 280,
-                        child: OutlinedButton(
-                          onPressed: () => context.go('/llm'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor:
-                                theme.brightness == Brightness.light
-                                    ? Colors.black
-                                    : Colors.white,
-                            backgroundColor: Colors.transparent,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: BorderSide(
-                                color: theme.brightness == Brightness.light
-                                    ? Colors.black
-                                    : Colors.white,
-                                width: 2.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            'Continue Locally',
-                            style: TextStyle(
-                              fontFamily: 'JosefinSans',
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: theme.brightness == Brightness.light
-                                  ? Colors.black
-                                  : Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCodeSnippets(ThemeData theme) {
-    final snippets = [
-      'class DevIO {',
-      '  final privacy = true;',
-      '  final localLLM = "ollama";',
-      '  final performance = 100;',
-      '}',
-    ];
-
-    return Align(
-      alignment: Alignment.topCenter,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 32, top: 24),
-        child: Text(
-          snippets.join('\n'),
-          style: TextStyle(
-            fontFamily: 'monospace',
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-            fontSize: 16,
-            height: 1.4,
+  Widget _buildBrandLockup(ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Image.asset(AppAssets.logo),
+        ),
+        const SizedBox(width: 14),
+        Text(
+          'DevIO',
+          style: theme.textTheme.displayMedium?.copyWith(
+            color: theme.colorScheme.onSurface,
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildChatSurface(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(
+              theme.brightness == Brightness.dark ? 0.26 : 0.08,
+            ),
+            blurRadius: 30,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _buildWindowDot(const Color(0xFFDD6B4D)),
+              const SizedBox(width: 6),
+              _buildWindowDot(const Color(0xFFE2B45F)),
+              const SizedBox(width: 6),
+              _buildWindowDot(const Color(0xFF6EA37A)),
+              const Spacer(),
+              IconButton(
+                onPressed: () => context.go('/llm'),
+                icon: const Icon(Icons.open_in_new_rounded),
+                tooltip: 'Open DevIO',
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'What are we building?',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed: () => context.go('/llm'),
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  label: const Text('Open'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProviderRail(ThemeData theme) {
+    final providers = [
+      (Icons.computer_rounded, 'Ollama', 'localhost:11434'),
+      (Icons.dns_rounded, 'LM Studio', 'localhost:1234'),
+      (Icons.hub_rounded, 'OpenAI-compatible', 'api.openai.com'),
+    ];
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.center,
+      children: providers
+          .map(
+            (provider) => Container(
+              width: 210,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface.withOpacity(0.72),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Row(
+                children: [
+                  Icon(provider.$1, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          provider.$2,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        Text(
+                          provider.$3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildWindowDot(Color color) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
       ),
     );
   }

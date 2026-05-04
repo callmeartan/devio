@@ -23,12 +23,12 @@ class SetupRequiredView extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -46,7 +46,7 @@ class SetupRequiredView extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Connection Setup',
+                  'Connect a provider',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -90,10 +90,7 @@ class SetupRequiredView extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          Text(
-            'To use AI features, connect DevIO to a supported model provider.',
-            style: theme.textTheme.bodyLarge,
-          ),
+          _buildProviderChoices(theme),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -107,13 +104,66 @@ class SetupRequiredView extends StatelessWidget {
                 onPressed: () {
                   _showSetupGuide(context);
                 },
-                icon: const Icon(Icons.settings),
-                label: const Text('Configure Now'),
+                icon: const Icon(Icons.add_link_rounded),
+                label: const Text('Configure'),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProviderChoices(ThemeData theme) {
+    final providers = [
+      (Icons.computer_rounded, 'Ollama', 'localhost:11434'),
+      (Icons.dns_rounded, 'LM Studio', 'localhost:1234'),
+      (Icons.hub_rounded, 'OpenAI-compatible', 'api.openai.com'),
+    ];
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: providers
+          .map(
+            (provider) => Container(
+              width: 178,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color:
+                    theme.colorScheme.surfaceContainerHighest.withOpacity(0.42),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Row(
+                children: [
+                  Icon(provider.$1, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          provider.$2,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        Text(
+                          provider.$3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -154,8 +204,7 @@ class SetupRequiredView extends StatelessWidget {
     bool showDismissButton = true,
   }) {
     // Use more positive messaging regardless of the error
-    String setupMessage =
-        'Configure your model provider connection to start using AI models';
+    String setupMessage = 'Select the provider you want to connect.';
 
     return SetupRequiredView(
       errorMessage: setupMessage,
