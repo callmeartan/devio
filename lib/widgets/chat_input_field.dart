@@ -8,12 +8,12 @@ class ChatInputField extends StatelessWidget {
   final Uint8List? selectedImageBytes;
   final File? selectedDocument;
   final bool isWaitingForAiResponse;
-  final String? selectedModel;
   final VoidCallback onSendMessage;
   final VoidCallback onPickImage;
   final VoidCallback onPickDocument;
   final VoidCallback onClearSelectedImage;
   final VoidCallback onClearSelectedDocument;
+  final FocusNode? focusNode;
 
   const ChatInputField({
     super.key,
@@ -24,9 +24,9 @@ class ChatInputField extends StatelessWidget {
     required this.onPickDocument,
     required this.onClearSelectedImage,
     required this.onClearSelectedDocument,
+    this.focusNode,
     this.selectedImageBytes,
     this.selectedDocument,
-    this.selectedModel,
   });
 
   @override
@@ -138,6 +138,7 @@ class ChatInputField extends StatelessWidget {
                     children: [
                       TextField(
                         controller: messageController,
+                        focusNode: focusNode,
                         decoration: InputDecoration(
                           hintText: 'Ask DevIO',
                           border: InputBorder.none,
@@ -154,7 +155,7 @@ class ChatInputField extends StatelessWidget {
                           ),
                         ),
                         minLines: 1,
-                        maxLines: 6,
+                        maxLines: 5,
                         textCapitalization: TextCapitalization.sentences,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: theme.colorScheme.onSurface,
@@ -166,69 +167,54 @@ class ChatInputField extends StatelessWidget {
                           }
                         },
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          _ComposerIconButton(
-                            icon: Icons.image_outlined,
-                            tooltip: 'Add image',
-                            isActive: selectedImageBytes != null,
-                            onPressed:
-                                isWaitingForAiResponse ? null : onPickImage,
-                          ),
-                          const SizedBox(width: 4),
-                          _ComposerIconButton(
-                            icon: Icons.picture_as_pdf_outlined,
-                            tooltip: 'Add PDF',
-                            isActive: selectedDocument != null,
-                            onPressed:
-                                isWaitingForAiResponse ? null : onPickDocument,
-                          ),
-                          const Spacer(),
-                          if (selectedModel != null) ...[
-                            Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 7,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: theme
-                                      .colorScheme.surfaceContainerHighest
-                                      .withOpacity(0.68),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  selectedModel!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          Material(
-                            color: isWaitingForAiResponse
-                                ? theme.colorScheme.surfaceContainerHighest
-                                : theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(10),
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.arrow_upward_rounded,
-                                color: isWaitingForAiResponse
-                                    ? theme.colorScheme.onSurfaceVariant
-                                    : theme.colorScheme.onPrimary,
-                              ),
+                      SizedBox(
+                        height: 52,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _ComposerIconButton(
+                              icon: Icons.image_outlined,
+                              tooltip: 'Add image',
+                              isActive: selectedImageBytes != null,
                               onPressed:
-                                  isWaitingForAiResponse ? null : onSendMessage,
-                              tooltip: 'Send',
+                                  isWaitingForAiResponse ? null : onPickImage,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            _ComposerIconButton(
+                              icon: Icons.picture_as_pdf_outlined,
+                              tooltip: 'Add PDF',
+                              isActive: selectedDocument != null,
+                              onPressed: isWaitingForAiResponse
+                                  ? null
+                                  : onPickDocument,
+                            ),
+                            const Spacer(),
+                            SizedBox.square(
+                              dimension: 48,
+                              child: Material(
+                                color: isWaitingForAiResponse
+                                    ? theme.colorScheme.surfaceContainerHighest
+                                    : theme.colorScheme.primary,
+                                borderRadius: BorderRadius.circular(12),
+                                child: IconButton(
+                                  constraints: const BoxConstraints.expand(),
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(
+                                    Icons.arrow_upward_rounded,
+                                    size: 28,
+                                    color: isWaitingForAiResponse
+                                        ? theme.colorScheme.onSurfaceVariant
+                                        : theme.colorScheme.onPrimary,
+                                  ),
+                                  onPressed: isWaitingForAiResponse
+                                      ? null
+                                      : onSendMessage,
+                                  tooltip: 'Send',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -267,10 +253,15 @@ class _ComposerIconButton extends StatelessWidget {
           ? theme.colorScheme.secondary.withOpacity(0.12)
           : Colors.transparent,
       borderRadius: BorderRadius.circular(8),
-      child: IconButton(
-        icon: Icon(icon, color: color),
-        onPressed: onPressed,
-        tooltip: tooltip,
+      child: SizedBox.square(
+        dimension: 44,
+        child: IconButton(
+          constraints: const BoxConstraints.expand(),
+          padding: EdgeInsets.zero,
+          icon: Icon(icon, color: color, size: 28),
+          onPressed: onPressed,
+          tooltip: tooltip,
+        ),
       ),
     );
   }

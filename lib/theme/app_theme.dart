@@ -11,12 +11,13 @@ class AppTheme {
   static const _sage = Color(0xFF586F62);
   static const _danger = Color(0xFFB3261E);
 
-  static const _darkInk = Color(0xFFF5EFE6);
-  static const _darkCanvas = Color(0xFF171513);
-  static const _darkPanel = Color(0xFF211F1C);
-  static const _darkSoftPanel = Color(0xFF302B26);
-  static const _darkLine = Color(0xFF403932);
-  static const _darkEmber = Color(0xFFD98A62);
+  static const _darkInk = Color(0xFFF4F4F4);
+  static const _darkMutedInk = Color(0xFFA8A8A8);
+  static const _darkCanvas = Color(0xFF151515);
+  static const _darkPanel = Color(0xFF242424);
+  static const _darkSoftPanel = Color(0xFF303030);
+  static const _darkLine = Color(0xFF3A3A3A);
+  static const _darkEmber = Color(0xFFD0D0D0);
 
   static final lightTheme = ThemeData(
     useMaterial3: true,
@@ -156,14 +157,14 @@ class AppTheme {
     ).copyWith(
       primary: _darkInk,
       secondary: _darkEmber,
-      tertiary: const Color(0xFF9FB7A8),
+      tertiary: const Color(0xFFB6B6B6),
       surface: _darkPanel,
       surfaceContainerHighest: _darkSoftPanel,
       error: const Color(0xFFFFB4AB),
       onPrimary: _darkCanvas,
       onSecondary: _darkCanvas,
       onSurface: _darkInk,
-      onSurfaceVariant: const Color(0xFFCFC4B7),
+      onSurfaceVariant: _darkMutedInk,
       primaryContainer: _darkSoftPanel,
       onPrimaryContainer: _darkInk,
       outline: _darkLine,
@@ -186,10 +187,10 @@ class AppTheme {
       thickness: 1,
       space: 1,
     ),
-    textTheme: _textTheme(_darkInk, const Color(0xFFCFC4B7)),
+    textTheme: _textTheme(_darkInk, _darkMutedInk),
     inputDecorationTheme: _inputDecorationTheme(
       fillColor: _darkPanel,
-      mutedColor: const Color(0xFFCFC4B7),
+      mutedColor: _darkMutedInk,
       lineColor: _darkLine,
       focusColor: _darkInk,
       errorColor: const Color(0xFFFFB4AB),

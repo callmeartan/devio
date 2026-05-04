@@ -28,6 +28,22 @@ import '../widgets/typing_indicator.dart';
 import 'package:devio/utils/state_extension_helpers.dart';
 
 const String _kAiUserName = 'AI Assistant';
+const Color _githubSuccess = Color(0xFF3FB950);
+const Color _githubDanger = Color(0xFFF85149);
+
+class _PromptStarter {
+  final IconData icon;
+  final String title;
+  final String detail;
+  final String prompt;
+
+  const _PromptStarter({
+    required this.icon,
+    required this.title,
+    required this.detail,
+    required this.prompt,
+  });
+}
 
 class ChatMessage {
   final String text;
@@ -1171,12 +1187,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           selectedImageBytes: _selectedImageBytes,
                           selectedDocument: _selectedDocument,
                           isWaitingForAiResponse: _isWaitingForAiResponse,
-                          selectedModel: _selectedModel,
                           onSendMessage: _sendMessage,
                           onPickImage: _pickImage,
                           onPickDocument: _pickDocument,
                           onClearSelectedImage: _clearSelectedImage,
                           onClearSelectedDocument: _clearSelectedDocument,
+                          focusNode: _messageFocusNode,
                         ),
                       ],
                     ),
@@ -1268,59 +1284,99 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     );
   }
 
+  void _usePromptStarter(String prompt) {
+    _messageController.text = prompt;
+    _messageController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _messageController.text.length),
+    );
+    _messageFocusNode.requestFocus();
+  }
+
   Widget _buildEmptyChatState(ThemeData theme) {
     return BlocBuilder<LlmCubit, LlmState>(
       builder: (context, _) {
         final llmCubit = context.read<LlmCubit>();
         final currentProvider = llmCubit.currentProvider;
+        final promptStarters = [
+          const _PromptStarter(
+            icon: Icons.rate_review_rounded,
+            title: 'Review changes',
+            detail: 'Risks, regressions, tests',
+            prompt:
+                'Review the current code changes. Prioritize bugs, regressions, and missing tests.',
+          ),
+          const _PromptStarter(
+            icon: Icons.bug_report_rounded,
+            title: 'Debug failure',
+            detail: 'Trace errors and logs',
+            prompt:
+                'Help me debug this failure. Inspect the relevant code paths and propose the smallest fix.',
+          ),
+          const _PromptStarter(
+            icon: Icons.dashboard_customize_rounded,
+            title: 'Design UI',
+            detail: 'Turn intent into screens',
+            prompt:
+                'Improve this UI with a polished developer-tool experience and implement the changes.',
+          ),
+          const _PromptStarter(
+            icon: Icons.code_rounded,
+            title: 'Build feature',
+            detail: 'Plan, edit, verify',
+            prompt:
+                'Implement a focused feature in this project. Read the codebase first, then make and verify the change.',
+          ),
+          const _PromptStarter(
+            icon: Icons.terminal_rounded,
+            title: 'Run checks',
+            detail: 'Analyze, format, test',
+            prompt:
+                'Run the relevant project checks and fix any issues needed to get them passing.',
+          ),
+          const _PromptStarter(
+            icon: Icons.folder_open_rounded,
+            title: 'Explain repo',
+            detail: 'Map structure and flows',
+            prompt:
+                'Explain the architecture of this repo and identify the main files I should know.',
+          ),
+        ];
 
         return LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 620;
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 32, 20, 28),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  minHeight: (constraints.maxHeight - 60)
+                  minHeight: (constraints.maxHeight - 36)
                       .clamp(360.0, 900.0)
                       .toDouble(),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: theme.colorScheme.outlineVariant,
+                    _buildCommandDashboardHeader(theme),
+                    const SizedBox(height: 18),
+                    _buildPromptStarterGrid(
+                      theme: theme,
+                      compact: compact,
+                      promptStarters: promptStarters,
+                    ),
+                    const SizedBox(height: 14),
+                    Align(
+                      alignment:
+                          compact ? Alignment.centerLeft : Alignment.center,
+                      child: Text(
+                        'Model Providers',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w800,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(
-                              theme.brightness == Brightness.dark ? 0.2 : 0.08,
-                            ),
-                            blurRadius: 28,
-                            offset: const Offset(0, 14),
-                          ),
-                        ],
-                      ),
-                      child: Image.asset(AppAssets.logo, fit: BoxFit.contain),
-                    ),
-                    const SizedBox(height: 26),
-                    Text(
-                      'What are we building?',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.displaySmall?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 8),
                     _buildEmptyProviderSwitch(
                       theme: theme,
                       currentProvider: currentProvider,
@@ -1333,6 +1389,139 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildCommandDashboardHeader(ThemeData theme) {
+    return Column(
+      children: [
+        Container(
+          width: 66,
+          height: 66,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.secondary.withOpacity(0.08),
+                blurRadius: 34,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Image.asset(AppAssets.logo, fit: BoxFit.contain),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'What are we building?',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.displaySmall?.copyWith(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPromptStarterGrid({
+    required ThemeData theme,
+    required bool compact,
+    required List<_PromptStarter> promptStarters,
+  }) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.center,
+      children: promptStarters
+          .map(
+            (starter) => _buildPromptStarterCard(
+              theme: theme,
+              compact: compact,
+              starter: starter,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildPromptStarterCard({
+    required ThemeData theme,
+    required bool compact,
+    required _PromptStarter starter,
+  }) {
+    return SizedBox(
+      width: compact ? double.infinity : 236,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _usePromptStarter(starter.prompt),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            height: 78,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withOpacity(0.82),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    starter.icon,
+                    color: theme.colorScheme.secondary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        starter.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        starter.detail,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_outward_rounded,
+                  size: 17,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1423,11 +1612,20 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     required bool compact,
   }) {
     final accent = _providerAccent(provider, theme);
-    final foreground =
-        isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface;
+    final hasError = isSelected && _hasConnectionError;
+    final statusColor = hasError
+        ? _githubDanger
+        : isSelected && !_isLoadingModels
+            ? _githubSuccess
+            : theme.colorScheme.onSurfaceVariant;
+    final statusLabel = hasError
+        ? 'Needs setup'
+        : isSelected && !_isLoadingModels
+            ? 'Ready'
+            : 'Available';
 
     return SizedBox(
-      width: compact ? double.infinity : 196,
+      width: compact ? double.infinity : 218,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -1437,7 +1635,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           borderRadius: BorderRadius.circular(8),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.all(12),
+            height: compact ? null : 112,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: isSelected
                   ? accent.withOpacity(0.09)
@@ -1450,56 +1649,109 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                 width: isSelected ? 1.4 : 1,
               ),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: accent.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    _providerIcon(provider),
-                    color: accent,
-                    size: 20,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        _providerIcon(provider),
+                        color: accent,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _providerDisplayName(provider),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _providerRoleLabel(provider),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: isSelected
+                          ? 'Configure ${_providerDisplayName(provider)}'
+                          : 'Connect ${_providerDisplayName(provider)}',
+                      child: Icon(
+                        isSelected
+                            ? Icons.tune_rounded
+                            : Icons.add_link_rounded,
+                        size: 18,
+                        color: isSelected
+                            ? accent
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _providerDisplayName(provider),
+                const SizedBox(height: 9),
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        statusLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: foreground,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _providerEndpoint(provider),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
+                    ),
+                    Text(
+                      isSelected
+                          ? _modelCountLabel()
+                          : _providerSpeedLabel(provider),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Tooltip(
-                  message: isSelected
-                      ? 'Configure ${_providerDisplayName(provider)}'
-                      : 'Connect ${_providerDisplayName(provider)}',
-                  child: Icon(
-                    isSelected ? Icons.tune_rounded : Icons.add_link_rounded,
-                    size: 18,
-                    color: isSelected
-                        ? accent
-                        : theme.colorScheme.onSurfaceVariant,
+                const SizedBox(height: 7),
+                Text(
+                  _providerEndpoint(provider),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -1508,6 +1760,28 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ),
       ),
     );
+  }
+
+  String _modelCountLabel() {
+    if (_isLoadingModels) return 'Checking';
+    if (_availableModels.isEmpty) return 'No models';
+    return '${_availableModels.length} model${_availableModels.length == 1 ? '' : 's'}';
+  }
+
+  String _providerRoleLabel(LlmProvider provider) {
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => 'Local model runtime',
+      LlmProvider.lmstudio => 'Local OpenAI server',
+      LlmProvider.openai => 'OpenAI-compatible API',
+    };
+  }
+
+  String _providerSpeedLabel(LlmProvider provider) {
+    return switch (provider) {
+      LlmProvider.local || LlmProvider.ollama => 'Local',
+      LlmProvider.lmstudio => 'Local',
+      LlmProvider.openai => 'Remote',
+    };
   }
 
   void _connectProvider(LlmProvider provider) {
