@@ -43,9 +43,6 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # Remove explicit Firebase version dependencies to allow Flutter plugins to work
-  # flutter_install_all_ios_pods will handle the Firebase versions
-
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   
   target 'RunnerTests' do
