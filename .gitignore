@@ -1,12 +1,29 @@
-# Only exclude OS-specific temporary files
+# OS files
 .DS_Store
+Thumbs.db
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Archives and local downloads
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Python/local tooling
+.venv/
+venv/
 
 # Miscellaneous
 *.class
 *.log
 *.pyc
 *.swp
-.DS_Store
 .atom/
 .build/
 .buildlog/
@@ -20,11 +37,7 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -37,6 +50,8 @@ migrate_working_dir/
 .pub/
 /build/
 android/build/
+android/.gradle/
+android/local.properties
 
 # Symbolication related
 app.*.symbols
@@ -66,10 +81,14 @@ app.*.map.json
 **/ios/archive/
 **/ios/build/
 ios/Pods/
+ios/.symlinks/
 
 # macOS
 **/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/Flutter.podspec
 **/macos/Flutter/ephemeral
+**/linux/flutter/ephemeral/
+**/windows/flutter/ephemeral/
 
 # macOS Pods files
 macos/Pods/
