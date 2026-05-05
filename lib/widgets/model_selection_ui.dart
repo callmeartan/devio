@@ -84,6 +84,139 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
+    final compact = size.width < 600;
+    final cardMaxHeight = size.height * (compact ? 0.86 : 0.78);
+    final card = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 760),
+      child: SizedBox(
+        height: cardMaxHeight,
+        child: Container(
+          width: compact ? double.infinity : size.width * 0.95,
+          margin: EdgeInsets.fromLTRB(
+            compact ? 10 : 20,
+            compact ? 12 : 20,
+            compact ? 10 : 20,
+            compact ? 12 : 20,
+          ),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(
+                  theme.brightness == Brightness.dark ? 0.36 : 0.14,
+                ),
+                blurRadius: 32,
+                offset: const Offset(0, 18),
+              ),
+            ],
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+              width: 1,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.smart_toy_outlined,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Provider & model',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      Material(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.refresh,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          )
+                              .animate(
+                                onPlay: (controller) => widget.isLoadingModels
+                                    ? controller.repeat()
+                                    : null,
+                              )
+                              .rotate(
+                                duration: const Duration(seconds: 1),
+                              ),
+                          onPressed: widget.onRefresh,
+                          tooltip: 'Refresh models',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Material(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(8),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: theme.colorScheme.onSurface.withOpacity(0.8),
+                          ),
+                          onPressed: widget.onClose,
+                          tooltip: 'Close model selection',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(
+                  height: 1,
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.72),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      14,
+                      16,
+                      16 + MediaQuery.of(context).padding.bottom,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildProviderSelector(),
+                        if (widget.isLoadingModels) ...[
+                          const SizedBox(height: 10),
+                          _buildLoadingPill(theme),
+                        ],
+                        const SizedBox(height: 14),
+                        _buildModelContent(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
 
     return Material(
       color: Colors.transparent,
@@ -99,142 +232,10 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
             ),
           ),
 
-          // Floating model selection card
-          Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 760,
-                maxHeight: size.height * 0.78,
-              ),
-              child: Container(
-                width: size.width * 0.95,
-                margin: const EdgeInsets.symmetric(vertical: 20),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(
-                        theme.brightness == Brightness.dark ? 0.36 : 0.14,
-                      ),
-                      blurRadius: 32,
-                      offset: const Offset(0, 18),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withOpacity(0.5),
-                    width: 1,
-                  ),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header with title and actions
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color:
-                                    theme.colorScheme.primary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.smart_toy_outlined,
-                                size: 20,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Provider & model',
-                                    style:
-                                        theme.textTheme.titleMedium?.copyWith(
-                                      color: theme.colorScheme.onSurface,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Refresh button with animation
-                            Material(
-                              color: theme.colorScheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              child: IconButton(
-                                icon: Icon(
-                                  Icons.refresh,
-                                  size: 20,
-                                  color: theme.colorScheme.primary,
-                                )
-                                    .animate(
-                                      onPlay: (controller) =>
-                                          widget.isLoadingModels
-                                              ? controller.repeat()
-                                              : null,
-                                    )
-                                    .rotate(
-                                      duration: const Duration(seconds: 1),
-                                    ),
-                                onPressed: widget.onRefresh,
-                                tooltip: 'Refresh models',
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Close button
-                            Material(
-                              color: theme.colorScheme.surfaceContainerHighest
-                                  .withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(8),
-                              child: IconButton(
-                                icon: Icon(
-                                  Icons.close,
-                                  size: 20,
-                                  color: theme.colorScheme.onSurface
-                                      .withOpacity(0.8),
-                                ),
-                                onPressed: widget.onClose,
-                                tooltip: 'Close model selection',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildProviderSelector(),
-                            if (widget.isLoadingModels) ...[
-                              const SizedBox(height: 10),
-                              _buildLoadingPill(theme),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Model content area - Wrap in Expanded with SingleChildScrollView to solve overflow
-                      Expanded(
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: _buildModelContent(),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          SafeArea(
+            child: Align(
+              alignment: compact ? Alignment.bottomCenter : Alignment.center,
+              child: card,
             ),
           )
               .animate()

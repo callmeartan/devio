@@ -20,46 +20,53 @@ class ChatMessageWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isUser = !message.isAI;
+    final content = message.content.trim();
+
+    if (content.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Container(
       margin: EdgeInsets.only(
         left: isUser ? 32 : 0,
-        right: isUser ? 0 : 32,
-        bottom: 8,
+        right: isUser ? 0 : 16,
+        bottom: 10,
       ),
-      child: Column(
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          if (!isUser)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4, left: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.smart_toy_outlined,
-                    size: 16,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    message.senderName ?? 'AI Assistant',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          Row(
-            mainAxisAlignment:
-                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.end,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxBubbleWidth = constraints.maxWidth * (isUser ? 0.78 : 0.86);
+
+          return Column(
+            crossAxisAlignment:
+                isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
-              if (isUser)
-                Flexible(
+              if (!isUser)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4, left: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.smart_toy_outlined,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        message.senderName ?? 'AI Assistant',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Align(
+                alignment:
+                    isUser ? Alignment.centerRight : Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxBubbleWidth),
                   child: GestureDetector(
                     onLongPress: () => _showMessageOptions(context),
                     child: Container(
@@ -68,7 +75,9 @@ class ChatMessageWidget extends StatelessWidget {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
+                        color: isUser
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -78,70 +87,43 @@ class ChatMessageWidget extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: SelectableText(
-                        message.content,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onPrimary,
-                        ),
-                      ),
+                      child: isUser
+                          ? SelectableText(
+                              content,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onPrimary,
+                              ),
+                            )
+                          : _AssistantMessageContent(content: content),
                     ),
                   ),
-                )
-              else ...[
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GestureDetector(
-                        onLongPress: () => _showMessageOptions(context),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: theme.shadowColor.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: _AssistantMessageContent(
-                            content: message.content,
-                          ),
-                        ),
+                ),
+              ),
+              if (!isUser && message.totalDuration != null)
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: PerformanceMetrics(
+                      response: LlmResponse(
+                        text: content,
+                        totalDuration: message.totalDuration,
+                        loadDuration: message.loadDuration,
+                        promptEvalCount: message.promptEvalCount,
+                        promptEvalDuration: message.promptEvalDuration,
+                        promptEvalRate: message.promptEvalRate,
+                        evalCount: message.evalCount,
+                        evalDuration: message.evalDuration,
+                        evalRate: message.evalRate,
                       ),
-                      if (message.totalDuration != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: PerformanceMetrics(
-                            response: LlmResponse(
-                              text: message.content,
-                              totalDuration: message.totalDuration,
-                              loadDuration: message.loadDuration,
-                              promptEvalCount: message.promptEvalCount,
-                              promptEvalDuration: message.promptEvalDuration,
-                              promptEvalRate: message.promptEvalRate,
-                              evalCount: message.evalCount,
-                              evalDuration: message.evalDuration,
-                              evalRate: message.evalRate,
-                            ),
-                            isExpanded: showMetrics,
-                            onToggle: onMetricsToggle ?? () {},
-                          ),
-                        ),
-                    ],
+                      isExpanded: showMetrics,
+                      onToggle: onMetricsToggle ?? () {},
+                    ),
                   ),
                 ),
-                const SizedBox(width: 64),
-              ],
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }

@@ -31,20 +31,6 @@ const String _kAiUserName = 'AI Assistant';
 const Color _githubSuccess = Color(0xFF3FB950);
 const Color _githubDanger = Color(0xFFF85149);
 
-class _PromptStarter {
-  final IconData icon;
-  final String title;
-  final String detail;
-  final String prompt;
-
-  const _PromptStarter({
-    required this.icon,
-    required this.title,
-    required this.detail,
-    required this.prompt,
-  });
-}
-
 class ChatMessage {
   final String text;
   final bool isUser;
@@ -1284,87 +1270,28 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     );
   }
 
-  void _usePromptStarter(String prompt) {
-    _messageController.text = prompt;
-    _messageController.selection = TextSelection.fromPosition(
-      TextPosition(offset: _messageController.text.length),
-    );
-    _messageFocusNode.requestFocus();
-  }
-
   Widget _buildEmptyChatState(ThemeData theme) {
     return BlocBuilder<LlmCubit, LlmState>(
       builder: (context, _) {
         final llmCubit = context.read<LlmCubit>();
         final currentProvider = llmCubit.currentProvider;
-        final promptStarters = [
-          const _PromptStarter(
-            icon: Icons.rate_review_rounded,
-            title: 'Review changes',
-            detail: 'Risks, regressions, tests',
-            prompt:
-                'Review the current code changes. Prioritize bugs, regressions, and missing tests.',
-          ),
-          const _PromptStarter(
-            icon: Icons.bug_report_rounded,
-            title: 'Debug failure',
-            detail: 'Trace errors and logs',
-            prompt:
-                'Help me debug this failure. Inspect the relevant code paths and propose the smallest fix.',
-          ),
-          const _PromptStarter(
-            icon: Icons.dashboard_customize_rounded,
-            title: 'Design UI',
-            detail: 'Turn intent into screens',
-            prompt:
-                'Improve this UI with a polished developer-tool experience and implement the changes.',
-          ),
-          const _PromptStarter(
-            icon: Icons.code_rounded,
-            title: 'Build feature',
-            detail: 'Plan, edit, verify',
-            prompt:
-                'Implement a focused feature in this project. Read the codebase first, then make and verify the change.',
-          ),
-          const _PromptStarter(
-            icon: Icons.terminal_rounded,
-            title: 'Run checks',
-            detail: 'Analyze, format, test',
-            prompt:
-                'Run the relevant project checks and fix any issues needed to get them passing.',
-          ),
-          const _PromptStarter(
-            icon: Icons.folder_open_rounded,
-            title: 'Explain repo',
-            detail: 'Map structure and flows',
-            prompt:
-                'Explain the architecture of this repo and identify the main files I should know.',
-          ),
-        ];
 
         return LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 620;
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  minHeight: (constraints.maxHeight - 36)
-                      .clamp(360.0, 900.0)
-                      .toDouble(),
+                  minHeight:
+                      (constraints.maxHeight - 38).clamp(0.0, 900.0).toDouble(),
                 ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     _buildCommandDashboardHeader(theme),
-                    const SizedBox(height: 18),
-                    _buildPromptStarterGrid(
-                      theme: theme,
-                      compact: compact,
-                      promptStarters: promptStarters,
-                    ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 22),
                     Align(
                       alignment:
                           compact ? Alignment.centerLeft : Alignment.center,
@@ -1393,135 +1320,73 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   Widget _buildCommandDashboardHeader(ThemeData theme) {
+    final modelLabel = _selectedModel == null
+        ? 'No model selected'
+        : _getModelDisplayName(_selectedModel!);
+
     return Column(
       children: [
         Container(
-          width: 66,
-          height: 66,
-          padding: const EdgeInsets.all(12),
+          width: 58,
+          height: 58,
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: theme.colorScheme.outlineVariant,
             ),
             boxShadow: [
               BoxShadow(
-                color: theme.colorScheme.secondary.withOpacity(0.08),
-                blurRadius: 34,
-                offset: const Offset(0, 14),
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
           child: Image.asset(AppAssets.logo, fit: BoxFit.contain),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         Text(
-          'What are we building?',
+          'Ask DevIO',
           textAlign: TextAlign.center,
-          style: theme.textTheme.displaySmall?.copyWith(
+          style: theme.textTheme.headlineSmall?.copyWith(
             color: theme.colorScheme.onSurface,
             fontWeight: FontWeight.w800,
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildPromptStarterGrid({
-    required ThemeData theme,
-    required bool compact,
-    required List<_PromptStarter> promptStarters,
-  }) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      alignment: WrapAlignment.center,
-      children: promptStarters
-          .map(
-            (starter) => _buildPromptStarterCard(
-              theme: theme,
-              compact: compact,
-              starter: starter,
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  Widget _buildPromptStarterCard({
-    required ThemeData theme,
-    required bool compact,
-    required _PromptStarter starter,
-  }) {
-    return SizedBox(
-      width: compact ? double.infinity : 236,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _usePromptStarter(starter.prompt),
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            height: 78,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withOpacity(0.82),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.colorScheme.outlineVariant),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    starter.icon,
-                    color: theme.colorScheme.secondary,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        starter.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.onSurface,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        starter.detail,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.arrow_outward_rounded,
-                  size: 17,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ],
-            ),
+        const SizedBox(height: 4),
+        Text(
+          '${_activeProviderDisplayName()} - $modelLabel',
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
           ),
         ),
-      ),
+        if (_hasConnectionError) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.error.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.error.withOpacity(0.24),
+              ),
+            ),
+            child: Text(
+              'Connection needs setup',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
