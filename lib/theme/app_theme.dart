@@ -120,7 +120,7 @@ class AppTheme {
         ),
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: _panel,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
@@ -130,7 +130,7 @@ class AppTheme {
       ),
       margin: EdgeInsets.zero,
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: _panel,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -249,7 +249,7 @@ class AppTheme {
         ),
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: _darkPanel,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
@@ -259,7 +259,7 @@ class AppTheme {
       ),
       margin: EdgeInsets.zero,
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: _darkPanel,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
