@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../features/llm/cubit/llm_cubit.dart';
+import '../features/llm/models/model_capabilities.dart';
 import 'dart:typed_data';
 
 // Model info class for displaying details about each model
@@ -11,6 +12,10 @@ class ModelInfo {
   final String? family;
   final String? format;
   final String? quantizationLevel;
+  final String? sizeOnDisk;
+  final String? contextLength;
+  final bool isLoaded;
+  final bool capabilitiesKnown;
   final bool hasDetails;
   final bool showModelDetails;
 
@@ -20,6 +25,10 @@ class ModelInfo {
     this.family,
     this.format,
     this.quantizationLevel,
+    this.sizeOnDisk,
+    this.contextLength,
+    this.isLoaded = false,
+    this.capabilitiesKnown = false,
     this.hasDetails = false,
     this.showModelDetails = false,
   });
@@ -27,6 +36,7 @@ class ModelInfo {
 
 class ModelSelectionUI extends StatefulWidget {
   final List<String> availableModels;
+  final Map<String, LlmModelInfo> modelInfoById;
   final String? selectedModel;
   final bool isLoadingModels;
   final VoidCallback onRefresh;
@@ -39,6 +49,7 @@ class ModelSelectionUI extends StatefulWidget {
   const ModelSelectionUI({
     super.key,
     required this.availableModels,
+    this.modelInfoById = const {},
     required this.selectedModel,
     required this.isLoadingModels,
     required this.onRefresh,
@@ -555,12 +566,15 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     final theme = Theme.of(context);
     final llmCubit = context.read<LlmCubit>();
     final isOllamaProvider = llmCubit.currentProviderId == 'ollama';
+    final isLmStudioProvider = llmCubit.currentProviderId == 'lmstudio';
 
     // Group models by type
-    final textModels =
-        filteredModels.where((m) => !m.contains('vision')).toList();
-    final visionModels =
-        filteredModels.where((m) => m.contains('vision')).toList();
+    final textModels = filteredModels
+        .where((model) => !_capabilitiesFor(model).supportsVision)
+        .toList();
+    final visionModels = filteredModels
+        .where((model) => _capabilitiesFor(model).supportsVision)
+        .toList();
 
     // Use a Column with SingleChildScrollView instead of ListView for better sizing
     return Padding(
@@ -569,46 +583,7 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (textModels.isNotEmpty && widget.selectedImageBytes == null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.text_fields,
-                          size: 14,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Text Models',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...textModels.map((model) => _buildModelItem(model)),
-            if (visionModels.isNotEmpty) const SizedBox(height: 16),
-          ],
-          if (visionModels.isNotEmpty &&
-              (widget.selectedImageBytes != null || textModels.isEmpty)) ...[
+          if (visionModels.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -644,9 +619,46 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
             ),
             const SizedBox(height: 8),
             ...visionModels.map((model) => _buildModelItem(model)),
+            if (textModels.isNotEmpty) const SizedBox(height: 16),
           ],
-          // Note about model availability - ONLY for cloud providers
-          if (!isOllamaProvider)
+          if (textModels.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.text_fields,
+                          size: 14,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Text Models',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...textModels.map((model) => _buildModelItem(model)),
+          ],
+          if (isLmStudioProvider && filteredModels.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
               child: Container(
@@ -669,7 +681,42 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Only showing models that are currently available. Some models may be temporarily unavailable due to high demand.',
+                        'Using LM Studio model metadata for capabilities, quantization, context, and loaded state.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          // Note about model availability - ONLY for cloud providers
+          if (!isOllamaProvider && !isLmStudioProvider)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest
+                      .withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Only showing models that are currently available. Some model capabilities may not be reported by this provider.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           height: 1.4,
@@ -724,6 +771,8 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     final isRecommended =
         model == 'gemini-1.0-pro' || model == 'gemini-1.0-pro-vision';
     final isSelected = model == widget.selectedModel;
+    final providerModelInfo = _modelInfoFor(model);
+    final capabilities = _capabilitiesFor(model);
 
     // Extract model details to show better information
     final ModelInfo modelInfo = _getModelInfo(model);
@@ -837,6 +886,81 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                                     ),
                                   ),
                                 ),
+                              const SizedBox(width: 8),
+                              Tooltip(
+                                message: providerModelInfo?.capabilitiesKnown ==
+                                        true
+                                    ? capabilities.description
+                                    : '${capabilities.description} (inferred)',
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: (capabilities.supportsVision
+                                            ? theme.colorScheme.secondary
+                                            : theme.colorScheme.primary)
+                                        .withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        capabilities.supportsVision
+                                            ? Icons.visibility_outlined
+                                            : Icons.text_fields_rounded,
+                                        size: 12,
+                                        color: capabilities.supportsVision
+                                            ? theme.colorScheme.secondary
+                                            : theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        capabilities.label,
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                          color: capabilities.supportsVision
+                                              ? theme.colorScheme.secondary
+                                              : theme.colorScheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (capabilities.supportsToolUse) ...[
+                                const SizedBox(width: 6),
+                                _buildInlineCapabilityChip(
+                                  theme,
+                                  icon: Icons.handyman_outlined,
+                                  label: 'Tools',
+                                  message: 'Trained for tool use',
+                                  color: theme.colorScheme.tertiary,
+                                ),
+                              ],
+                              if (capabilities.supportsReasoning) ...[
+                                const SizedBox(width: 6),
+                                _buildInlineCapabilityChip(
+                                  theme,
+                                  icon: Icons.psychology_alt_outlined,
+                                  label: 'Reason',
+                                  message: 'Reasoning-capable model',
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ],
+                              if (modelInfo.isLoaded) ...[
+                                const SizedBox(width: 6),
+                                _buildInlineCapabilityChip(
+                                  theme,
+                                  icon: Icons.bolt_outlined,
+                                  label: 'Loaded',
+                                  message: 'Loaded in LM Studio',
+                                  color: Colors.green,
+                                ),
+                              ],
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -864,6 +988,29 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                             modelInfo.parameterSize ?? '',
                             style: theme.textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (modelInfo.format != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6),
+                        child: Tooltip(
+                          message: 'Format: ${modelInfo.format}',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer
+                                  .withOpacity(0.4),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              modelInfo.format ?? '',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -896,6 +1043,20 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
                             'Quantization',
                             modelInfo.quantizationLevel!,
                             Icons.compress_outlined,
+                          ),
+                        if (modelInfo.contextLength != null)
+                          _buildModelDetailItem(
+                            theme,
+                            'Context',
+                            modelInfo.contextLength!,
+                            Icons.notes_outlined,
+                          ),
+                        if (modelInfo.sizeOnDisk != null)
+                          _buildModelDetailItem(
+                            theme,
+                            'Size',
+                            modelInfo.sizeOnDisk!,
+                            Icons.storage_outlined,
                           ),
                         if (modelInfo.format != null)
                           _buildModelDetailItem(
@@ -984,6 +1145,39 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
     );
   }
 
+  Widget _buildInlineCapabilityChip(
+    ThemeData theme, {
+    required IconData icon,
+    required String label,
+    required String message,
+    required Color color,
+  }) {
+    return Tooltip(
+      message: message,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Model details tracking
   final Map<String, bool> _expandedModels = {};
 
@@ -992,6 +1186,35 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
   }
 
   ModelInfo _getModelInfo(String model) {
+    final providerInfo = _modelInfoFor(model);
+    if (providerInfo != null) {
+      final hasDetails = providerInfo.publisher != null ||
+          providerInfo.architecture != null ||
+          providerInfo.quantizationName != null ||
+          providerInfo.format != null ||
+          providerInfo.maxContextLength != null ||
+          providerInfo.sizeBytes != null ||
+          providerInfo.isLoaded;
+
+      return ModelInfo(
+        description: providerInfo.description ?? _getModelDescription(model),
+        parameterSize: providerInfo.paramsString,
+        family: providerInfo.architecture ?? providerInfo.publisher,
+        format: providerInfo.format,
+        quantizationLevel: providerInfo.quantizationName ??
+            (providerInfo.quantizationBits == null
+                ? null
+                : '${providerInfo.quantizationBits} bits'),
+        sizeOnDisk:
+            providerInfo.sizeLabel.isEmpty ? null : providerInfo.sizeLabel,
+        contextLength: providerInfo.maxContextLength?.toString(),
+        isLoaded: providerInfo.isLoaded,
+        capabilitiesKnown: providerInfo.capabilitiesKnown,
+        hasDetails: hasDetails,
+        showModelDetails: _expandedModels[model] ?? false,
+      );
+    }
+
     // Parse model details from the model string
     String? paramSize;
     String? family;
@@ -1052,21 +1275,25 @@ class _ModelSelectionUIState extends State<ModelSelectionUI>
   }
 
   String _getModelDisplayName(String model) {
-    // For local models, just return the model name
-    return model;
+    return _modelInfoFor(model)?.displayName ?? model;
   }
 
   String _getModelDescription(String model) {
-    final modelLower = model.toLowerCase();
+    final capabilities = _capabilitiesFor(model);
 
-    if (modelLower.contains('vision')) {
+    if (capabilities.supportsVision) {
       return 'Model capable of understanding and analyzing images';
-    } else if (modelLower.contains('chat')) {
+    } else if (model.toLowerCase().contains('chat')) {
       return 'Optimized for conversational interactions';
     } else {
       return 'General purpose AI model for text generation';
     }
   }
+
+  LlmModelInfo? _modelInfoFor(String model) => widget.modelInfoById[model];
+
+  ModelCapabilities _capabilitiesFor(String model) =>
+      _modelInfoFor(model)?.capabilities ?? inferModelCapabilities(model);
 
   String _providerName(LlmProvider provider) {
     return switch (provider) {

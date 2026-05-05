@@ -1,7 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/llm_response.dart';
+import '../models/model_capabilities.dart';
 import '../services/llm_provider_registry.dart';
 import '../services/llm_service.dart';
 import '../services/providers/llm_provider.dart' as provider_api;
@@ -357,10 +359,21 @@ class LlmCubit extends Cubit<LlmState> {
   Future<List<String>> getAvailableModels() async {
     try {
       _debugLog('Getting available models');
-      final config = await _activeProviderConfig();
-      return _providerRegistry.get(_currentProviderId).listModels(config);
+      final modelInfos = await getAvailableModelInfos();
+      return modelInfos.map((model) => model.id).toList();
     } catch (e) {
       _debugLog('Error getting available models: $e');
+      return [];
+    }
+  }
+
+  Future<List<LlmModelInfo>> getAvailableModelInfos() async {
+    try {
+      _debugLog('Getting available model info');
+      final config = await _activeProviderConfig();
+      return _providerRegistry.get(_currentProviderId).listModelInfos(config);
+    } catch (e) {
+      _debugLog('Error getting available model info: $e');
       return [];
     }
   }
@@ -402,6 +415,7 @@ class LlmCubit extends Cubit<LlmState> {
   // New method for streaming responses
   Stream<LlmState> streamResponse({
     required String prompt,
+    Uint8List? imageBytes,
     String? modelName,
     int? maxTokens,
     double? temperature,
@@ -418,7 +432,15 @@ class LlmCubit extends Cubit<LlmState> {
       );
       final stream = _providerRegistry.get(_currentProviderId).chat(
         config,
-        [provider_api.LlmMessage(role: 'user', content: prompt)],
+        [
+          provider_api.LlmMessage(
+            role: 'user',
+            content: prompt,
+            images: imageBytes == null
+                ? null
+                : [_imageDataUrlFromBytes(imageBytes)],
+          ),
+        ],
       );
 
       await for (final chunk in stream) {
@@ -445,21 +467,22 @@ class LlmCubit extends Cubit<LlmState> {
     emit(const LlmState.loading());
 
     try {
-      // For now, we'll use a standard text response approach since
-      // the Ollama API doesn't natively support image analysis
-      // This method could be extended later to use a multimodal model
-
-      const String errorMessage =
-          'Image analysis is not supported by the selected provider yet. '
-          'Consider using a multimodal model like llava, bakllava, or moondream.';
-
-      _debugLog(errorMessage);
-      emit(LlmState.error(errorMessage));
-
-      // Alternatively, when implementing real image analysis:
-      // 1. Convert image to base64
-      // 2. Create a request with both prompt and image
-      // 3. Send to an LLM service that supports multimodal inputs
+      final config = await _activeProviderConfig(
+        modelName: modelName,
+        maxTokens: maxTokens,
+        temperature: temperature,
+      );
+      final text = await _providerRegistry.get(_currentProviderId).chatOnce(
+        config,
+        [
+          provider_api.LlmMessage(
+            role: 'user',
+            content: prompt,
+            images: [_imageDataUrlFromBytes(imageBytes)],
+          ),
+        ],
+      );
+      emit(LlmState.success(LlmResponse(text: text, modelName: config.model)));
     } catch (e) {
       _debugLog('Error in image analysis: $e');
       emit(LlmState.error('Failed to analyze image: $e'));
@@ -522,6 +545,39 @@ class LlmCubit extends Cubit<LlmState> {
       dev.log(message);
       return true;
     }());
+  }
+
+  String _imageDataUrlFromBytes(Uint8List imageBytes) {
+    return 'data:${_detectImageMimeType(imageBytes)};base64,'
+        '${base64Encode(imageBytes)}';
+  }
+
+  String _detectImageMimeType(Uint8List imageBytes) {
+    if (imageBytes.length >= 8 &&
+        imageBytes[0] == 0x89 &&
+        imageBytes[1] == 0x50 &&
+        imageBytes[2] == 0x4E &&
+        imageBytes[3] == 0x47) {
+      return 'image/png';
+    }
+    if (imageBytes.length >= 3 &&
+        imageBytes[0] == 0xFF &&
+        imageBytes[1] == 0xD8 &&
+        imageBytes[2] == 0xFF) {
+      return 'image/jpeg';
+    }
+    if (imageBytes.length >= 12 &&
+        imageBytes[0] == 0x52 &&
+        imageBytes[1] == 0x49 &&
+        imageBytes[2] == 0x46 &&
+        imageBytes[3] == 0x46 &&
+        imageBytes[8] == 0x57 &&
+        imageBytes[9] == 0x45 &&
+        imageBytes[10] == 0x42 &&
+        imageBytes[11] == 0x50) {
+      return 'image/webp';
+    }
+    return 'image/jpeg';
   }
 
   @override

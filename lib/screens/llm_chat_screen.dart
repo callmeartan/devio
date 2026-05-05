@@ -15,6 +15,7 @@ import '../cubits/chat/chat_cubit.dart';
 import '../cubits/chat/chat_state.dart';
 import '../features/llm/cubit/llm_cubit.dart';
 import '../features/llm/cubit/llm_state.dart';
+import '../features/llm/models/model_capabilities.dart';
 import '../widgets/chat_input_field.dart';
 import '../widgets/chat_message_widget.dart';
 import '../widgets/compact_model_indicator.dart';
@@ -95,6 +96,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   final ImagePicker _picker = ImagePicker();
   String? _selectedModel;
   List<String> _availableModels = [];
+  Map<String, LlmModelInfo> _availableModelInfoById = {};
   bool _showScrollToBottom = false;
   Uint8List? _selectedImageBytes;
   File? _selectedDocument;
@@ -164,6 +166,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
   Future<void> _loadAvailableModels() async {
     try {
+      final llmCubit = context.read<LlmCubit>();
       setState(() {
         _isLoadingModels = true;
       });
@@ -171,12 +174,13 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       developer.log('Loading available models...');
 
       // First test connection
-      final connectionTest = await context.read<LlmCubit>().testConnection();
+      final connectionTest = await llmCubit.testConnection();
       if (connectionTest['status'] != 'connected') {
         if (mounted) {
           setState(() {
             _isLoadingModels = false;
             _availableModels = [];
+            _availableModelInfoById = {};
             _selectedModel = null;
           });
 
@@ -186,18 +190,23 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         return;
       }
 
-      final models = await context.read<LlmCubit>().getAvailableModels();
+      if (!mounted) return;
+      final modelInfos = await llmCubit.getAvailableModelInfos();
+      final models = modelInfos.map((model) => model.id).toList();
       developer.log('Models loaded: $models');
 
       if (mounted) {
         setState(() {
           _isLoadingModels = false;
           _availableModels = models;
+          _availableModelInfoById = {
+            for (final modelInfo in modelInfos) modelInfo.id: modelInfo,
+          };
 
           // Filter models based on current context
           final filteredModels = _getFilteredModels();
 
-          final savedModel = context.read<LlmCubit>().selectedModel;
+          final savedModel = llmCubit.selectedModel;
           if (filteredModels.isNotEmpty) {
             if (savedModel != null && filteredModels.contains(savedModel)) {
               _selectedModel = savedModel;
@@ -206,7 +215,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               _selectedModel = _selectedModel;
             } else {
               _selectedModel = filteredModels.first;
-              context.read<LlmCubit>().selectModel(_selectedModel);
+              llmCubit.selectModel(_selectedModel);
             }
           } else {
             _selectedModel = null;
@@ -222,6 +231,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         setState(() {
           _isLoadingModels = false;
           _availableModels = [];
+          _availableModelInfoById = {};
           _selectedModel = null;
         });
         _showErrorSnackBar('Failed to load models: $e');
@@ -256,17 +266,36 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   Future<void> _pickImage() async {
+    await _pickImageFromSource(ImageSource.gallery);
+  }
+
+  Future<void> _takePhoto() async {
+    await _pickImageFromSource(ImageSource.camera);
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(source: source);
       if (image != null) {
         final bytes = await image.readAsBytes();
+        if (!mounted) return;
         setState(() {
           _selectedImageBytes = bytes;
+          if (_selectedModelInfo?.capabilities.supportsVision != true) {
+            _showModelSelection = true;
+          }
         });
+        if (_selectedModelInfo?.capabilitiesKnown == true &&
+            _selectedModelInfo?.capabilities.supportsVision != true) {
+          _showErrorSnackBar(
+            'Selected LM Studio model does not report vision support',
+          );
+        }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
+        SnackBar(content: Text('Error attaching image: $e')),
       );
     }
   }
@@ -978,6 +1007,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                     const SizedBox(width: 8),
                     CompactModelIndicator(
                       selectedModel: _selectedModel,
+                      capabilities: _selectedModelCapabilities,
                       showModelSelection: _showModelSelection,
                       onTap: () {
                         setState(() {
@@ -1177,6 +1207,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                           isWaitingForAiResponse: _isWaitingForAiResponse,
                           onSendMessage: _sendMessage,
                           onPickImage: _pickImage,
+                          onTakePhoto: _takePhoto,
                           onPickDocument: _pickDocument,
                           onClearSelectedImage: _clearSelectedImage,
                           onClearSelectedDocument: _clearSelectedDocument,
@@ -1189,6 +1220,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
                       Positioned.fill(
                         child: ModelSelectionUI(
                           availableModels: _availableModels,
+                          modelInfoById: _availableModelInfoById,
                           selectedModel: _selectedModel,
                           isLoadingModels: _isLoadingModels,
                           onRefresh: _loadAvailableModels,
@@ -1548,8 +1580,20 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     }
 
     final message = _messageController.text.trim();
+    final prompt = message.isEmpty ? 'Describe this image.' : message;
     final selectedImageBytes = _selectedImageBytes;
     final selectedDocument = _selectedDocument;
+    if (selectedImageBytes != null &&
+        _selectedModelInfo?.capabilitiesKnown == true &&
+        _selectedModelInfo?.capabilities.supportsVision != true) {
+      setState(() {
+        _showModelSelection = true;
+      });
+      _showErrorSnackBar(
+        'Select a vision-capable LM Studio model before sending an image',
+      );
+      return;
+    }
     _messageController.clear();
 
     // Add message to chat history
@@ -1564,7 +1608,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         .read<ChatCubit>()
         .sendMessage(
           senderId: userId,
-          content: message,
+          content: prompt,
           isAI: false,
         )
         .catchError((error) {
@@ -1605,12 +1649,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
       setState(() {
         _isWaitingForAiResponse = false;
       });
-    } else if (selectedImageBytes != null) {
-      _showErrorSnackBar(
-          'Image analysis is not available for the selected provider yet');
-      setState(() {
-        _isWaitingForAiResponse = false;
-      });
     } else {
       // Add a placeholder message for the AI response
       final placeholderId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -1628,7 +1666,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
       // Check if we're in demo mode
       if (_isDemoMode) {
-        _handleDemoResponse(message);
+        _handleDemoResponse(prompt);
       } else {
         // Use the streaming API for real-time responses
         final llmCubit = context.read<LlmCubit>();
@@ -1640,7 +1678,8 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
 
         try {
           final responseStream = llmCubit.streamResponse(
-            prompt: message,
+            prompt: prompt,
+            imageBytes: selectedImageBytes,
             modelName: _selectedModel,
           );
 
@@ -1733,6 +1772,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               );
             },
             onError: (error) {
+              if (!mounted) {
+                subscription?.cancel();
+                return;
+              }
               // Handle stream error
               context.read<ChatCubit>().updateMessageContent(
                     messageId: messageId,
@@ -1747,7 +1790,12 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
               subscription?.cancel();
             },
             onDone: () {
-              // This may run even with errors, so we don't reset the waiting state here
+              if (mounted) {
+                setState(() {
+                  _isWaitingForAiResponse = false;
+                });
+                _messageFocusNode.requestFocus();
+              }
               subscription?.cancel();
             },
           );
@@ -1987,11 +2035,19 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
     return _availableModels;
   }
 
+  LlmModelInfo? get _selectedModelInfo =>
+      _selectedModel == null ? null : _availableModelInfoById[_selectedModel!];
+
+  ModelCapabilities get _selectedModelCapabilities =>
+      _selectedModelInfo?.capabilities ??
+      inferModelCapabilities(_selectedModel);
+
   void _onProviderChanged(LlmProvider provider) {
     setState(() {
       _selectedImageBytes = null;
       _selectedDocument = null;
       _selectedModel = null;
+      _availableModelInfoById = {};
       _hasConnectionError = false;
       _connectionErrorMessage = null;
       _isDemoMode = false;

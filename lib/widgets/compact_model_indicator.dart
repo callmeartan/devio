@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../features/llm/models/model_capabilities.dart';
+
 class CompactModelIndicator extends StatelessWidget {
   final String? selectedModel;
+  final ModelCapabilities capabilities;
   final bool showModelSelection;
   final VoidCallback onTap;
   final String Function(String) getModelDisplayName;
@@ -9,6 +12,7 @@ class CompactModelIndicator extends StatelessWidget {
   const CompactModelIndicator({
     super.key,
     required this.selectedModel,
+    required this.capabilities,
     required this.showModelSelection,
     required this.onTap,
     required this.getModelDisplayName,
@@ -31,7 +35,9 @@ class CompactModelIndicator extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.smart_toy_outlined,
+              capabilities.supportsVision
+                  ? Icons.image_search_outlined
+                  : Icons.smart_toy_outlined,
               size: 16,
               color: theme.colorScheme.primary,
             ),
@@ -53,6 +59,43 @@ class CompactModelIndicator extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
+            if (selectedModel != null) ...[
+              Tooltip(
+                message: capabilities.supportsVision
+                    ? 'Vision model: text and image input'
+                    : 'Text model: text input only',
+                child: Icon(
+                  capabilities.supportsVision
+                      ? Icons.visibility_outlined
+                      : Icons.text_fields_rounded,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 4),
+              if (capabilities.supportsToolUse) ...[
+                Tooltip(
+                  message: 'Tool-use capable model',
+                  child: Icon(
+                    Icons.handyman_outlined,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+              if (capabilities.supportsReasoning) ...[
+                Tooltip(
+                  message: 'Reasoning-capable model',
+                  child: Icon(
+                    Icons.psychology_alt_outlined,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+            ],
             Icon(
               showModelSelection
                   ? Icons.keyboard_arrow_up

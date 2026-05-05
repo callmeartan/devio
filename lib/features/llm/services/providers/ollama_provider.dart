@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../models/model_capabilities.dart';
 import 'llm_provider.dart';
 
 class OllamaProvider implements LlmProviderInterface {
@@ -16,6 +17,12 @@ class OllamaProvider implements LlmProviderInterface {
 
   @override
   Future<List<String>> listModels(LlmProviderConfig config) async {
+    final modelInfos = await listModelInfos(config);
+    return modelInfos.map((model) => model.id).toList();
+  }
+
+  @override
+  Future<List<LlmModelInfo>> listModelInfos(LlmProviderConfig config) async {
     try {
       final response = await _client
           .get(Uri.parse('${_trimBaseUrl(config.baseUrl)}/api/tags'))
@@ -34,8 +41,8 @@ class OllamaProvider implements LlmProviderInterface {
 
       return (decoded['models'] as List)
           .whereType<Map>()
-          .map((model) => model['name'])
-          .whereType<String>()
+          .map(_ollamaModelInfoFromMap)
+          .whereType<LlmModelInfo>()
           .toList();
     } on SocketException catch (e) {
       throw Exception('Unable to connect to Ollama: ${e.message}');
@@ -110,6 +117,36 @@ class OllamaProvider implements LlmProviderInterface {
     _client.close();
   }
 }
+
+LlmModelInfo? _ollamaModelInfoFromMap(Map model) {
+  final id = model['name'] ?? model['model'];
+  if (id is! String || id.isEmpty) {
+    return null;
+  }
+  final details = model['details'];
+  return LlmModelInfo(
+    id: id,
+    displayName: id,
+    providerId: 'ollama',
+    architecture: details is Map ? _stringOrNull(details['family']) : null,
+    format: details is Map ? _stringOrNull(details['format']) : null,
+    quantizationName:
+        details is Map ? _stringOrNull(details['quantization_level']) : null,
+    sizeBytes: _intOrNull(model['size']),
+    paramsString:
+        details is Map ? _stringOrNull(details['parameter_size']) : null,
+    capabilities: inferModelCapabilities(id),
+  );
+}
+
+String? _stringOrNull(Object? value) =>
+    value is String && value.isNotEmpty ? value : value?.toString();
+
+int? _intOrNull(Object? value) => value is int
+    ? value
+    : value is num
+        ? value.toInt()
+        : int.tryParse(value?.toString() ?? '');
 
 String? parseOllamaChatLine(String line) {
   final trimmed = line.trim();

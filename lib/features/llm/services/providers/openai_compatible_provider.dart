@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../models/model_capabilities.dart';
 import 'llm_provider.dart';
 import 'lm_studio_provider.dart';
 
@@ -18,6 +19,12 @@ class OpenAiCompatibleProvider implements LlmProviderInterface {
 
   @override
   Future<List<String>> listModels(LlmProviderConfig config) async {
+    final modelInfos = await listModelInfos(config);
+    return modelInfos.map((model) => model.id).toList();
+  }
+
+  @override
+  Future<List<LlmModelInfo>> listModelInfos(LlmProviderConfig config) async {
     try {
       final response = await _client
           .get(
@@ -40,6 +47,7 @@ class OpenAiCompatibleProvider implements LlmProviderInterface {
           .whereType<Map>()
           .map((model) => model['id'])
           .whereType<String>()
+          .map((id) => LlmModelInfo.basic(id, providerId: providerId))
           .toList();
     } on SocketException catch (e) {
       throw Exception(
@@ -61,12 +69,7 @@ class OpenAiCompatibleProvider implements LlmProviderInterface {
       request.headers['Accept'] = 'text/event-stream';
       request.body = jsonEncode({
         'model': config.model,
-        'messages': messages
-            .map((message) => {
-                  'role': message.role,
-                  'content': message.content,
-                })
-            .toList(),
+        'messages': messages.map(toOpenAiChatMessageJson).toList(),
         'stream': true,
         'temperature': config.temperature,
         if (config.maxTokens != null) 'max_tokens': config.maxTokens,

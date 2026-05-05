@@ -10,6 +10,7 @@ class ChatInputField extends StatelessWidget {
   final bool isWaitingForAiResponse;
   final VoidCallback onSendMessage;
   final VoidCallback onPickImage;
+  final VoidCallback onTakePhoto;
   final VoidCallback onPickDocument;
   final VoidCallback onClearSelectedImage;
   final VoidCallback onClearSelectedDocument;
@@ -21,6 +22,7 @@ class ChatInputField extends StatelessWidget {
     required this.isWaitingForAiResponse,
     required this.onSendMessage,
     required this.onPickImage,
+    required this.onTakePhoto,
     required this.onPickDocument,
     required this.onClearSelectedImage,
     required this.onClearSelectedDocument,
@@ -173,8 +175,16 @@ class ChatInputField extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             _ComposerIconButton(
+                              icon: Icons.camera_alt_outlined,
+                              tooltip: 'Take photo',
+                              isActive: false,
+                              onPressed:
+                                  isWaitingForAiResponse ? null : onTakePhoto,
+                            ),
+                            const SizedBox(width: 4),
+                            _ComposerIconButton(
                               icon: Icons.image_outlined,
-                              tooltip: 'Add image',
+                              tooltip: 'Choose image',
                               isActive: selectedImageBytes != null,
                               onPressed:
                                   isWaitingForAiResponse ? null : onPickImage,
