@@ -11,9 +11,10 @@ Privacy-first Flutter client for local and OpenAI-compatible LLMs, with Ollama a
 - Connect to Ollama, LM Studio, or OpenAI-compatible APIs.
 - Stream chat responses from local or self-hosted model servers.
 - Switch providers, models, temperature, token limits, and endpoint settings from the app.
+- Read LM Studio model metadata for vision, tool-use, reasoning, quantization, context length, and loaded-state indicators.
 - Store chat history locally with Drift and SQLite.
 - Persist provider settings locally with SharedPreferences and secure storage.
-- Attach supported files and images for model workflows.
+- Attach images for vision-capable LM Studio and OpenAI-compatible models.
 - Run across Flutter-supported platforms from one codebase.
 
 ## Supported Providers
@@ -21,10 +22,20 @@ Privacy-first Flutter client for local and OpenAI-compatible LLMs, with Ollama a
 | Provider | Default endpoint | Notes |
 | --- | --- | --- |
 | Ollama | `http://localhost:11434` | Uses Ollama chat and model APIs. |
-| LM Studio | `http://localhost:1234` | Uses the local OpenAI-compatible server. |
-| OpenAI-compatible | `https://api.openai.com` | Works with compatible `/v1/models` and `/v1/chat/completions` APIs. |
+| LM Studio | `http://localhost:1234` | Uses LM Studio native model metadata APIs plus OpenAI-compatible chat completions. |
+| OpenAI-compatible | `https://api.openai.com` | Works with compatible `/v1/models` and `/v1/chat/completions` APIs, including multimodal image content when supported by the model. |
 
 Provider implementations live in [`lib/features/llm/services/providers/`](lib/features/llm/services/providers/).
+
+### LM Studio Support
+
+DevIO treats LM Studio as a first-class local provider:
+
+- Discovers models through LM Studio's native `/api/v1/models` endpoint.
+- Falls back to `/api/v0/models`, then OpenAI-compatible `/v1/models`, when needed.
+- Shows model capabilities from LM Studio metadata instead of relying on hardcoded model-name checks.
+- Indicates vision, tool-use, reasoning, format, quantization, parameter size, context length, disk size, and loaded state in the model UI.
+- Sends image attachments using OpenAI-compatible multimodal chat content for vision-capable models.
 
 ## Requirements
 
