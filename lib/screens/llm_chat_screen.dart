@@ -28,8 +28,16 @@ import '../widgets/typing_indicator.dart';
 import 'package:devio/utils/state_extension_helpers.dart';
 
 const String _kAiUserName = 'AI Assistant';
-const Color _githubSuccess = Color(0xFF3FB950);
-const Color _githubDanger = Color(0xFFF85149);
+
+class _IntroCopy {
+  final String title;
+  final String subtitle;
+
+  const _IntroCopy({
+    required this.title,
+    required this.subtitle,
+  });
+}
 
 class ChatMessage {
   final String text;
@@ -75,12 +83,6 @@ class LlmChatScreen extends StatefulWidget {
 }
 
 class _LlmChatScreenState extends State<LlmChatScreen> {
-  static const List<LlmProvider> _providerChoices = [
-    LlmProvider.ollama,
-    LlmProvider.lmstudio,
-    LlmProvider.openai,
-  ];
-
   final ScrollController _chatScrollController = ScrollController();
   final ScrollController _historyScrollController = ScrollController();
   final TextEditingController _messageController = TextEditingController();
@@ -1271,58 +1273,29 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
   }
 
   Widget _buildEmptyChatState(ThemeData theme) {
-    return BlocBuilder<LlmCubit, LlmState>(
-      builder: (context, _) {
-        final llmCubit = context.read<LlmCubit>();
-        final currentProvider = llmCubit.currentProvider;
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 620;
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight:
-                      (constraints.maxHeight - 38).clamp(0.0, 900.0).toDouble(),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    _buildCommandDashboardHeader(theme),
-                    const SizedBox(height: 22),
-                    Align(
-                      alignment:
-                          compact ? Alignment.centerLeft : Alignment.center,
-                      child: Text(
-                        'Model Providers',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildEmptyProviderSwitch(
-                      theme: theme,
-                      currentProvider: currentProvider,
-                      compact: compact,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  (constraints.maxHeight - 38).clamp(0.0, 900.0).toDouble(),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCommandDashboardHeader(theme),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 
   Widget _buildCommandDashboardHeader(ThemeData theme) {
-    final modelLabel = _selectedModel == null
-        ? 'No model selected'
-        : _getModelDisplayName(_selectedModel!);
+    final intro = _timeAwareIntro(DateTime.now());
 
     return Column(
       children: [
@@ -1338,7 +1311,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.12),
+                color: Colors.black.withValues(alpha: 0.12),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -1348,7 +1321,7 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ),
         const SizedBox(height: 12),
         Text(
-          'Ask DevIO',
+          intro.title,
           textAlign: TextAlign.center,
           style: theme.textTheme.headlineSmall?.copyWith(
             color: theme.colorScheme.onSurface,
@@ -1357,10 +1330,9 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          '${_activeProviderDisplayName()} - $modelLabel',
+          intro.subtitle,
           textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          maxLines: 2,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
@@ -1371,10 +1343,10 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: theme.colorScheme.error.withOpacity(0.1),
+              color: theme.colorScheme.error.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: theme.colorScheme.error.withOpacity(0.24),
+                color: theme.colorScheme.error.withValues(alpha: 0.24),
               ),
             ),
             child: Text(
@@ -1388,6 +1360,115 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         ],
       ],
     );
+  }
+
+  _IntroCopy _timeAwareIntro(DateTime now) {
+    final hour = now.hour;
+    final seed = now.year + now.month + now.day + now.hour;
+
+    if (hour < 5) {
+      return _pickIntro(seed, const [
+        _IntroCopy(
+          title: 'Hello, night owl.',
+          subtitle: 'What can I help you work through tonight?',
+        ),
+        _IntroCopy(
+          title: 'Still up?',
+          subtitle: 'Tell me what you want to untangle.',
+        ),
+        _IntroCopy(
+          title: 'Late night focus.',
+          subtitle: 'What should we take care of before morning?',
+        ),
+        _IntroCopy(
+          title: 'Quiet hours.',
+          subtitle: 'What would you like help thinking through?',
+        ),
+      ]);
+    }
+    if (hour < 12) {
+      return _pickIntro(seed, const [
+        _IntroCopy(
+          title: 'Good morning.',
+          subtitle: 'How can I help you this morning?',
+        ),
+        _IntroCopy(
+          title: 'Morning.',
+          subtitle: 'What would you like to start with?',
+        ),
+        _IntroCopy(
+          title: 'Ready when you are.',
+          subtitle: 'What should we make progress on first?',
+        ),
+        _IntroCopy(
+          title: 'A fresh start.',
+          subtitle: 'What can I help you move forward today?',
+        ),
+      ]);
+    }
+    if (hour < 17) {
+      return _pickIntro(seed, const [
+        _IntroCopy(
+          title: 'Good afternoon.',
+          subtitle: 'What would you like to make progress on?',
+        ),
+        _IntroCopy(
+          title: 'Back to it.',
+          subtitle: 'What can I help you sort out?',
+        ),
+        _IntroCopy(
+          title: 'Let\'s continue.',
+          subtitle: 'What needs attention next?',
+        ),
+        _IntroCopy(
+          title: 'What are we working on?',
+          subtitle: 'Share the task and I\'ll help from there.',
+        ),
+      ]);
+    }
+    if (hour < 21) {
+      return _pickIntro(seed, const [
+        _IntroCopy(
+          title: 'Good evening.',
+          subtitle: 'What can I help you with this evening?',
+        ),
+        _IntroCopy(
+          title: 'Evening.',
+          subtitle: 'What would you like to wrap up?',
+        ),
+        _IntroCopy(
+          title: 'Let\'s finish well.',
+          subtitle: 'What should we focus on now?',
+        ),
+        _IntroCopy(
+          title: 'Settling in?',
+          subtitle: 'Tell me what you want to work through.',
+        ),
+      ]);
+    }
+
+    return _pickIntro(seed, const [
+      _IntroCopy(
+        title: 'Hello, night owl.',
+        subtitle: 'What can I help you work through tonight?',
+      ),
+      _IntroCopy(
+        title: 'Night mode.',
+        subtitle: 'What should we make clearer before you call it?',
+      ),
+      _IntroCopy(
+        title: 'Late evening.',
+        subtitle: 'What can I help you finish?',
+      ),
+      _IntroCopy(
+        title: 'One more thing?',
+        subtitle: 'Tell me what needs attention.',
+      ),
+    ]);
+  }
+
+  _IntroCopy _pickIntro(int seed, List<_IntroCopy> intros) {
+    return intros[seed % intros.length];
   }
 
   Widget _buildProviderPill(ThemeData theme) {
@@ -1446,207 +1527,6 @@ class _LlmChatScreenState extends State<LlmChatScreen> {
         );
       },
     );
-  }
-
-  Widget _buildEmptyProviderSwitch({
-    required ThemeData theme,
-    required LlmProvider currentProvider,
-    required bool compact,
-  }) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      alignment: WrapAlignment.center,
-      children: _providerChoices
-          .map(
-            (provider) => _buildEmptyProviderTile(
-              theme: theme,
-              provider: provider,
-              isSelected: provider == currentProvider,
-              compact: compact,
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  Widget _buildEmptyProviderTile({
-    required ThemeData theme,
-    required LlmProvider provider,
-    required bool isSelected,
-    required bool compact,
-  }) {
-    final accent = _providerAccent(provider, theme);
-    final hasError = isSelected && _hasConnectionError;
-    final statusColor = hasError
-        ? _githubDanger
-        : isSelected && !_isLoadingModels
-            ? _githubSuccess
-            : theme.colorScheme.onSurfaceVariant;
-    final statusLabel = hasError
-        ? 'Needs setup'
-        : isSelected && !_isLoadingModels
-            ? 'Ready'
-            : 'Available';
-
-    return SizedBox(
-      width: compact ? double.infinity : 218,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isSelected
-              ? _showProviderConfigDialog
-              : () => _connectProvider(provider),
-          borderRadius: BorderRadius.circular(8),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            height: compact ? null : 112,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? accent.withOpacity(0.09)
-                  : theme.colorScheme.surface.withOpacity(0.92),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isSelected
-                    ? accent.withOpacity(0.58)
-                    : theme.colorScheme.outlineVariant,
-                width: isSelected ? 1.4 : 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: accent.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        _providerIcon(provider),
-                        color: accent,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _providerDisplayName(provider),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.onSurface,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _providerRoleLabel(provider),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Tooltip(
-                      message: isSelected
-                          ? 'Configure ${_providerDisplayName(provider)}'
-                          : 'Connect ${_providerDisplayName(provider)}',
-                      child: Icon(
-                        isSelected
-                            ? Icons.tune_rounded
-                            : Icons.add_link_rounded,
-                        size: 18,
-                        color: isSelected
-                            ? accent
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 9),
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: statusColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        statusLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      isSelected
-                          ? _modelCountLabel()
-                          : _providerSpeedLabel(provider),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  _providerEndpoint(provider),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _modelCountLabel() {
-    if (_isLoadingModels) return 'Checking';
-    if (_availableModels.isEmpty) return 'No models';
-    return '${_availableModels.length} model${_availableModels.length == 1 ? '' : 's'}';
-  }
-
-  String _providerRoleLabel(LlmProvider provider) {
-    return switch (provider) {
-      LlmProvider.local || LlmProvider.ollama => 'Local model runtime',
-      LlmProvider.lmstudio => 'Local OpenAI server',
-      LlmProvider.openai => 'OpenAI-compatible API',
-    };
-  }
-
-  String _providerSpeedLabel(LlmProvider provider) {
-    return switch (provider) {
-      LlmProvider.local || LlmProvider.ollama => 'Local',
-      LlmProvider.lmstudio => 'Local',
-      LlmProvider.openai => 'Remote',
-    };
   }
 
   void _connectProvider(LlmProvider provider) {
